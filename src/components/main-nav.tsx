@@ -33,15 +33,6 @@ export function MainNav() {
         >
           Pour les Vendeurs
         </Link>
-        <Link
-          href="/dashboard/ai-generator"
-          className={cn(
-            'transition-colors hover:text-foreground/80',
-            pathname === '/dashboard/ai-generator' ? 'text-foreground' : 'text-foreground/60'
-          )}
-        >
-          AI Generator
-        </Link>
       </nav>
     </div>
   );

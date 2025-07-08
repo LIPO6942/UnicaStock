@@ -16,7 +16,6 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
-  FlaskConical,
   Settings,
   Users,
   BarChart3,
@@ -51,7 +50,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   ];
 
   const commonNav = [
-    { href: '/dashboard/ai-generator', label: 'AI Generator', icon: FlaskConical },
     { href: '/dashboard/settings', label: 'Paramètres', icon: Settings },
   ];
 

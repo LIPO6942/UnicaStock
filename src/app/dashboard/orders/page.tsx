@@ -67,6 +67,48 @@ export default function DashboardOrdersPage() {
     }
   };
 
+  const handleExport = () => {
+    if (orders.length === 0) {
+      toast({ title: "Aucune commande à exporter", variant: "destructive" });
+      return;
+    }
+
+    const csvHeader = [
+      "Numéro Commande", "Date", "Client", "Email", "Produits", "Total (TND)", "Statut", "Paiement"
+    ].join(',');
+
+    const csvRows = orders.map(order => {
+      const productsString = order.items
+        .map(item => `${item.quantity}kg - ${item.product.name}`)
+        .join(" | ");
+
+      const row = [
+        order.orderNumber,
+        new Date(order.date).toLocaleDateString('fr-FR'),
+        `"${order.userName.replace(/"/g, '""')}"`,
+        order.buyerInfo?.email || '',
+        `"${productsString.replace(/"/g, '""')}"`,
+        order.total.toFixed(2),
+        order.status,
+        order.payment,
+      ];
+      return row.join(',');
+    });
+
+    const csvContent = [csvHeader, ...csvRows].join('\n');
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `export_commandes_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({ title: "Exportation réussie", description: "Le fichier CSV a été téléchargé." });
+  };
+
   if (isAuthLoading || isLoadingOrders) {
     return (
        <div className="flex flex-1 items-center justify-center">
@@ -103,7 +145,7 @@ export default function DashboardOrdersPage() {
           <CardDescription>{cardDescription}</CardDescription>
         </div>
         {isSeller && (
-          <Button size="sm" variant="outline" className="h-8 gap-1">
+          <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleExport}>
             <File className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
               Exporter
@@ -179,7 +221,7 @@ export default function DashboardOrdersPage() {
                                               defaultValue={order.status}
                                               onValueChange={(value) => handleStatusChange(order.id, value as OrderStatus)}
                                           >
-                                              <SelectTrigger id={`status-${order.id}`}>
+                                              <SelectTrigger id={`status-${order.id}`} onClick={(e) => e.stopPropagation()}>
                                                   <SelectValue placeholder="Changer le statut" />
                                               </SelectTrigger>
                                               <SelectContent>
@@ -189,9 +231,14 @@ export default function DashboardOrdersPage() {
                                               </SelectContent>
                                           </Select>
                                       </div>
-                                      <Button variant="outline" size="sm">
+                                       <Button variant="outline" size="sm" asChild>
+                                        <a
+                                          href={`mailto:${order.buyerInfo.email}?subject=Concernant votre commande ${order.orderNumber}`}
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
                                           <MessageSquare className="mr-2 h-4 w-4" />
                                           Contacter
+                                        </a>
                                       </Button>
                                   </div>
                               )}

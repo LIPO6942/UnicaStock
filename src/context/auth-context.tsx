@@ -196,9 +196,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     } catch (e: any) {
       console.error("Order transaction failed: ", e);
+      let description = "La transaction a échoué. Veuillez réessayer.";
+      if (e.message?.includes("PERMISSION_DENIED")) {
+        description = "Un problème de permissions est survenu lors de la mise à jour du stock. Veuillez contacter le support.";
+      } else if (e.message) {
+        description = e.message;
+      }
+      
       toast({
         title: "Erreur de commande",
-        description: e.message || "La transaction a échoué. Veuillez réessayer.",
+        description: description,
         variant: "destructive",
       });
       return null;

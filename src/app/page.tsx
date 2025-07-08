@@ -15,7 +15,7 @@ export default function Home() {
     <div className="flex flex-col">
       <section className="relative h-[60vh] min-h-[400px] w-full flex items-center justify-center text-center bg-card">
         <Image
-          src="https://images.unsplash.com/photo-1594541381368-857a213a483a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfGFsbHx8fHx8fHx8fDE3NTI1NjI5OTZ8&ixlib=rb-4.1.0&q=80&w=1080"
+          src="https://i.imgur.com/8L64t9p.png"
           alt="Hero background"
           fill
           className="object-cover opacity-20"

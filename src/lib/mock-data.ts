@@ -132,7 +132,7 @@ export const mockBanners: Banner[] = [
     id: 'banner-1',
     title: 'Découvrez la nouvelle Lux Cream Unica',
     description: 'Une expérience anti-âge et illuminatrice inspirée par la Méditerranée. Disponible dès maintenant.',
-    imageUrl: 'https://images.unsplash.com/photo-1594541381368-857a213a483a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfGFsbHx8fHx8fHx8fDE3NTI1NjI5OTZ8&ixlib=rb-4.1.0&q=80&w=1080',
+    imageUrl: 'https://i.imgur.com/8L64t9p.png',
     linkUrl: '/products',
     buttonText: 'Acheter maintenant',
   },

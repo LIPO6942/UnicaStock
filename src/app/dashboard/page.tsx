@@ -7,7 +7,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { ArrowUpRight, DollarSign, ShoppingCart, Heart, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { BannerCarousel } from '@/components/banner-carousel';
 import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -55,7 +54,7 @@ export default function DashboardPage() {
   const recentOrders = orders.slice(0, 3);
   const totalSpent = orders.reduce((acc, order) => acc + order.total, 0);
   const totalOrders = orders.length;
-  const favoriteCount = 3; 
+  const favoriteCount = 0; // Favorites are not implemented yet
 
   return (
     <>
@@ -95,8 +94,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      <BannerCarousel />
 
       <Card>
         <CardHeader className="flex flex-row items-center">

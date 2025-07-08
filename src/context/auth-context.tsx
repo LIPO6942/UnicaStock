@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User as FirebaseUser, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, collection, addDoc, serverTimestamp, query, where, getDocs, writeBatch, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, collection, addDoc, serverTimestamp, query, where, getDocs, writeBatch, deleteDoc, runTransaction, DocumentReference } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import type { UserProfile, Product, CartItem, Order } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -92,6 +92,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const addToCart = async (product: Product, quantity: number) => {
     if (!user) throw new Error("Vous devez être connecté pour ajouter au panier.");
+    if (product.stock < quantity) {
+      throw new Error("Quantité en stock insuffisante.");
+    }
 
     const cartCollectionRef = collection(db, 'users', user.uid, 'cart');
     const q = query(cartCollectionRef, where("product.id", "==", product.id));
@@ -132,43 +135,76 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return null;
     }
 
-    const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-
-    const ordersCollectionRef = collection(db, 'orders');
-    const newOrderRef = doc(ordersCollectionRef);
-
-    const newOrder: Omit<Order, 'id' | 'orderNumber'> = {
-      userId: user.uid,
-      userName: user.name,
-      buyerInfo: {
-        email: user.email,
-      },
-      date: new Date().toISOString(),
-      total,
-      status: 'En attente',
-      payment: 'En attente',
-      items: cart.map(({ product, quantity }) => ({ product, quantity })),
-      createdAt: serverTimestamp() // For ordering
-    };
+    const newOrderRef = doc(collection(db, 'orders'));
     
-    await setDoc(newOrderRef, newOrder);
+    try {
+      // Use a transaction to ensure atomicity
+      const createdOrder = await runTransaction(db, async (transaction) => {
+        const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
-    // Get a new write batch
-    const batch = writeBatch(db);
-    const cartCollectionRef = collection(db, 'users', user.uid, 'cart');
-    cart.forEach(item => {
-      const docRef = doc(cartCollectionRef, item.id);
-      batch.delete(docRef);
-    });
+        // 1. Verify stock and prepare product updates
+        const productUpdates: { ref: DocumentReference; newStock: number }[] = [];
+        for (const item of cart) {
+          const productRef = doc(db, 'products', item.product.id);
+          const productDoc = await transaction.get(productRef);
+          if (!productDoc.exists()) {
+            throw new Error(`Produit ${item.product.name} non trouvé.`);
+          }
+          const currentStock = productDoc.data().stock;
+          if (currentStock < item.quantity) {
+            throw new Error(`Stock insuffisant pour ${item.product.name}. Disponible: ${currentStock}, Demandé: ${item.quantity}.`);
+          }
+          productUpdates.push({ ref: productRef, newStock: currentStock - item.quantity });
+        }
 
-    await batch.commit();
+        // 2. Create the order document
+        const newOrderData: Omit<Order, 'id' | 'orderNumber'> = {
+          userId: user.uid,
+          userName: user.name,
+          buyerInfo: {
+            email: user.email,
+          },
+          date: new Date().toISOString(),
+          total,
+          status: 'En attente',
+          payment: 'En attente',
+          items: cart.map(({ product, quantity }) => ({ product, quantity })),
+          createdAt: serverTimestamp(),
+        };
+        transaction.set(newOrderRef, newOrderData);
 
-    return {
-      id: newOrderRef.id,
-      orderNumber: `#${Math.floor(Math.random() * 1000) + 3300}`, // Keep mock for now
-      ...newOrder
-    } as Order;
+        // 3. Update product stocks
+        for (const update of productUpdates) {
+          transaction.update(update.ref, { stock: update.newStock });
+        }
+
+        // 4. Clear the user's cart
+        const cartCollectionRef = collection(db, 'users', user.uid, 'cart');
+        for (const item of cart) {
+          const cartItemRef = doc(cartCollectionRef, item.id);
+          transaction.delete(cartItemRef);
+        }
+        
+        return {
+          id: newOrderRef.id,
+          orderNumber: `#${newOrderRef.id.substring(0, 6).toUpperCase()}`,
+          ...newOrderData
+        } as Order;
+      });
+
+      return createdOrder;
+
+    } catch (e: any) {
+      console.error("Order transaction failed: ", e);
+      toast({
+        title: "Erreur de commande",
+        description: e.message || "La transaction a échoué. Veuillez réessayer.",
+        variant: "destructive",
+      });
+      return null;
+    }
   };
+
 
   const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
 

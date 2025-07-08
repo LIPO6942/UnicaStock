@@ -1,94 +1,148 @@
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { mockProducts } from "@/lib/mock-data"
-import { File, PlusCircle, MoreHorizontal } from "lucide-react"
-import Image from "next/image"
-import { Badge } from "@/components/ui/badge"
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem } from "@/components/ui/dropdown-menu"
+'use client';
+
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import { MoreHorizontal, PlusCircle } from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
+import type { Product } from '@/lib/types';
+import * as ProductService from '@/lib/product-service';
+import { useToast } from '@/hooks/use-toast';
+import { EditProductDialog } from '@/components/edit-product-dialog';
+import Loading from '../loading';
 
 export default function SellerProductsPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  const { toast } = useToast();
+
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    try {
+      const fetchedProducts = await ProductService.getProducts();
+      setProducts(fetchedProducts);
+    } catch (err) {
+      console.error(err);
+      setError('Impossible de charger les produits. Veuillez réessayer plus tard.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const handleAddProduct = () => {
+    setSelectedProduct(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setIsDialogOpen(true);
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    try {
+      await ProductService.deleteProduct(productId);
+      toast({
+        title: 'Produit supprimé',
+        description: 'Le produit a été supprimé avec succès.',
+      });
+      fetchProducts(); // Refresh list
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de supprimer le produit.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDialogSave = () => {
+    setIsDialogOpen(false);
+    fetchProducts();
+  };
+
+  if (isLoading) {
+    return <Loading />;
+  }
+
   return (
-    <Tabs defaultValue="all">
-      <div className="flex items-center">
-        <TabsList>
-          <TabsTrigger value="all">Tous les produits</TabsTrigger>
-          <TabsTrigger value="categories">Catégories</TabsTrigger>
-        </TabsList>
-        <div className="ml-auto flex items-center gap-2">
-          <Button size="sm" variant="outline" className="h-8 gap-1">
-            <File className="h-3.5 w-3.5" />
-            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-              Exporter
-            </span>
-          </Button>
-          <Button size="sm" className="h-8 gap-1">
-            <PlusCircle className="h-3.5 w-3.5" />
-            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-              Ajouter un produit
-            </span>
-          </Button>
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+            <h1 className="text-3xl font-bold font-headline">Gestion des Produits</h1>
+            <p className="text-muted-foreground">Ajoutez, modifiez et gérez votre inventaire.</p>
         </div>
+        <Button onClick={handleAddProduct}>
+          <PlusCircle className="h-4 w-4 mr-2" />
+          Ajouter un produit
+        </Button>
       </div>
-      <TabsContent value="all">
-        <Card>
-          <CardHeader>
-            <CardTitle>Produits</CardTitle>
-            <CardDescription>
-              Gérez vos matières premières et consultez leur statut de vente.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="hidden w-[100px] sm:table-cell">
-                    <span className="sr-only">Image</span>
-                  </TableHead>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead className="hidden md:table-cell">Prix</TableHead>
-                  <TableHead className="hidden md:table-cell">Stock</TableHead>
-                  <TableHead>
-                    <span className="sr-only">Actions</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mockProducts.map((product) => (
+      
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTitle>Erreur</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Inventaire des Produits</CardTitle>
+          <CardDescription>
+            Gérez vos matières premières et consultez leur statut de vente.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="hidden w-[100px] sm:table-cell">Image</TableHead>
+                <TableHead>Nom</TableHead>
+                <TableHead>Catégorie</TableHead>
+                <TableHead>Prix (TND/kg)</TableHead>
+                <TableHead>Stock (kg)</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {products.length > 0 ? (
+                products.map((product) => (
                   <TableRow key={product.id}>
                     <TableCell className="hidden sm:table-cell">
                       <Image
                         alt={product.name}
                         className="aspect-square rounded-md object-cover"
                         height="64"
-                        src={product.imageUrl}
+                        src={product.imageUrl || 'https://placehold.co/64x64.png'}
                         width="64"
                         data-ai-hint="cosmetic ingredient"
                       />
                     </TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell>{product.category}</TableCell>
+                    <TableCell>{product.price.toFixed(2)}</TableCell>
+                    <TableCell>{product.stock}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{product.stock > 0 ? 'En stock' : 'Épuisé'}</Badge>
+                      <Badge variant={product.stock > 0 ? 'outline' : 'destructive'}>{product.stock > 0 ? 'En stock' : 'Épuisé'}</Badge>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">{product.price} TND</TableCell>
-                    <TableCell className="hidden md:table-cell">{product.stock} kg</TableCell>
-                    <TableCell>
+                    <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button aria-haspopup="true" size="icon" variant="ghost">
@@ -98,36 +152,57 @@ export default function SellerProductsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>Modifier</DropdownMenuItem>
-                          <DropdownMenuItem>Supprimer</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditProduct(product)}>Modifier</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                               <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                                Supprimer
+                               </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                    Cette action est irréversible. Le produit sera définitivement supprimé.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteProduct(product.id)}>Supprimer</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                           </AlertDialog>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-          <CardFooter>
-            <div className="text-xs text-muted-foreground">
-              Affichage de <strong>1-{mockProducts.length}</strong> sur <strong>{mockProducts.length}</strong> produits
-            </div>
-          </CardFooter>
-        </Card>
-      </TabsContent>
-       <TabsContent value="categories">
-        <Card>
-          <CardHeader>
-            <CardTitle>Catégories</CardTitle>
-            <CardDescription>
-              Gérez les catégories de produits.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>La gestion des catégories sera bientôt disponible.</p>
-          </CardContent>
-        </Card>
-       </TabsContent>
-    </Tabs>
-  )
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    Aucun produit trouvé.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+        <CardFooter>
+          <div className="text-xs text-muted-foreground">
+            Affichage de <strong>{products.length}</strong> produits
+          </div>
+        </CardFooter>
+      </Card>
+      
+      {isDialogOpen && (
+         <EditProductDialog
+            isOpen={isDialogOpen}
+            setIsOpen={setIsDialogOpen}
+            product={selectedProduct}
+            onSave={handleDialogSave}
+        />
+      )}
+    </>
+  );
 }

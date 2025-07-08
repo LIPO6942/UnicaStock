@@ -1,35 +1,29 @@
 'use client';
 
 import { useState } from 'react';
-import { mockProducts } from '@/lib/mock-data';
-import { notFound, useParams, useRouter } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Star, Heart, ShoppingCart, Download } from 'lucide-react';
+import { Star, Heart, ShoppingCart, Download, LoaderCircle } from 'lucide-react';
 import { ProductCard } from '@/components/product-card';
 import { useAuth } from '@/context/auth-context';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import type { Product } from '@/lib/types';
+import { getProduct, getProducts } from '@/lib/product-service';
+import { useEffect } from 'react';
 
-export default function ProductDetailPage() {
-  const params = useParams();
-  const id = params.id as string;
+// This is the client component part
+function ProductDetailClient({ product, relatedProducts }: { product: Product, relatedProducts: Product[] }) {
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const router = useRouter();
-
   const { user, addToCart } = useAuth();
-  const product = mockProducts.find((p) => p.id === id?.replace('-rev',''));
-  const relatedProducts = mockProducts.filter((p) => p.category === product?.category && p.id !== product?.id).slice(0, 3);
-
-  if (!product) {
-    notFound();
-  }
   
   const handleAddToCart = async () => {
     if (!user) {
@@ -44,11 +38,11 @@ export default function ProductDetailPage() {
           title: "Ajouté au panier",
           description: `${quantity} x ${product.name} a été ajouté à votre panier.`,
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error(error);
         toast({
             title: "Erreur",
-            description: "Impossible d'ajouter le produit au panier.",
+            description: error.message || "Impossible d'ajouter le produit au panier.",
             variant: "destructive"
         })
       } finally {
@@ -78,7 +72,7 @@ export default function ProductDetailPage() {
           <div className="flex flex-col gap-2">
             <Badge variant="secondary" className="w-fit">{product.category}</Badge>
             <h1 className="text-3xl lg:text-4xl font-bold font-headline">{product.name}</h1>
-            <p className="text-muted-foreground text-lg">Vendu par <span className="text-primary font-semibold">Unica Link</span></p>
+            <p className="text-muted-foreground text-lg">Vendu par <span className="text-primary font-semibold">{product.seller}</span></p>
             <div className="flex items-center gap-2">
               <div className="flex items-center">
                 {[...Array(5)].map((_, i) => (
@@ -118,8 +112,8 @@ export default function ProductDetailPage() {
                         max={product.stock}
                     />
                 </div>
-                <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={isAdding}>
-                    {isAdding ? 'Ajout...' : <><ShoppingCart className="mr-2 h-5 w-5" /> Ajouter au panier</>}
+                <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={isAdding || quantity > product.stock}>
+                    {isAdding ? 'Ajout...' : product.stock === 0 ? 'Épuisé' : <><ShoppingCart className="mr-2 h-5 w-5" /> Ajouter au panier</>}
                 </Button>
                 <Button size="lg" variant="outline"><Heart className="mr-2 h-5 w-5" /> Ajouter aux favoris</Button>
             </div>
@@ -131,7 +125,7 @@ export default function ProductDetailPage() {
             <h3 className="font-semibold text-lg mb-2">Spécifications</h3>
             <ul className="space-y-1 text-sm text-muted-foreground">
               <li><strong>INCI:</strong> {product.inci}</li>
-              {product.certifications && (
+              {product.certifications && product.certifications.length > 0 && (
                 <li className="flex items-center gap-2">
                   <strong>Certifications:</strong> 
                   {product.certifications.map(cert => <Badge key={cert} variant="outline">{cert}</Badge>)}
@@ -151,14 +145,66 @@ export default function ProductDetailPage() {
         <p className="text-muted-foreground leading-loose">{product.longDescription}</p>
       </div>
       
-      <div className="mt-16">
-        <h2 className="text-2xl font-bold mb-6 text-center font-headline">Produits Similaires</h2>
-         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {relatedProducts.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
-      </div>
+      {relatedProducts.length > 0 && (
+        <div className="mt-16">
+          <h2 className="text-2xl font-bold mb-6 text-center font-headline">Produits Similaires</h2>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {relatedProducts.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+        </div>
+      )}
     </div>
   );
+}
+
+
+// This is the server component page that fetches data
+export default function ProductDetailPage({ params }: { params: { id: string } }) {
+    const [product, setProduct] = useState<Product | null>(null);
+    const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(false);
+
+    useEffect(() => {
+        const fetchProductData = async () => {
+            try {
+                const fetchedProduct = await getProduct(params.id);
+                if (!fetchedProduct) {
+                    setError(true);
+                    return;
+                }
+                setProduct(fetchedProduct);
+
+                const allProducts = await getProducts();
+                const fetchedRelated = allProducts
+                    .filter(p => p.category === fetchedProduct.category && p.id !== fetchedProduct.id)
+                    .slice(0, 3);
+                setRelatedProducts(fetchedRelated);
+
+            } catch (e) {
+                console.error(e);
+                setError(true);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchProductData();
+    }, [params.id]);
+    
+    if (isLoading) {
+        return (
+            <div className="flex h-[60vh] items-center justify-center">
+                <LoaderCircle className="h-10 w-10 animate-spin text-primary" />
+            </div>
+        );
+    }
+    
+    if (error || !product) {
+        notFound();
+    }
+
+    return <ProductDetailClient product={product} relatedProducts={relatedProducts} />;
 }

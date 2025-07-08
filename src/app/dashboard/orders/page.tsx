@@ -29,8 +29,9 @@ export default function DashboardOrdersPage() {
     const ordersCollectionRef = collection(db, 'orders');
     let q;
     
+    // To avoid mandatory composite indexes, we sort on the client-side.
     if (user.type === 'seller') {
-      q = query(ordersCollectionRef, orderBy('createdAt', 'desc'));
+      q = query(ordersCollectionRef);
     } else {
       q = query(ordersCollectionRef, where('userId', '==', user.uid));
     }
@@ -42,9 +43,8 @@ export default function DashboardOrdersPage() {
         ...doc.data()
       } as Order));
 
-      if (user.type === 'buyer') {
-        fetchedOrders.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-      }
+      // Always sort by date descending on the client
+      fetchedOrders.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
       setOrders(fetchedOrders);
       setIsLoadingOrders(false);

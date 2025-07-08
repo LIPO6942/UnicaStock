@@ -1,15 +1,15 @@
 import { ProductCard } from '@/components/product-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { mockProducts } from '@/lib/mock-data';
+import { getProducts } from '@/lib/product-service';
 import { ArrowRight, Leaf, Search, ShieldCheck, Truck } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { BannerCarousel } from '@/components/banner-carousel';
 
-export default function Home() {
-  const featuredProducts = mockProducts.slice(0, 4);
-  const recommendedProducts = [...mockProducts].reverse().slice(0, 4);
+export default async function Home() {
+  const allProducts = await getProducts();
+  const featuredProducts = allProducts.slice(0, 4);
+  const recommendedProducts = [...allProducts].reverse().slice(0, 4);
 
   return (
     <div className="flex flex-col">
@@ -42,12 +42,6 @@ export default function Home() {
               </Button>
             </form>
           </div>
-        </div>
-      </section>
-
-      <section className="py-12 md:py-16 bg-background">
-        <div className="container">
-          <BannerCarousel />
         </div>
       </section>
 

@@ -1,8 +1,11 @@
 import { ProductCard } from '@/components/product-card';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getProducts } from '@/lib/product-service';
+import { Filter } from 'lucide-react';
+import type { Product } from '@/lib/types';
+import Link from 'next/link';
 import {
   Select,
   SelectContent,
@@ -10,23 +13,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
-import { mockProducts } from '@/lib/mock-data';
-import { Filter } from 'lucide-react';
 
-const categories = [
-  'Huiles Végétales',
-  'Beurres Végétaux',
-  'Hydrolats',
-  'Actifs Cosmétiques',
-  'Huiles Essentielles',
-  'Cires & Épaississants',
-  'Extraits Végétaux',
-];
+async function getCategories(products: Product[]): Promise<string[]> {
+    const categories = new Set(products.map(p => p.category));
+    return Array.from(categories).sort();
+}
 
-const certifications = ['BIO', 'ECOCERT', 'AOP'];
+export default async function ProductsPage() {
+  const products = await getProducts();
+  const categories = await getCategories(products);
 
-export default function ProductsPage() {
   return (
     <div className="container py-8">
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
@@ -47,35 +43,7 @@ export default function ProductsPage() {
                 <div className="mt-2 space-y-2">
                   {categories.map((category) => (
                     <div key={category} className="flex items-center space-x-2">
-                      <Checkbox id={`cat-${category}`} />
-                      <Label htmlFor={`cat-${category}`} className="font-normal">
-                        {category}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-lg font-semibold">Prix (TND)</Label>
-                <div className="mt-4">
-                  <Slider defaultValue={[50, 500]} max={2000} step={10} />
-                  <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                    <span>50 TND</span>
-                    <span>2000 TND</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-lg font-semibold">Certifications</Label>
-                <div className="mt-2 space-y-2">
-                  {certifications.map((cert) => (
-                    <div key={cert} className="flex items-center space-x-2">
-                      <Checkbox id={`cert-${cert}`} />
-                      <Label htmlFor={`cert-${cert}`} className="font-normal">
-                        {cert}
-                      </Label>
+                       <Link href="#" className="text-sm hover:text-primary">{category}</Link>
                     </div>
                   ))}
                 </div>
@@ -102,15 +70,9 @@ export default function ProductsPage() {
             </Select>
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {mockProducts.map((product) => (
+            {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
-             {[...mockProducts].reverse().map((product) => (
-              <ProductCard key={`${product.id}-rev`} product={{...product, id: `${product.id}-rev`}} />
-            ))}
-          </div>
-          <div className="mt-12 flex justify-center">
-            <Button variant="outline">Charger plus</Button>
           </div>
         </main>
       </div>

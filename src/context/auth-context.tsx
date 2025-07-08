@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User as FirebaseUser, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, collection, addDoc, serverTimestamp, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, collection, addDoc, serverTimestamp, query, where, getDocs, writeBatch, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import type { UserProfile, Product, CartItem, Order } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -137,7 +137,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const ordersCollectionRef = collection(db, 'orders');
     const newOrderRef = doc(ordersCollectionRef);
 
-    const newOrder: Omit<Order, 'id' | 'orderNumber'> & { createdAt: any } = {
+    const newOrder: Omit<Order, 'id' | 'orderNumber'> = {
       userId: user.uid,
       userName: user.name,
       date: new Date().toISOString(),

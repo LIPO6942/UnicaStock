@@ -43,6 +43,7 @@ export type Order = {
     product: Product;
     quantity: number;
   }[];
+  createdAt: any;
 };
 
 

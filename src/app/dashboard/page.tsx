@@ -9,7 +9,7 @@ import { ArrowUpRight, DollarSign, ShoppingCart, Heart, LoaderCircle } from 'luc
 import { Button } from '@/components/ui/button';
 import { BannerCarousel } from '@/components/banner-carousel';
 import { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Order } from '@/lib/types';
 
@@ -23,10 +23,12 @@ export default function DashboardPage() {
     
     setIsLoadingOrders(true);
     const ordersCollectionRef = collection(db, 'orders');
+    // The composite query with `where` and `orderBy` requires a manual index in Firestore.
+    // To avoid this manual step for the user, we remove server-side sorting
+    // and apply it on the client instead.
     const q = query(
       ordersCollectionRef, 
-      where('userId', '==', user.uid), 
-      orderBy('createdAt', 'desc')
+      where('userId', '==', user.uid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -35,6 +37,10 @@ export default function DashboardPage() {
         orderNumber: doc.data().orderNumber || `#${doc.id.substring(0,4)}`,
         ...doc.data()
       } as Order));
+
+      // Sort orders on the client
+      fetchedOrders.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
       setOrders(fetchedOrders);
       setIsLoadingOrders(false);
     });

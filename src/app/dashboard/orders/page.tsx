@@ -27,7 +27,10 @@ export default function DashboardOrdersPage() {
     if (user.type === 'seller') {
       q = query(ordersCollectionRef, orderBy('createdAt', 'desc'));
     } else {
-      q = query(ordersCollectionRef, where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
+      // The composite query with `where` and `orderBy` requires a manual index in Firestore.
+      // To avoid this manual step for the user, we remove server-side sorting
+      // and apply it on the client instead.
+      q = query(ordersCollectionRef, where('userId', '==', user.uid));
     }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -36,6 +39,13 @@ export default function DashboardOrdersPage() {
         orderNumber: doc.data().orderNumber || `#${doc.id.substring(0,4)}`,
         ...doc.data()
       } as Order));
+
+      // For buyers, sort orders on the client since we removed it from the query.
+      // For sellers, orders are already sorted by Firestore.
+      if (user.type === 'buyer') {
+        fetchedOrders.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      }
+
       setOrders(fetchedOrders);
       setIsLoadingOrders(false);
     }, (error) => {

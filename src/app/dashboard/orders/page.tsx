@@ -6,18 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/context/auth-context";
-import type { Order } from "@/lib/types";
-
-const mockSellerOrders = [
-    { id: '#3210', user: 'Laboratoire Senteurs', date: '2023-11-23', total: '1,250 TND', status: 'Expédiée', payment: 'Réglé' },
-    { id: '#3209', user: 'Créations BellePeau', date: '2023-11-22', total: '850 TND', status: 'Livrée', payment: 'Réglé' },
-    { id: '#3208', user: 'Artisan Savonnier', date: '2023-11-21', total: '450 TND', status: 'Livrée', payment: 'Réglé' },
-    { id: '#3207', user: 'Cosmétique Naturelle SA', date: '2023-11-20', total: '2,100 TND', status: 'En attente', payment: 'En attente' },
-    { id: '#3206', user: 'Parfums de Carthage', date: '2023-11-19', total: '600 TND', status: 'Annulée', payment: 'Remboursé' },
-];
-
-const mockBuyerOrders = mockSellerOrders.slice(1, 3);
-
 
 export default function DashboardOrdersPage() {
   const { user, getOrdersForUser, isLoading } = useAuth();
@@ -25,23 +13,9 @@ export default function DashboardOrdersPage() {
   if (isLoading || !user) {
     return null; // or a loading skeleton
   }
-
-  const formatTotal = (total: number | string) => {
-    if (typeof total === 'number') {
-      return `${total.toFixed(2).replace('.', ',')} TND`;
-    }
-    return total;
-  }
   
   const isSeller = user.type === 'seller';
-  const contextOrders = getOrdersForUser(user);
-
-  const initialOrders = isSeller ? mockSellerOrders : mockBuyerOrders;
-
-  const orders = [
-    ...contextOrders.map(o => ({...o, total: formatTotal(o.total)})),
-    ...initialOrders
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const orders = getOrdersForUser(user).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
 
   const cardTitle = isSeller ? "Toutes les Commandes" : "Mes Commandes";
@@ -89,7 +63,7 @@ export default function DashboardOrdersPage() {
                       <TableCell className="font-medium">{order.id}</TableCell>
                       {isSeller && <TableCell>{order.user}</TableCell>}
                       <TableCell className="hidden md:table-cell">{new Date(order.date).toLocaleDateString('fr-FR')}</TableCell>
-                      <TableCell className="text-right">{order.total}</TableCell>
+                      <TableCell className="text-right">{`${order.total.toFixed(2).replace('.', ',')} TND`}</TableCell>
                       <TableCell className="text-center hidden sm:table-cell">
                           <Badge variant={order.status === 'Livrée' ? 'default' : (order.status === 'Annulée' ? 'destructive' : 'secondary')}>
                               {order.status}

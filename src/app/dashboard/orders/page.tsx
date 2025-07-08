@@ -1,27 +1,63 @@
 'use client';
 
-import { File, ChevronRight } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { File, ChevronRight, LoaderCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/context/auth-context";
-import React, { useState } from "react";
+import { db } from "@/lib/firebase";
+import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
+import type { Order } from "@/lib/types";
 
 export default function DashboardOrdersPage() {
-  const { user, getOrdersForUser, isLoading } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
-  
-  if (isLoading || !user) {
-    return null; // or a loading skeleton
+
+  useEffect(() => {
+    if (!user) return;
+
+    setIsLoadingOrders(true);
+    const ordersCollectionRef = collection(db, 'orders');
+    let q;
+    
+    if (user.type === 'seller') {
+      q = query(ordersCollectionRef, orderBy('createdAt', 'desc'));
+    } else {
+      q = query(ordersCollectionRef, where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
+    }
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedOrders = snapshot.docs.map(doc => ({
+        id: doc.id,
+        orderNumber: doc.data().orderNumber || `#${doc.id.substring(0,4)}`,
+        ...doc.data()
+      } as Order));
+      setOrders(fetchedOrders);
+      setIsLoadingOrders(false);
+    }, (error) => {
+        console.error("Error fetching orders:", error);
+        setIsLoadingOrders(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  if (isAuthLoading || isLoadingOrders) {
+    return (
+       <div className="flex flex-1 items-center justify-center">
+         <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+       </div>
+    )
   }
   
-  const isSeller = user.type === 'seller';
-  const orders = getOrdersForUser(user).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
+  const isSeller = user?.type === 'seller';
 
   const cardTitle = isSeller ? "Toutes les Commandes" : "Mes Commandes";
-  const cardDescription = isSeller 
+  const cardDescription = isSeller
     ? "Consultez l'historique de toutes les commandes clients."
     : "Consultez l'historique de vos commandes.";
 
@@ -33,16 +69,16 @@ export default function DashboardOrdersPage() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-            <CardTitle>{cardTitle}</CardTitle>
-            <CardDescription>{cardDescription}</CardDescription>
+          <CardTitle>{cardTitle}</CardTitle>
+          <CardDescription>{cardDescription}</CardDescription>
         </div>
         {isSeller && (
-            <Button size="sm" variant="outline" className="h-8 gap-1">
-                <File className="h-3.5 w-3.5" />
-                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Exporter
-                </span>
-            </Button>
+          <Button size="sm" variant="outline" className="h-8 gap-1">
+            <File className="h-3.5 w-3.5" />
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+              Exporter
+            </span>
+          </Button>
         )}
       </CardHeader>
       <CardContent>
@@ -64,60 +100,60 @@ export default function DashboardOrdersPage() {
             </TableHeader>
             <TableBody>
               {orders.map((order) => (
-                  <React.Fragment key={order.id}>
-                    <TableRow onClick={() => toggleOrderDetails(order.id)} className="cursor-pointer">
-                        <TableCell className="font-medium">
-                           <div className="flex items-center gap-2">
-                             <ChevronRight className={`h-4 w-4 shrink-0 transition-transform duration-200 ${openOrderId === order.id ? 'rotate-90' : ''}`} />
-                            {order.id}
-                          </div>
-                        </TableCell>
-                        {isSeller && <TableCell>{order.user}</TableCell>}
-                        <TableCell className="hidden md:table-cell">{new Date(order.date).toLocaleDateString('fr-FR')}</TableCell>
-                        <TableCell className="text-right">{`${order.total.toFixed(2).replace('.', ',')} TND`}</TableCell>
-                        <TableCell className="text-center hidden sm:table-cell">
-                            <Badge variant={order.status === 'Livrée' ? 'default' : (order.status === 'Annulée' ? 'destructive' : 'secondary')}>
-                                {order.status}
-                            </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                            <Badge variant={order.payment === 'Réglé' ? 'default' : 'secondary'} className="capitalize">
-                                {order.payment}
-                            </Badge>
-                        </TableCell>
+                <React.Fragment key={order.id}>
+                  <TableRow onClick={() => toggleOrderDetails(order.id)} className="cursor-pointer">
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <ChevronRight className={`h-4 w-4 shrink-0 transition-transform duration-200 ${openOrderId === order.id ? 'rotate-90' : ''}`} />
+                        {order.orderNumber}
+                      </div>
+                    </TableCell>
+                    {isSeller && <TableCell>{order.userName}</TableCell>}
+                    <TableCell className="hidden md:table-cell">{new Date(order.date).toLocaleDateString('fr-FR')}</TableCell>
+                    <TableCell className="text-right">{`${order.total.toFixed(2).replace('.', ',')} TND`}</TableCell>
+                    <TableCell className="text-center hidden sm:table-cell">
+                      <Badge variant={order.status === 'Livrée' ? 'default' : (order.status === 'Annulée' ? 'destructive' : 'secondary')}>
+                        {order.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={order.payment === 'Réglé' ? 'default' : 'secondary'} className="capitalize">
+                        {order.payment}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                  {openOrderId === order.id && (
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableCell colSpan={isSeller ? 6 : 5} className="p-0">
+                        <div className="p-4 pl-14">
+                          <h4 className="font-semibold mb-2 text-sm">Détails de la commande</h4>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Produit</TableHead>
+                                <TableHead>Quantité</TableHead>
+                                <TableHead className="text-right">Prix Unitaire</TableHead>
+                                <TableHead className="text-right">Sous-total</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {order.items.map((item, index) => (
+                                <TableRow key={`${item.product.id}-${index}`} className="border-b-0">
+                                  <TableCell className="font-medium">{item.product.name}</TableCell>
+                                  <TableCell>{item.quantity} kg</TableCell>
+                                  <TableCell className="text-right">{item.product.price.toFixed(2)} TND</TableCell>
+                                  <TableCell className="text-right">
+                                    {(item.product.price * item.quantity).toFixed(2)} TND
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                    {openOrderId === order.id && (
-                       <TableRow className="bg-muted/50 hover:bg-muted/50">
-                        <TableCell colSpan={isSeller ? 6 : 5} className="p-0">
-                          <div className="p-4 pl-14">
-                            <h4 className="font-semibold mb-2 text-sm">Détails de la commande</h4>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Produit</TableHead>
-                                        <TableHead>Quantité</TableHead>
-                                        <TableHead className="text-right">Prix Unitaire</TableHead>
-                                        <TableHead className="text-right">Sous-total</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                {order.items.map((item) => (
-                                    <TableRow key={item.product.id} className="border-b-0">
-                                        <TableCell className="font-medium">{item.product.name}</TableCell>
-                                        <TableCell>{item.quantity} kg</TableCell>
-                                        <TableCell className="text-right">{item.product.price.toFixed(2)} TND</TableCell>
-                                        <TableCell className="text-right">
-                                        {(item.product.price * item.quantity).toFixed(2)} TND
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                </TableBody>
-                            </Table>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </React.Fragment>
+                  )}
+                </React.Fragment>
               ))}
             </TableBody>
           </Table>

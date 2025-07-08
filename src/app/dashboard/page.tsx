@@ -5,23 +5,50 @@ import { useAuth } from '@/context/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowUpRight, DollarSign, ShoppingCart, Heart } from 'lucide-react';
+import { ArrowUpRight, DollarSign, ShoppingCart, Heart, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BannerCarousel } from '@/components/banner-carousel';
+import { useState, useEffect } from 'react';
+import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { Order } from '@/lib/types';
 
 export default function DashboardPage() {
-  const { user, getOrdersForUser, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   
+  useEffect(() => {
+    if (!user || user.type !== 'buyer') return;
+    
+    setIsLoadingOrders(true);
+    const ordersCollectionRef = collection(db, 'orders');
+    const q = query(
+      ordersCollectionRef, 
+      where('userId', '==', user.uid), 
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedOrders = snapshot.docs.map(doc => ({
+        id: doc.id,
+        orderNumber: doc.data().orderNumber || `#${doc.id.substring(0,4)}`,
+        ...doc.data()
+      } as Order));
+      setOrders(fetchedOrders);
+      setIsLoadingOrders(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
   if (isLoading || !user || user.type === 'seller') {
-    // Sellers are redirected by the layout, this is a fallback.
     return null; 
   }
   
-  const userOrders = getOrdersForUser(user);
-  const recentOrders = userOrders.slice(0, 3);
-  const totalSpent = userOrders.reduce((acc, order) => acc + order.total, 0);
-  const totalOrders = userOrders.length;
-  // Favorites are mocked for now
+  const recentOrders = orders.slice(0, 3);
+  const totalSpent = orders.reduce((acc, order) => acc + order.total, 0);
+  const totalOrders = orders.length;
   const favoriteCount = 3; 
 
   return (
@@ -81,7 +108,11 @@ export default function DashboardPage() {
           </Button>
         </CardHeader>
         <CardContent>
-          {recentOrders.length === 0 ? (
+          {isLoadingOrders ? (
+             <div className="flex justify-center py-12">
+                <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+             </div>
+          ) : recentOrders.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <p>Vous n'avez pas encore passé de commande.</p>
                 <Button asChild className="mt-4">
@@ -102,7 +133,7 @@ export default function DashboardPage() {
                 {recentOrders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell>
-                      <div className="font-medium">{order.id}</div>
+                      <div className="font-medium">{order.orderNumber}</div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">{new Date(order.date).toLocaleDateString('fr-FR')}</TableCell>
                     <TableCell className="text-right">{order.total.toFixed(2)} TND</TableCell>

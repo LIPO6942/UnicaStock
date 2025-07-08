@@ -11,28 +11,42 @@ import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Trash2, ShoppingCart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 export default function CartPage() {
   const { cart, removeFromCart, updateCartItemQuantity, placeOrder, cartCount } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   const cartTotal = cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
 
-  const handlePlaceOrder = () => {
-    const newOrder = placeOrder();
-    if (newOrder) {
-      toast({
-        title: 'Commande passée avec succès !',
-        description: `Votre commande ${newOrder.id} a été envoyée.`,
-      });
-      router.push('/dashboard/orders');
-    } else {
+  const handlePlaceOrder = async () => {
+    setIsPlacingOrder(true);
+    try {
+      const newOrder = await placeOrder();
+      if (newOrder) {
+        toast({
+          title: 'Commande passée avec succès !',
+          description: `Votre commande ${newOrder.orderNumber} a été envoyée.`,
+        });
+        router.push('/dashboard/orders');
+      } else {
+        toast({
+          title: 'Erreur',
+          description: 'Votre panier est vide ou une erreur est survenue.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error("Failed to place order:", error);
       toast({
         title: 'Erreur',
-        description: 'Votre panier est vide ou une erreur est survenue.',
+        description: "Une erreur est survenue lors de la validation de la commande.",
         variant: 'destructive',
       });
+    } finally {
+      setIsPlacingOrder(false);
     }
   };
 
@@ -68,12 +82,12 @@ export default function CartPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {cart.map(({ product, quantity }) => (
-                    <TableRow key={product.id}>
+                  {cart.map((item) => (
+                    <TableRow key={item.id}>
                       <TableCell className="pl-4">
                         <Image
-                          src={product.imageUrl}
-                          alt={product.name}
+                          src={item.product.imageUrl}
+                          alt={item.product.name}
                           width={80}
                           height={80}
                           className="rounded-md object-cover"
@@ -81,25 +95,25 @@ export default function CartPage() {
                         />
                       </TableCell>
                       <TableCell className="font-medium">
-                        <Link href={`/products/${product.id}`} className="hover:text-primary">
-                          {product.name}
+                        <Link href={`/products/${item.product.id}`} className="hover:text-primary">
+                          {item.product.name}
                         </Link>
                       </TableCell>
-                      <TableCell>{product.price.toFixed(2)} TND</TableCell>
+                      <TableCell>{item.product.price.toFixed(2)} TND</TableCell>
                       <TableCell>
                         <Input
                           type="number"
                           min="1"
-                          value={quantity}
-                          onChange={(e) => updateCartItemQuantity(product.id, parseInt(e.target.value, 10))}
+                          value={item.quantity}
+                          onChange={(e) => updateCartItemQuantity(item.id, parseInt(e.target.value, 10))}
                           className="w-20"
                         />
                       </TableCell>
                       <TableCell className="text-right">
-                        {(product.price * quantity).toFixed(2)} TND
+                        {(item.product.price * item.quantity).toFixed(2)} TND
                       </TableCell>
                       <TableCell className="pr-4">
-                        <Button variant="ghost" size="icon" onClick={() => removeFromCart(product.id)}>
+                        <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)}>
                           <Trash2 className="h-4 w-4" />
                            <span className="sr-only">Supprimer</span>
                         </Button>
@@ -133,8 +147,8 @@ export default function CartPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button size="lg" className="w-full" onClick={handlePlaceOrder}>
-                Passer la commande
+              <Button size="lg" className="w-full" onClick={handlePlaceOrder} disabled={isPlacingOrder}>
+                {isPlacingOrder ? 'Traitement...' : 'Passer la commande'}
               </Button>
             </CardFooter>
           </Card>

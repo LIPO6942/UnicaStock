@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { mockProducts } from '@/lib/mock-data';
-import { notFound, useParams } from 'next/navigation';
+import { notFound, useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,8 @@ export default function ProductDetailPage() {
   const id = params.id as string;
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
+  const [isAdding, setIsAdding] = useState(false);
+  const router = useRouter();
 
   const { user, addToCart } = useAuth();
   const product = mockProducts.find((p) => p.id === id?.replace('-rev',''));
@@ -29,13 +31,29 @@ export default function ProductDetailPage() {
     notFound();
   }
   
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
+    if (!user) {
+        router.push('/login?redirect=/products/' + product.id);
+        return;
+    }
     if (quantity > 0) {
-      addToCart(product, quantity);
-      toast({
-        title: "Ajouté au panier",
-        description: `${quantity} x ${product.name} a été ajouté à votre panier.`,
-      });
+      setIsAdding(true);
+      try {
+        await addToCart(product, quantity);
+        toast({
+          title: "Ajouté au panier",
+          description: `${quantity} x ${product.name} a été ajouté à votre panier.`,
+        });
+      } catch (error) {
+        console.error(error);
+        toast({
+            title: "Erreur",
+            description: "Impossible d'ajouter le produit au panier.",
+            variant: "destructive"
+        })
+      } finally {
+        setIsAdding(false);
+      }
     }
   };
 
@@ -100,8 +118,8 @@ export default function ProductDetailPage() {
                         max={product.stock}
                     />
                 </div>
-                <Button size="lg" className="flex-1" onClick={handleAddToCart}>
-                    <ShoppingCart className="mr-2 h-5 w-5" /> Ajouter au panier
+                <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={isAdding}>
+                    {isAdding ? 'Ajout...' : <><ShoppingCart className="mr-2 h-5 w-5" /> Ajouter au panier</>}
                 </Button>
                 <Button size="lg" variant="outline"><Heart className="mr-2 h-5 w-5" /> Ajouter aux favoris</Button>
             </div>

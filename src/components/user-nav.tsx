@@ -12,18 +12,23 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { CreditCard, LayoutGrid, LogOut, Settings, User, Heart, ShoppingCart } from 'lucide-react';
+import { LayoutGrid, LogOut, Settings, Heart, ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
+import { Skeleton } from './ui/skeleton';
 
 export function UserNav() {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const router = useRouter();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push('/');
   };
+  
+  if (isLoading) {
+    return <Skeleton className="h-9 w-9 rounded-full" />
+  }
 
   if (!user) {
     return (

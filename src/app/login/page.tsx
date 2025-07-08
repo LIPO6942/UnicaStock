@@ -92,13 +92,7 @@ export default function LoginPage() {
             <div className="text-center text-sm text-muted-foreground">
               Vous n'avez pas de compte?{' '}
               <Link href="/register" className="underline hover:text-primary">
-                S'inscrire en tant qu'acheteur
-              </Link>
-            </div>
-             <div className="text-center text-sm text-muted-foreground">
-              Vous êtes un vendeur?{' '}
-              <Link href="/register-seller" className="underline hover:text-primary">
-                Inscrivez votre entreprise
+                S'inscrire
               </Link>
             </div>
           </CardFooter>

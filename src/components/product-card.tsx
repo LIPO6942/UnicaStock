@@ -41,7 +41,7 @@ function ProductCardComponent({ product }: ProductCardProps) {
             {product.name}
           </Link>
         </CardTitle>
-        <p className="text-sm text-muted-foreground mt-1">Par Unica Cosmétiques</p>
+        <p className="text-sm text-muted-foreground mt-1">Par Unica Link</p>
         <div className="flex items-center gap-1 mt-2">
           {[...Array(5)].map((_, i) => (
             <Star

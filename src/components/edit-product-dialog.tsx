@@ -32,7 +32,7 @@ const productSchema = z.object({
   moq: z.coerce.number().int().min(1, { message: 'Le MOQ doit être au moins 1.' }),
   description: z.string().min(10, { message: 'La description courte est requise (min 10 caractères).' }),
   longDescription: z.string().min(20, { message: 'La description longue est requise (min 20 caractères).' }),
-  imageUrl: z.string().optional(),
+  imageUrl: z.string().url({ message: "Veuillez entrer une URL valide." }).optional().or(z.literal('')),
 });
 
 export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditProductDialogProps) {
@@ -100,24 +100,24 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
       }
       onSave();
     } catch (error) {
-      console.error("Détail de l'erreur d'enregistrement:", error);
-      let description = "Une erreur est survenue lors de l'enregistrement du produit.";
+      console.error("Détail complet de l'erreur Firebase:", error);
+      let description = "Une erreur inconnue est survenue lors de l'enregistrement du produit.";
       
       if (error instanceof FirebaseError) {
-        if (error.message.includes('PERMISSION_DENIED')) {
-          description = "Permission Refusée. Veuillez vérifier les points suivants : 1) Assurez-vous d'être connecté avec le bon compte vendeur. 2) Vérifiez dans votre base de données Firestore que votre document utilisateur (dans la collection 'users') contient bien un champ `type` avec la valeur exacte `seller` (en minuscules). 3) Assurez-vous que les dernières règles de sécurité ont été correctement copiées et publiées dans la console Firebase.";
+        if (error.code === 'permission-denied') {
+          description = "Permission Refusée. Ceci est un problème de configuration. VEUILLEZ VÉRIFIER ATTENTIVEMENT LES POINTS SUIVANTS : 1) Allez dans votre base de données Firestore, collection 'users', et trouvez le document de votre compte. 2) Assurez-vous qu'il contient un champ nommé 'type'. 3) La valeur de ce champ 'type' DOIT être exactement 'seller' (tout en minuscules). 4) Assurez-vous que les dernières règles de sécurité ont bien été publiées dans la console Firebase.";
         } else {
-          description = `Une erreur inattendue est survenue : ${error.message} (Code: ${error.code})`;
+          description = `Une erreur Firebase inattendue est survenue. Code: ${error.code}, Message: ${error.message}`;
         }
       } else if (error instanceof Error) {
         description = error.message;
       }
       
       toast({
-        title: "Erreur d'enregistrement",
+        title: "Erreur de Permission",
         description: description,
         variant: 'destructive',
-        duration: 9000
+        duration: 15000
       });
     }
   };

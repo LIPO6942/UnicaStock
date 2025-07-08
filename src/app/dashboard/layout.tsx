@@ -19,6 +19,7 @@ import {
   MessageSquare,
   Heart,
   LoaderCircle,
+  Package,
 } from 'lucide-react';
 import { Icons } from '@/components/icons';
 import Link from 'next/link';
@@ -57,11 +58,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const sellerNav = [
     { href: '/dashboard/orders', label: 'Commandes', icon: ShoppingCart },
+    { href: '/dashboard/products', label: 'Produits', icon: Package },
   ];
 
   const buyerNav = [
     { href: '/dashboard/orders', label: 'Mes Commandes', icon: ShoppingCart },
-    { href: '/dashboard/favorites', label: 'Favoris', icon: Heart },
+    { href: ' /dashboard/favorites', label: 'Favoris', icon: Heart },
     { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare },
   ];
 

@@ -12,7 +12,7 @@ interface AuthContextType {
   firebaseUser: FirebaseUser | null;
   isLoading: boolean;
   login: (email: string, pass: string) => Promise<any>;
-  register: (name: string, email: string, pass: string) => Promise<any>;
+  register: (name: string, email: string, pass: string, type: 'buyer' | 'seller') => Promise<any>;
   logout: () => Promise<void>;
   cart: CartItem[];
   addToCart: (product: Product, quantity: number) => Promise<void>;
@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return signInWithEmailAndPassword(auth, email, pass);
   };
   
-  const register = async (name: string, email: string, pass: string) => {
+  const register = async (name: string, email: string, pass: string, type: 'buyer' | 'seller') => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
     const { user: userAuth } = userCredential;
     if (userAuth) {
@@ -80,7 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await setDoc(userDocRef, {
         name,
         email,
-        type: 'buyer', // All registrations are for buyers
+        type,
       });
     }
     return userCredential;

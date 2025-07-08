@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 
-export default function RegisterPage() {
+export default function RegisterSellerPage() {
   const { register } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -34,9 +34,9 @@ export default function RegisterPage() {
     setError(null);
 
     try {
-      await register(name, email, password, 'buyer');
+      await register(name, email, password, 'seller');
       toast({
-        title: "Compte créé avec succès !",
+        title: "Compte vendeur créé avec succès !",
         description: "Vous allez être redirigé vers votre tableau de bord."
       });
       router.push('/dashboard');
@@ -59,8 +59,8 @@ export default function RegisterPage() {
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl font-headline">Créer un compte Acheteur</CardTitle>
-          <CardDescription>Rejoignez la communauté des créateurs et artisans cosmétiques en Tunisie.</CardDescription>
+          <CardTitle className="text-2xl font-headline">Créer un compte Vendeur</CardTitle>
+          <CardDescription>Inscrivez votre entreprise pour vendre vos matières premières sur Unica Link.</CardDescription>
         </CardHeader>
         <form onSubmit={handleRegister}>
           <CardContent className="space-y-4">
@@ -72,12 +72,12 @@ export default function RegisterPage() {
                 </Alert>
             )}
             <div className="space-y-2">
-              <Label htmlFor="name">Nom complet ou Nom de l'entreprise</Label>
-              <Input id="name" placeholder="Artisan Pro" required value={name} onChange={(e) => setName(e.target.value)} disabled={isLoading} />
+              <Label htmlFor="name">Nom de l'entreprise</Label>
+              <Input id="name" placeholder="Ex: Cosmétiques du Sud" required value={name} onChange={(e) => setName(e.target.value)} disabled={isLoading} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="nom@exemple.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} />
+              <Label htmlFor="email">Email professionnel</Label>
+              <Input id="email" type="email" placeholder="contact@exemple.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Mot de passe</Label>
@@ -90,7 +90,7 @@ export default function RegisterPage() {
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button className="w-full" type="submit" disabled={isLoading}>
-                {isLoading ? 'Création en cours...' : 'Créer mon compte'}
+                {isLoading ? 'Création en cours...' : "Inscrire l'entreprise"}
             </Button>
             <div className="text-center text-sm text-muted-foreground">
               Vous avez déjà un compte?{' '}

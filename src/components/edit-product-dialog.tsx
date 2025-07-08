@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import type { Product } from '@/lib/types';
 import * as ProductService from '@/lib/product-service';
 import { useToast } from '@/hooks/use-toast';
@@ -218,6 +218,9 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
                   <FormItem>
                     <FormLabel>URL de l'image</FormLabel>
                     <FormControl><Input placeholder="https://..." {...field} /></FormControl>
+                    <FormDescription>
+                      Hébergez votre image sur un service comme <a href="https://postimages.org/" target="_blank" rel="noopener noreferrer" className="underline">postimages.org</a> et collez le lien direct ici.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

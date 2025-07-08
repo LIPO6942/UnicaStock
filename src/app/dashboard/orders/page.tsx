@@ -73,9 +73,15 @@ export default function DashboardOrdersPage() {
       return;
     }
 
+    // Helper to format cells for CSV, handling commas and quotes
+    const formatCsvCell = (value: any): string => {
+      const stringValue = String(value ?? '').replace(/"/g, '""');
+      return `"${stringValue}"`;
+    };
+
     const csvHeader = [
       "Numéro Commande", "Date", "Client", "Email", "Produits", "Total (TND)", "Statut", "Paiement"
-    ].join(',');
+    ].map(formatCsvCell).join(',');
 
     const csvRows = orders.map(order => {
       const productsString = order.items
@@ -85,17 +91,18 @@ export default function DashboardOrdersPage() {
       const row = [
         order.orderNumber,
         new Date(order.date).toLocaleDateString('fr-FR'),
-        `"${order.userName.replace(/"/g, '""')}"`,
+        order.userName,
         order.buyerInfo?.email || '',
-        `"${productsString.replace(/"/g, '""')}"`,
+        productsString,
         order.total.toFixed(2),
         order.status,
         order.payment,
-      ];
+      ].map(formatCsvCell);
       return row.join(',');
     });
 
     const csvContent = [csvHeader, ...csvRows].join('\n');
+    // Add BOM for Excel to recognize UTF-8
     const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

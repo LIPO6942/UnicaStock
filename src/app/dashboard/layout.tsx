@@ -39,6 +39,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [isLoading, user, router]);
 
+  // Redirect seller from dashboard root to orders page
+  useEffect(() => {
+    if (!isLoading && user?.type === 'seller' && pathname === '/dashboard') {
+      router.replace('/dashboard/orders');
+    }
+  }, [isLoading, user, pathname, router]);
+
 
   if (isLoading || !user) {
     return (
@@ -51,10 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isActive = (path: string) => pathname === path;
 
   const sellerNav = [
-    { href: '/dashboard/products', label: 'Produits', icon: Package },
     { href: '/dashboard/orders', label: 'Commandes', icon: ShoppingCart },
-    { href: '/dashboard/analytics', label: 'Analyses', icon: BarChart3 },
-    { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare },
   ];
 
   const buyerNav = [
@@ -79,20 +83,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/dashboard')}
-                tooltip={{ children: 'Dashboard' }}
-              >
-                <Link href="/dashboard">
-                  <LayoutDashboard />
-                  <span>Dashboard</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
+          {user.type === 'buyer' && (
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/dashboard')}
+                  tooltip={{ children: 'Dashboard' }}
+                >
+                  <Link href="/dashboard">
+                    <LayoutDashboard />
+                    <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          )}
           <SidebarMenu>
             {navItems.map((item) => (
               <SidebarMenuItem key={item.href}>

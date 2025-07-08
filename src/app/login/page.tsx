@@ -35,7 +35,7 @@ export default function LoginPage() {
     } catch (err: any) {
       const errorCode = err.code;
       let errorMessage = "Une erreur est survenue.";
-      if (errorCode === 'auth/wrong-password' || errorCode === 'auth/user-not-found' || errorCode === 'auth/invalid-credential') {
+      if (errorCode === 'auth/invalid-credential') {
         errorMessage = 'Email ou mot de passe incorrect.';
       }
       setError(errorMessage);

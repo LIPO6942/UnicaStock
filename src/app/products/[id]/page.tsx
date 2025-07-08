@@ -1,3 +1,5 @@
+'use client';
+
 import { mockProducts } from '@/lib/mock-data';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
@@ -7,14 +9,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Star, Heart, ShoppingCart, Download } from 'lucide-react';
 import { ProductCard } from '@/components/product-card';
+import { useAuth } from '@/context/auth-context';
 
 export default function ProductDetailPage({ params }: { params: { id: string } }) {
+  const { user } = useAuth();
   const product = mockProducts.find((p) => p.id === params.id.replace('-rev',''));
   const relatedProducts = mockProducts.filter((p) => p.category === product?.category && p.id !== product?.id).slice(0, 3);
 
   if (!product) {
     notFound();
   }
+
+  const isBuyer = user?.type === 'buyer';
 
   return (
     <div className="container py-12">
@@ -36,7 +42,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           <div className="flex flex-col gap-2">
             <Badge variant="secondary" className="w-fit">{product.category}</Badge>
             <h1 className="text-3xl lg:text-4xl font-bold font-headline">{product.name}</h1>
-            <p className="text-muted-foreground text-lg">Vendu par <span className="text-primary font-semibold">{product.seller}</span></p>
+            <p className="text-muted-foreground text-lg">Vendu par <span className="text-primary font-semibold">Unica Cosmétiques</span></p>
             <div className="flex items-center gap-2">
               <div className="flex items-center">
                 {[...Array(5)].map((_, i) => (
@@ -62,10 +68,12 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             </CardContent>
           </Card>
           
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Button size="lg" className="flex-1"><ShoppingCart className="mr-2 h-5 w-5" /> Ajouter au panier</Button>
-            <Button size="lg" variant="outline"><Heart className="mr-2 h-5 w-5" /> Ajouter aux favoris</Button>
-          </div>
+          {isBuyer && (
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button size="lg" className="flex-1"><ShoppingCart className="mr-2 h-5 w-5" /> Ajouter au panier</Button>
+              <Button size="lg" variant="outline"><Heart className="mr-2 h-5 w-5" /> Ajouter aux favoris</Button>
+            </div>
+          )}
 
           <Separator />
 

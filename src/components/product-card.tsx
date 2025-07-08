@@ -1,3 +1,4 @@
+'use client';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,12 +6,16 @@ import { Button } from '@/components/ui/button';
 import type { Product } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Star } from 'lucide-react';
+import { useAuth } from '@/context/auth-context';
 
 interface ProductCardProps {
   product: Product;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const { user } = useAuth();
+  const isBuyer = user?.type === 'buyer';
+
   return (
     <Card className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
       <CardHeader className="p-0">
@@ -35,7 +40,7 @@ export function ProductCard({ product }: ProductCardProps) {
             {product.name}
           </Link>
         </CardTitle>
-        <p className="text-sm text-muted-foreground mt-1">Vendu par {product.seller}</p>
+        <p className="text-sm text-muted-foreground mt-1">Par Unica Cosmétiques</p>
         <div className="flex items-center gap-1 mt-2">
           {[...Array(5)].map((_, i) => (
             <Star
@@ -50,9 +55,11 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="text-xl font-bold font-headline">
           {product.price} <span className="text-sm font-normal text-muted-foreground">TND/kg</span>
         </div>
-        <Button asChild>
-          <Link href={`/products/${product.id}`}>Voir</Link>
-        </Button>
+        {isBuyer && (
+          <Button asChild>
+            <Link href={`/products/${product.id}`}>Voir</Link>
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

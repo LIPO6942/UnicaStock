@@ -15,7 +15,7 @@ export default function Home() {
     <div className="flex flex-col">
       <section className="relative h-[60vh] min-h-[400px] w-full flex items-center justify-center text-center bg-card">
         <Image
-          src="https://i.postimg.cc/zXNRLp9j/Copie-de-Made-with-Poster-My-Wall-1.jpg"
+          src="https://i.postimg.cc/jSkJ3DGv/T001-UNICA-20-LUX-20-CREAM-20-NEW-02.webp"
           alt="Hero background"
           fill
           className="object-cover opacity-20"

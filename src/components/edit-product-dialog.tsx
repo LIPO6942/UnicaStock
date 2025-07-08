@@ -32,9 +32,7 @@ const productSchema = z.object({
   moq: z.coerce.number().int().min(1, { message: 'Le MOQ doit être au moins 1.' }),
   description: z.string().min(10, { message: 'La description courte est requise (min 10 caractères).' }),
   longDescription: z.string().min(20, { message: 'La description longue est requise (min 20 caractères).' }),
-  imageUrl: z.string().refine((val) => val === '' || val.startsWith('http'), {
-    message: "L'URL de l'image doit être un lien valide commençant par 'http' ou 'https'.",
-  }),
+  imageUrl: z.string().url({ message: "Veuillez entrer une URL valide." }).or(z.literal('')),
 });
 
 export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditProductDialogProps) {
@@ -107,7 +105,7 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
       
       if (error instanceof FirebaseError) {
         if (error.code === 'permission-denied') {
-          description = "Permission refusée. Veuillez vérifier que vous êtes connecté en tant que vendeur et que vos règles de sécurité Firestore sont à jour.";
+          description = "Permission refusée. Assurez-vous que votre compte est bien un 'vendeur' dans la base de données (collection 'users') et que les règles de sécurité sont bien publiées.";
         } else {
           description = `Erreur Firebase : ${error.message} (code: ${error.code})`;
         }
@@ -116,7 +114,7 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
       }
       
       toast({
-        title: 'Erreur',
+        title: 'Erreur de Permission',
         description: description,
         variant: 'destructive',
       });

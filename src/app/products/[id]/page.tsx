@@ -1,7 +1,7 @@
 'use client';
 
 import { mockProducts } from '@/lib/mock-data';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,9 +11,12 @@ import { Star, Heart, ShoppingCart, Download } from 'lucide-react';
 import { ProductCard } from '@/components/product-card';
 import { useAuth } from '@/context/auth-context';
 
-export default function ProductDetailPage({ params }: { params: { id: string } }) {
+export default function ProductDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
+
   const { user } = useAuth();
-  const product = mockProducts.find((p) => p.id === params.id.replace('-rev',''));
+  const product = mockProducts.find((p) => p.id === id?.replace('-rev',''));
   const relatedProducts = mockProducts.filter((p) => p.category === product?.category && p.id !== product?.id).slice(0, 3);
 
   if (!product) {

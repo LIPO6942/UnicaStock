@@ -30,6 +30,8 @@ export type CartItem = {
   quantity: number;
 };
 
+export type OrderStatus = 'En attente' | 'Confirmée' | 'Préparation en cours' | 'Expédiée' | 'Livrée' | 'Annulée';
+
 export type Order = {
   id: string; // Firestore document ID
   orderNumber: string; // Human-readable order number like #3301
@@ -37,13 +39,18 @@ export type Order = {
   userName: string;
   date: string; // ISO string
   total: number;
-  status: 'En attente' | 'Expédiée' | 'Livrée' | 'Annulée';
+  status: OrderStatus;
   payment: 'En attente' | 'Réglé' | 'Remboursé';
   items: {
     product: Product;
     quantity: number;
   }[];
   createdAt: any;
+  buyerInfo?: {
+    email: string;
+    phone?: string;
+    address?: string;
+  };
 };
 
 

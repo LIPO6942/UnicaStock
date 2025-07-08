@@ -140,6 +140,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const newOrder: Omit<Order, 'id' | 'orderNumber'> = {
       userId: user.uid,
       userName: user.name,
+      buyerInfo: {
+        email: user.email,
+      },
       date: new Date().toISOString(),
       total,
       status: 'En attente',

@@ -1,21 +1,26 @@
 'use client';
 
 import React, { useState, useEffect } from "react";
-import { File, ChevronRight, LoaderCircle } from "lucide-react";
+import { File, ChevronRight, LoaderCircle, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/context/auth-context";
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
-import type { Order } from "@/lib/types";
+import { collection, query, where, onSnapshot, orderBy, doc, updateDoc } from "firebase/firestore";
+import type { Order, OrderStatus } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
+
+const orderStatuses: OrderStatus[] = ['En attente', 'Confirmée', 'Préparation en cours', 'Expédiée', 'Livrée', 'Annulée'];
 
 export default function DashboardOrdersPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!user) return;
@@ -27,21 +32,16 @@ export default function DashboardOrdersPage() {
     if (user.type === 'seller') {
       q = query(ordersCollectionRef, orderBy('createdAt', 'desc'));
     } else {
-      // The composite query with `where` and `orderBy` requires a manual index in Firestore.
-      // To avoid this manual step for the user, we remove server-side sorting
-      // and apply it on the client instead.
       q = query(ordersCollectionRef, where('userId', '==', user.uid));
     }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedOrders = snapshot.docs.map(doc => ({
+      let fetchedOrders = snapshot.docs.map(doc => ({
         id: doc.id,
         orderNumber: doc.data().orderNumber || `#${doc.id.substring(0,4)}`,
         ...doc.data()
       } as Order));
 
-      // For buyers, sort orders on the client since we removed it from the query.
-      // For sellers, orders are already sorted by Firestore.
       if (user.type === 'buyer') {
         fetchedOrders.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       }
@@ -55,6 +55,17 @@ export default function DashboardOrdersPage() {
 
     return () => unsubscribe();
   }, [user]);
+
+  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+    const orderRef = doc(db, 'orders', orderId);
+    try {
+      await updateDoc(orderRef, { status: newStatus });
+      toast({ title: "Statut mis à jour", description: `La commande a été marquée comme "${newStatus}".` });
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      toast({ title: "Erreur", description: "Impossible de mettre à jour le statut.", variant: "destructive" });
+    }
+  };
 
   if (isAuthLoading || isLoadingOrders) {
     return (
@@ -74,6 +85,15 @@ export default function DashboardOrdersPage() {
   const toggleOrderDetails = (orderId: string) => {
     setOpenOrderId(openOrderId === orderId ? null : orderId);
   };
+
+  const getStatusBadgeVariant = (status: OrderStatus) => {
+    switch (status) {
+      case 'Livrée': return 'default';
+      case 'Annulée': return 'destructive';
+      case 'Expédiée': return 'outline';
+      default: return 'secondary';
+    }
+  }
 
   return (
     <Card>
@@ -122,7 +142,7 @@ export default function DashboardOrdersPage() {
                     <TableCell className="hidden md:table-cell">{new Date(order.date).toLocaleDateString('fr-FR')}</TableCell>
                     <TableCell className="text-right">{`${order.total.toFixed(2).replace('.', ',')} TND`}</TableCell>
                     <TableCell className="text-center hidden sm:table-cell">
-                      <Badge variant={order.status === 'Livrée' ? 'default' : (order.status === 'Annulée' ? 'destructive' : 'secondary')}>
+                      <Badge variant={getStatusBadgeVariant(order.status)}>
                         {order.status}
                       </Badge>
                     </TableCell>
@@ -135,8 +155,47 @@ export default function DashboardOrdersPage() {
                   {openOrderId === order.id && (
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
                       <TableCell colSpan={isSeller ? 6 : 5} className="p-0">
-                        <div className="p-4 pl-14">
-                          <h4 className="font-semibold mb-2 text-sm">Détails de la commande</h4>
+                        <div className="p-4 md:pl-14">
+                          <div className="flex flex-col md:flex-row justify-between md:items-start mb-4 gap-4">
+                              <div>
+                                  <h4 className="font-semibold mb-2 text-sm">Détails de la commande</h4>
+                                  {isSeller && order.buyerInfo && (
+                                      <div className="text-sm text-muted-foreground space-y-1">
+                                          <p><strong>Client :</strong> {order.userName}</p>
+                                          <p><strong>Email :</strong> <a href={`mailto:${order.buyerInfo.email}`} className="text-primary hover:underline">{order.buyerInfo.email}</a></p>
+                                          <p><strong>Adresse de livraison :</strong> (Non spécifiée)</p> 
+                                      </div>
+                                  )}
+                                  {!isSeller && (
+                                      <div className="text-sm text-muted-foreground">
+                                          <p>Commande passée le {new Date(order.date).toLocaleDateString('fr-FR')}</p>
+                                      </div>
+                                  )}
+                              </div>
+                              {isSeller && (
+                                  <div className="flex items-center gap-2">
+                                      <div className="w-[200px]">
+                                          <Select
+                                              defaultValue={order.status}
+                                              onValueChange={(value) => handleStatusChange(order.id, value as OrderStatus)}
+                                          >
+                                              <SelectTrigger id={`status-${order.id}`}>
+                                                  <SelectValue placeholder="Changer le statut" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                  {orderStatuses.map(status => (
+                                                      <SelectItem key={status} value={status}>{status}</SelectItem>
+                                                  ))}
+                                              </SelectContent>
+                                          </Select>
+                                      </div>
+                                      <Button variant="outline" size="sm">
+                                          <MessageSquare className="mr-2 h-4 w-4" />
+                                          Contacter
+                                      </Button>
+                                  </div>
+                              )}
+                          </div>
                           <Table>
                             <TableHeader>
                               <TableRow>

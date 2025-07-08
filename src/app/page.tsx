@@ -5,6 +5,7 @@ import { mockProducts } from '@/lib/mock-data';
 import { ArrowRight, Leaf, Search, ShieldCheck, Truck } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { BannerCarousel } from '@/components/banner-carousel';
 
 export default function Home() {
   const featuredProducts = mockProducts.slice(0, 4);
@@ -41,6 +42,12 @@ export default function Home() {
               </Button>
             </form>
           </div>
+        </div>
+      </section>
+
+      <section className="py-12 md:py-16 bg-background">
+        <div className="container">
+          <BannerCarousel />
         </div>
       </section>
 

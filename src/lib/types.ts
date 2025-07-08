@@ -31,3 +31,12 @@ export type Order = {
   payment: string; // 'En attente', 'Réglé', 'Remboursé'
   items: CartItem[];
 };
+
+export type Banner = {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  linkUrl: string;
+  buttonText: string;
+};

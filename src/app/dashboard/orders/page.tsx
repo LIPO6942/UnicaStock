@@ -1,14 +1,16 @@
 'use client';
 
-import { File } from "lucide-react";
+import { File, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/context/auth-context";
+import React, { useState } from "react";
 
 export default function DashboardOrdersPage() {
   const { user, getOrdersForUser, isLoading } = useAuth();
+  const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   
   if (isLoading || !user) {
     return null; // or a loading skeleton
@@ -23,6 +25,9 @@ export default function DashboardOrdersPage() {
     ? "Consultez l'historique de toutes les commandes clients."
     : "Consultez l'historique de vos commandes.";
 
+  const toggleOrderDetails = (orderId: string) => {
+    setOpenOrderId(openOrderId === orderId ? null : orderId);
+  };
 
   return (
     <Card>
@@ -59,22 +64,60 @@ export default function DashboardOrdersPage() {
             </TableHeader>
             <TableBody>
               {orders.map((order) => (
-                  <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.id}</TableCell>
-                      {isSeller && <TableCell>{order.user}</TableCell>}
-                      <TableCell className="hidden md:table-cell">{new Date(order.date).toLocaleDateString('fr-FR')}</TableCell>
-                      <TableCell className="text-right">{`${order.total.toFixed(2).replace('.', ',')} TND`}</TableCell>
-                      <TableCell className="text-center hidden sm:table-cell">
-                          <Badge variant={order.status === 'Livrée' ? 'default' : (order.status === 'Annulée' ? 'destructive' : 'secondary')}>
-                              {order.status}
-                          </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                          <Badge variant={order.payment === 'Réglé' ? 'default' : 'secondary'} className="capitalize">
-                              {order.payment}
-                          </Badge>
-                      </TableCell>
-                  </TableRow>
+                  <React.Fragment key={order.id}>
+                    <TableRow onClick={() => toggleOrderDetails(order.id)} className="cursor-pointer">
+                        <TableCell className="font-medium">
+                           <div className="flex items-center gap-2">
+                             <ChevronRight className={`h-4 w-4 shrink-0 transition-transform duration-200 ${openOrderId === order.id ? 'rotate-90' : ''}`} />
+                            {order.id}
+                          </div>
+                        </TableCell>
+                        {isSeller && <TableCell>{order.user}</TableCell>}
+                        <TableCell className="hidden md:table-cell">{new Date(order.date).toLocaleDateString('fr-FR')}</TableCell>
+                        <TableCell className="text-right">{`${order.total.toFixed(2).replace('.', ',')} TND`}</TableCell>
+                        <TableCell className="text-center hidden sm:table-cell">
+                            <Badge variant={order.status === 'Livrée' ? 'default' : (order.status === 'Annulée' ? 'destructive' : 'secondary')}>
+                                {order.status}
+                            </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                            <Badge variant={order.payment === 'Réglé' ? 'default' : 'secondary'} className="capitalize">
+                                {order.payment}
+                            </Badge>
+                        </TableCell>
+                    </TableRow>
+                    {openOrderId === order.id && (
+                       <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableCell colSpan={isSeller ? 6 : 5} className="p-0">
+                          <div className="p-4 pl-14">
+                            <h4 className="font-semibold mb-2 text-sm">Détails de la commande</h4>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Produit</TableHead>
+                                        <TableHead>Quantité</TableHead>
+                                        <TableHead className="text-right">Prix Unitaire</TableHead>
+                                        <TableHead className="text-right">Sous-total</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                {order.items.map((item) => (
+                                    <TableRow key={item.product.id} className="border-b-0">
+                                        <TableCell className="font-medium">{item.product.name}</TableCell>
+                                        <TableCell>{item.quantity} kg</TableCell>
+                                        <TableCell className="text-right">{item.product.price.toFixed(2)} TND</TableCell>
+                                        <TableCell className="text-right">
+                                        {(item.product.price * item.quantity).toFixed(2)} TND
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                </TableBody>
+                            </Table>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
               ))}
             </TableBody>
           </Table>

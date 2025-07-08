@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -17,15 +18,18 @@ import * as ProductService from '@/lib/product-service';
 import { useToast } from '@/hooks/use-toast';
 import { EditProductDialog } from '@/components/edit-product-dialog';
 import Loading from '../loading';
+import { useAuth } from '@/context/auth-context';
 
 export default function SellerProductsPage() {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+  
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-
-  const { toast } = useToast();
 
   const fetchProducts = async () => {
     setIsLoading(true);
@@ -41,8 +45,20 @@ export default function SellerProductsPage() {
   };
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    if (isAuthLoading) return; // Wait until authentication status is resolved
+
+    if (!user || user.type !== 'seller') {
+      toast({
+        title: "Accès non autorisé",
+        description: "Cette page est réservée aux vendeurs.",
+        variant: "destructive",
+      });
+      router.replace('/dashboard');
+    } else {
+      // User is a seller, go ahead and fetch products
+      fetchProducts();
+    }
+  }, [user, isAuthLoading, router, toast]);
 
   const handleAddProduct = () => {
     setSelectedProduct(null);
@@ -77,7 +93,7 @@ export default function SellerProductsPage() {
     fetchProducts();
   };
 
-  if (isLoading) {
+  if (isAuthLoading || isLoading || !user || user.type !== 'seller') {
     return <Loading />;
   }
 

@@ -105,7 +105,7 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
       
       if (error instanceof FirebaseError) {
         if (error.code === 'permission-denied') {
-          description = "Permission refusée. Assurez-vous que votre compte est bien un 'vendeur' dans la base de données (collection 'users') et que les règles de sécurité sont bien publiées.";
+          description = "Permission Refusée. Causes possibles : 1) Vous n'êtes pas connecté avec le bon compte vendeur. 2) Votre document utilisateur dans Firestore (collection 'users') n'a pas le champ `type` avec la valeur exacte `seller` (en minuscules). 3) Les règles de sécurité Firestore n'ont pas été correctement publiées.";
         } else {
           description = `Erreur Firebase : ${error.message} (code: ${error.code})`;
         }
@@ -117,6 +117,7 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
         title: 'Erreur de Permission',
         description: description,
         variant: 'destructive',
+        duration: 9000
       });
     }
   };

@@ -1,4 +1,5 @@
 'use client';
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +13,7 @@ interface ProductCardProps {
   product: Product;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+function ProductCardComponent({ product }: ProductCardProps) {
   const { user } = useAuth();
   const isBuyer = user?.type === 'buyer';
 
@@ -64,3 +65,6 @@ export function ProductCard({ product }: ProductCardProps) {
     </Card>
   );
 }
+
+export const ProductCard = React.memo(ProductCardComponent);
+ProductCard.displayName = 'ProductCard';

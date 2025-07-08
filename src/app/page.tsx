@@ -16,10 +16,10 @@ export default function Home() {
         <Image
           src="https://images.unsplash.com/photo-1643379855889-850035817d24?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxuYXR1cmFsJTIwY29zbWV0aWMlMjBwcm9kdWN0fGVufDB8fHx8MTc1MTk2Mjk3M3ww&ixlib=rb-4.1.0&q=80&w=1080"
           alt="Hero background"
-          layout="fill"
-          objectFit="cover"
-          className="opacity-20"
+          fill
+          className="object-cover opacity-20"
           data-ai-hint="natural ingredients"
+          priority
         />
         <div className="relative container z-10 flex flex-col items-center gap-6">
           <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl font-headline">

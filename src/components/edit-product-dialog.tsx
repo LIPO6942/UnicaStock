@@ -84,14 +84,12 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
       };
       
       if (product) {
-        // Update existing product
         await ProductService.updateProduct(product.id, productData);
         toast({
           title: 'Produit mis à jour',
           description: 'Les informations du produit ont été enregistrées.',
         });
       } else {
-        // Add new product
         await ProductService.addProduct(productData);
         toast({
           title: 'Produit ajouté',
@@ -100,24 +98,20 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
       }
       onSave();
     } catch (error) {
-      console.error("Détail complet de l'erreur Firebase:", error);
-      let description = "Une erreur inconnue est survenue lors de l'enregistrement du produit.";
+      console.error("Erreur lors de l'enregistrement du produit:", error);
       
+      let description = "Une erreur inconnue est survenue.";
       if (error instanceof FirebaseError) {
-        if (error.code === 'permission-denied') {
-          description = "Permission Refusée. Ceci est un problème de configuration. VEUILLEZ VÉRIFIER ATTENTIVEMENT LES POINTS SUIVANTS : 1) Allez dans votre base de données Firestore, collection 'users', et trouvez le document de votre compte. 2) Assurez-vous qu'il contient un champ nommé 'type'. 3) La valeur de ce champ 'type' DOIT être exactement 'seller' (tout en minuscules). 4) Assurez-vous que les dernières règles de sécurité ont bien été publiées dans la console Firebase.";
-        } else {
-          description = `Une erreur Firebase inattendue est survenue. Code: ${error.code}, Message: ${error.message}`;
-        }
+          description = `Une erreur Firebase est survenue: ${error.message} (code: ${error.code})`;
       } else if (error instanceof Error) {
         description = error.message;
       }
       
       toast({
-        title: "Erreur de Permission",
+        title: "Erreur d'enregistrement",
         description: description,
         variant: 'destructive',
-        duration: 15000
+        duration: 10000,
       });
     }
   };

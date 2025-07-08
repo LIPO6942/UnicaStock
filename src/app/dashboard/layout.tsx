@@ -14,11 +14,8 @@ import {
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
-  Package,
   ShoppingCart,
   Settings,
-  Users,
-  BarChart3,
   MessageSquare,
   Heart,
   LoaderCircle,
@@ -27,6 +24,7 @@ import { Icons } from '@/components/icons';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { useEffect } from 'react';
+import { HeaderActions } from '@/components/header-actions';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -134,15 +132,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
+        <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
           <SidebarTrigger className="md:hidden" />
           <div className="w-full flex-1">
             {/* Can add search bar here if needed */}
           </div>
+          <HeaderActions />
         </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-muted/40">
+        <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-muted/40">
             {children}
-        </main>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

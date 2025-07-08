@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { onAuthStateChanged, User as FirebaseUser, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { onAuthStateChanged, User as FirebaseUser, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, collection, addDoc, serverTimestamp, query, where, getDocs, writeBatch, deleteDoc, runTransaction, DocumentReference } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import type { UserProfile, Product, CartItem, Order } from '@/lib/types';
@@ -14,6 +14,7 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<any>;
   register: (name: string, email: string, pass: string, type: 'buyer' | 'seller') => Promise<any>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   cart: CartItem[];
   addToCart: (product: Product, quantity: number) => Promise<void>;
   removeFromCart: (cartItemId: string) => Promise<void>;
@@ -41,7 +42,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (userDoc.exists()) {
           setUser({ uid: userAuth.uid, ...userDoc.data() } as UserProfile);
         } else {
-          // Handle case where user exists in Auth but not Firestore
           setUser(null);
         }
       } else {
@@ -88,6 +88,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     await signOut(auth);
+  };
+
+  const deleteAccount = async () => {
+    if (!firebaseUser) {
+      throw new Error("Utilisateur non authentifié.");
+    }
+    try {
+      // 1. Delete user's cart subcollection
+      const cartCollectionRef = collection(db, 'users', firebaseUser.uid, 'cart');
+      const cartSnapshot = await getDocs(cartCollectionRef);
+      if (!cartSnapshot.empty) {
+        const batch = writeBatch(db);
+        cartSnapshot.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+      }
+
+      // 2. Delete the user's document in Firestore
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      await deleteDoc(userDocRef);
+
+      // 3. Delete the user from Firebase Authentication
+      await deleteUser(firebaseUser);
+
+    } catch (error: any) {
+      console.error("Erreur lors de la suppression du compte :", error);
+      let description = "Une erreur est survenue lors de la suppression de votre compte.";
+      if (error.code === 'auth/requires-recent-login') {
+        description = "Opération sensible. Veuillez vous déconnecter et vous reconnecter avant de réessayer.";
+      }
+      toast({
+        title: 'Erreur de suppression',
+        description: description,
+        variant: 'destructive',
+      });
+      throw error; // Re-throw to be caught by the UI
+    }
   };
   
   const addToCart = async (product: Product, quantity: number) => {
@@ -138,32 +176,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const newOrderRef = doc(collection(db, 'orders'));
     
     try {
-      // Use a transaction to ensure atomicity
       const createdOrder = await runTransaction(db, async (transaction) => {
         const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-
-        // 1. Verify stock and prepare product updates
         const productUpdates: { ref: DocumentReference; newStock: number }[] = [];
+
         for (const item of cart) {
           const productRef = doc(db, 'products', item.product.id);
           const productDoc = await transaction.get(productRef);
-          if (!productDoc.exists()) {
-            throw new Error(`Produit ${item.product.name} non trouvé.`);
-          }
+          if (!productDoc.exists()) throw new Error(`Produit ${item.product.name} non trouvé.`);
           const currentStock = productDoc.data().stock;
-          if (currentStock < item.quantity) {
-            throw new Error(`Stock insuffisant pour ${item.product.name}. Disponible: ${currentStock}, Demandé: ${item.quantity}.`);
-          }
+          if (currentStock < item.quantity) throw new Error(`Stock insuffisant pour ${item.product.name}. Disponible: ${currentStock}, Demandé: ${item.quantity}.`);
           productUpdates.push({ ref: productRef, newStock: currentStock - item.quantity });
         }
 
-        // 2. Create the order document
         const newOrderData: Omit<Order, 'id' | 'orderNumber'> = {
           userId: user.uid,
           userName: user.name,
-          buyerInfo: {
-            email: user.email,
-          },
+          buyerInfo: { email: user.email },
           date: new Date().toISOString(),
           total,
           status: 'En attente',
@@ -173,12 +202,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
         transaction.set(newOrderRef, newOrderData);
 
-        // 3. Update product stocks
         for (const update of productUpdates) {
           transaction.update(update.ref, { stock: update.newStock });
         }
 
-        // 4. Clear the user's cart
         const cartCollectionRef = collection(db, 'users', user.uid, 'cart');
         for (const item of cart) {
           const cartItemRef = doc(cartCollectionRef, item.id);
@@ -191,22 +218,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           ...newOrderData
         } as Order;
       });
-
       return createdOrder;
 
     } catch (e: any) {
-      console.error("Order transaction failed with error object:", e);
-      console.error("Error code:", e.code);
-      let description = "La transaction a échoué. Veuillez réessayer.";
-      if (e.message?.includes("PERMISSION_DENIED")) {
-        description = "Un problème de permissions est survenu lors de la mise à jour du stock. Veuillez contacter le support.";
-      } else if (e.message) {
-        description = e.message;
-      }
-      
+      console.error("La transaction de commande a échoué:", e);
       toast({
         title: "Erreur de commande",
-        description: description,
+        description: e.message || "La transaction a échoué. Veuillez réessayer.",
         variant: "destructive",
       });
       return null;
@@ -223,6 +241,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     login,
     register,
     logout,
+    deleteAccount,
     cart,
     addToCart,
     removeFromCart,

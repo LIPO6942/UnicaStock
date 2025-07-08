@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 import type { Product } from '@/lib/types';
 import * as ProductService from '@/lib/product-service';
+import * as ProductServiceClient from '@/lib/product-service-client';
 import { useToast } from '@/hooks/use-toast';
 import { EditProductDialog } from '@/components/edit-product-dialog';
 import Loading from '../loading';
@@ -72,7 +73,7 @@ export default function SellerProductsPage() {
 
   const handleDeleteProduct = async (productId: string) => {
     try {
-      await ProductService.deleteProduct(productId);
+      await ProductServiceClient.deleteProduct(productId);
       toast({
         title: 'Produit supprimé',
         description: 'Le produit a été supprimé avec succès.',

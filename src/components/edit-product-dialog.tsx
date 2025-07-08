@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import type { Product } from '@/lib/types';
-import * as ProductService from '@/lib/product-service';
+import * as ProductServiceClient from '@/lib/product-service-client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -32,7 +32,7 @@ const productSchema = z.object({
   moq: z.coerce.number().int().min(1, { message: 'Le MOQ doit être au moins 1.' }),
   description: z.string().min(10, { message: 'La description courte est requise (min 10 caractères).' }),
   longDescription: z.string().min(20, { message: 'La description longue est requise (min 20 caractères).' }),
-  imageUrl: z.string().optional().or(z.literal('')),
+  imageUrl: z.string().url({ message: "Veuillez entrer une URL valide." }).or(z.literal('')),
 });
 
 export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditProductDialogProps) {
@@ -84,13 +84,13 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
       };
       
       if (product) {
-        await ProductService.updateProduct(product.id, productData);
+        await ProductServiceClient.updateProduct(product.id, productData);
         toast({
           title: 'Produit mis à jour',
           description: 'Les informations du produit ont été enregistrées.',
         });
       } else {
-        await ProductService.addProduct(productData);
+        await ProductServiceClient.addProduct(productData);
         toast({
           title: 'Produit ajouté',
           description: 'Le nouveau produit a été créé avec succès.',
@@ -99,9 +99,13 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
       onSave();
     } catch (error) {
       console.error("Détail de l'erreur Firebase:", error);
+      let description = "L'action a échoué. Veuillez réessayer.";
+      if (error instanceof FirebaseError && error.code === 'permission-denied') {
+        description = "Permission Refusée par Firestore. Assurez-vous que les règles de sécurité sont à jour et que votre compte est bien de type 'seller' dans la base de données.";
+      }
       toast({
-          title: "Permission Refusée par Firestore",
-          description: "L'action a échoué. Assurez-vous d'avoir appliqué les dernières règles de sécurité dans votre console Firebase et que votre compte a bien le type 'seller'.",
+          title: "Erreur d'enregistrement",
+          description: description,
           variant: 'destructive',
           duration: 10000,
       });

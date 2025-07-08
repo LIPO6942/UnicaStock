@@ -231,15 +231,17 @@ export default function DashboardOrdersPage() {
                                               </SelectContent>
                                           </Select>
                                       </div>
-                                       <Button variant="outline" size="sm" asChild>
-                                        <a
-                                          href={`mailto:${order.buyerInfo.email}?subject=Concernant votre commande ${order.orderNumber}`}
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <MessageSquare className="mr-2 h-4 w-4" />
-                                          Contacter
-                                        </a>
-                                      </Button>
+                                       {order.buyerInfo?.email && (
+                                        <Button variant="outline" size="sm" asChild>
+                                          <a
+                                            href={`mailto:${order.buyerInfo.email}?subject=Concernant votre commande ${order.orderNumber}`}
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <MessageSquare className="mr-2 h-4 w-4" />
+                                            Contacter
+                                          </a>
+                                        </Button>
+                                       )}
                                   </div>
                               )}
                           </div>

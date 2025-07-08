@@ -81,7 +81,7 @@ export default function DashboardOrdersPage() {
 
     const csvHeader = [
       "Numéro Commande", "Date", "Client", "Email", "Produits", "Total (TND)", "Statut", "Paiement"
-    ].map(formatCsvCell).join(',');
+    ].map(formatCsvCell).join(';');
 
     const csvRows = orders.map(order => {
       const productsString = order.items
@@ -98,7 +98,7 @@ export default function DashboardOrdersPage() {
         order.status,
         order.payment,
       ].map(formatCsvCell);
-      return row.join(',');
+      return row.join(';');
     });
 
     const csvContent = [csvHeader, ...csvRows].join('\n');

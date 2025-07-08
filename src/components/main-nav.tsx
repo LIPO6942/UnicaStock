@@ -24,15 +24,6 @@ export function MainNav() {
         >
           Produits
         </Link>
-        <Link
-          href="#"
-          className={cn(
-            'transition-colors hover:text-foreground/80',
-            pathname === '/sellers' ? 'text-foreground' : 'text-foreground/60'
-          )}
-        >
-          Pour les Vendeurs
-        </Link>
       </nav>
     </div>
   );

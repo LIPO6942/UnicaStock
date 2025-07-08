@@ -3,10 +3,10 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import { MainNav } from '@/components/main-nav';
-import { UserNav } from '@/components/user-nav';
 import { Icons } from '@/components/icons';
 import Link from 'next/link';
 import { AuthProvider } from '@/context/auth-context';
+import { HeaderActions } from '@/components/header-actions';
 
 export const metadata: Metadata = {
   title: 'Unica Link',
@@ -32,9 +32,7 @@ export default function RootLayout({
               <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
                 <MainNav />
                 <div className="flex flex-1 items-center justify-end space-x-4">
-                  <nav className="flex items-center space-x-1">
-                    <UserNav />
-                  </nav>
+                  <HeaderActions />
                 </div>
               </div>
             </header>

@@ -16,3 +16,18 @@ export type Product = {
   dataSheetUrl?: string;
   coaUrl?: string;
 };
+
+export type CartItem = {
+  product: Product;
+  quantity: number;
+};
+
+export type Order = {
+  id: string;
+  user: string; // user name
+  date: string;
+  total: number;
+  status: string; // 'En attente', 'Expédiée', 'Livrée', 'Annulée'
+  payment: string; // 'En attente', 'Réglé', 'Remboursé'
+  items: CartItem[];
+};

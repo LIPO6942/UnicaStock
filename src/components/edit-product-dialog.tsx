@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { FirebaseError } from 'firebase/app';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -31,8 +32,8 @@ const productSchema = z.object({
   moq: z.coerce.number().int().min(1, { message: 'Le MOQ doit être au moins 1.' }),
   description: z.string().min(10, { message: 'La description courte est requise (min 10 caractères).' }),
   longDescription: z.string().min(20, { message: 'La description longue est requise (min 20 caractères).' }),
-  imageUrl: z.string().refine((val) => val === '' || val.startsWith('https://'), {
-    message: "L'URL de l'image doit commencer par 'https://' ou être laissée vide pour utiliser une image par défaut.",
+  imageUrl: z.string().refine((val) => val === '' || val.startsWith('http'), {
+    message: "L'URL de l'image doit être un lien valide commençant par 'http' ou 'https'.",
   }),
 });
 
@@ -101,10 +102,22 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
       }
       onSave();
     } catch (error) {
-      console.error(error);
+      console.error("Détail de l'erreur d'enregistrement:", error);
+      let description = "Une erreur est survenue lors de l'enregistrement du produit.";
+      
+      if (error instanceof FirebaseError) {
+        if (error.code === 'permission-denied') {
+          description = "Permission refusée. Veuillez vérifier que vous êtes connecté en tant que vendeur et que vos règles de sécurité Firestore sont à jour.";
+        } else {
+          description = `Erreur Firebase : ${error.message} (code: ${error.code})`;
+        }
+      } else if (error instanceof Error) {
+        description = error.message;
+      }
+      
       toast({
         title: 'Erreur',
-        description: "Une erreur est survenue lors de l'enregistrement du produit.",
+        description: description,
         variant: 'destructive',
       });
     }

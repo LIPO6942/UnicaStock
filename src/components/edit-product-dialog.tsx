@@ -32,7 +32,7 @@ const productSchema = z.object({
   moq: z.coerce.number().int().min(1, { message: 'Le MOQ doit être au moins 1.' }),
   description: z.string().min(10, { message: 'La description courte est requise (min 10 caractères).' }),
   longDescription: z.string().min(20, { message: 'La description longue est requise (min 20 caractères).' }),
-  imageUrl: z.string().url({ message: "Veuillez entrer une URL valide." }).optional().or(z.literal('')),
+  imageUrl: z.string().optional().or(z.literal('')),
 });
 
 export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditProductDialogProps) {
@@ -98,20 +98,12 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
       }
       onSave();
     } catch (error) {
-      console.error("Erreur lors de l'enregistrement du produit:", error);
-      
-      let description = "Une erreur inconnue est survenue.";
-      if (error instanceof FirebaseError) {
-          description = `Une erreur Firebase est survenue: ${error.message} (code: ${error.code})`;
-      } else if (error instanceof Error) {
-        description = error.message;
-      }
-      
+      console.error("Détail de l'erreur Firebase:", error);
       toast({
-        title: "Erreur d'enregistrement",
-        description: description,
-        variant: 'destructive',
-        duration: 10000,
+          title: "Permission Refusée par Firestore",
+          description: "L'action a échoué. Assurez-vous d'avoir appliqué les dernières règles de sécurité dans votre console Firebase et que votre compte a bien le type 'seller'.",
+          variant: 'destructive',
+          duration: 10000,
       });
     }
   };

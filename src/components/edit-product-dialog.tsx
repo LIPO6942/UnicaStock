@@ -31,7 +31,9 @@ const productSchema = z.object({
   moq: z.coerce.number().int().min(1, { message: 'Le MOQ doit être au moins 1.' }),
   description: z.string().min(10, { message: 'La description courte est requise (min 10 caractères).' }),
   longDescription: z.string().min(20, { message: 'La description longue est requise (min 20 caractères).' }),
-  imageUrl: z.string().url({ message: "L'URL de l'image doit être valide." }).optional().or(z.literal('')),
+  imageUrl: z.string().refine((val) => val === '' || val.startsWith('https://'), {
+    message: "L'URL de l'image doit commencer par 'https://' ou être laissée vide pour utiliser une image par défaut.",
+  }),
 });
 
 export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditProductDialogProps) {

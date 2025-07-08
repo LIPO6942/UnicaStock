@@ -32,7 +32,7 @@ const productSchema = z.object({
   moq: z.coerce.number().int().min(1, { message: 'Le MOQ doit être au moins 1.' }),
   description: z.string().min(10, { message: 'La description courte est requise (min 10 caractères).' }),
   longDescription: z.string().min(20, { message: 'La description longue est requise (min 20 caractères).' }),
-  imageUrl: z.string().url({ message: "Veuillez entrer une URL valide." }).or(z.literal('')),
+  imageUrl: z.string().optional(),
 });
 
 export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditProductDialogProps) {
@@ -104,17 +104,17 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
       let description = "Une erreur est survenue lors de l'enregistrement du produit.";
       
       if (error instanceof FirebaseError) {
-        if (error.code === 'permission-denied') {
-          description = "Permission Refusée. Causes possibles : 1) Vous n'êtes pas connecté avec le bon compte vendeur. 2) Votre document utilisateur dans Firestore (collection 'users') n'a pas le champ `type` avec la valeur exacte `seller` (en minuscules). 3) Les règles de sécurité Firestore n'ont pas été correctement publiées.";
+        if (error.message.includes('PERMISSION_DENIED')) {
+          description = "Permission Refusée. Veuillez vérifier les points suivants : 1) Assurez-vous d'être connecté avec le bon compte vendeur. 2) Vérifiez dans votre base de données Firestore que votre document utilisateur (dans la collection 'users') contient bien un champ `type` avec la valeur exacte `seller` (en minuscules). 3) Assurez-vous que les dernières règles de sécurité ont été correctement copiées et publiées dans la console Firebase.";
         } else {
-          description = `Erreur Firebase : ${error.message} (code: ${error.code})`;
+          description = `Une erreur inattendue est survenue : ${error.message} (Code: ${error.code})`;
         }
       } else if (error instanceof Error) {
         description = error.message;
       }
       
       toast({
-        title: 'Erreur de Permission',
+        title: "Erreur d'enregistrement",
         description: description,
         variant: 'destructive',
         duration: 9000

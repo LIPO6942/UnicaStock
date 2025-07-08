@@ -195,7 +195,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return createdOrder;
 
     } catch (e: any) {
-      console.error("Order transaction failed: ", e);
+      console.error("Order transaction failed with error object:", e);
+      console.error("Error code:", e.code);
       let description = "La transaction a échoué. Veuillez réessayer.";
       if (e.message?.includes("PERMISSION_DENIED")) {
         description = "Un problème de permissions est survenu lors de la mise à jour du stock. Veuillez contacter le support.";

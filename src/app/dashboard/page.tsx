@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect } from "react";
-import Link from "next/link";
-import { useAuth } from "@/context/auth-context";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { ArrowUpRight, DollarSign, ShoppingCart, Heart } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Link from 'next/link';
+import { useAuth } from '@/context/auth-context';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { ArrowUpRight, DollarSign, ShoppingCart, Heart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { BannerCarousel } from '@/components/banner-carousel';
 
 export default function DashboardPage() {
   const { user, getOrdersForUser, isLoading } = useAuth();
@@ -62,6 +62,8 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <BannerCarousel />
 
       <Card>
         <CardHeader className="flex flex-row items-center">

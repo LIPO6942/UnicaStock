@@ -11,7 +11,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Package,
@@ -20,16 +20,35 @@ import {
   Users,
   BarChart3,
   MessageSquare,
+  Heart,
+  LoaderCircle,
 } from 'lucide-react';
 import { Icons } from '@/components/icons';
 import Link from 'next/link';
+import { useAuth } from '@/context/auth-context';
+import { useEffect } from 'react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isActive = (path: string) => pathname === path;
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
 
-  // Mock user type, in a real app this would come from session/auth context
-  const userType = 'seller'; 
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/login');
+    }
+  }, [isLoading, user, router]);
+
+
+  if (isLoading || !user) {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    )
+  }
+
+  const isActive = (path: string) => pathname === path;
 
   const sellerNav = [
     { href: '/dashboard/products', label: 'Produits', icon: Package },
@@ -40,21 +59,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const buyerNav = [
     { href: '/dashboard/orders', label: 'Mes Commandes', icon: ShoppingCart },
-    { href: '/dashboard/favorites', label: 'Favoris', icon: Package },
+    { href: '/dashboard/favorites', label: 'Favoris', icon: Heart },
     { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare },
-  ];
-
-  const adminNav = [
-    { href: '/dashboard/users', label: 'Utilisateurs', icon: Users },
-    { href: '/dashboard/categories', label: 'Catégories', icon: LayoutDashboard },
   ];
 
   const commonNav = [
     { href: '/dashboard/settings', label: 'Paramètres', icon: Settings },
   ];
 
-  // Determine nav items based on user type
-  const navItems = userType === 'seller' ? sellerNav : buyerNav;
+  const navItems = user.type === 'seller' ? sellerNav : buyerNav;
 
   return (
     <SidebarProvider defaultOpen>

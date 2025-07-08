@@ -12,14 +12,20 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { CreditCard, LayoutGrid, LogOut, Settings, User } from 'lucide-react';
+import { CreditCard, LayoutGrid, LogOut, Settings, User, Heart, ShoppingCart } from 'lucide-react';
+import { useAuth } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
 
 export function UserNav() {
-  // This is a mock implementation. In a real app, you'd get user state from a context or hook.
-  const user = { name: 'Artisan Pro', email: 'contact@artisanpro.tn' };
-  const isAuthenticated = true;
+  const { user, logout } = useAuth();
+  const router = useRouter();
 
-  if (!isAuthenticated) {
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+  };
+
+  if (!user) {
     return (
       <div className="flex items-center gap-2">
         <Button asChild variant="ghost">
@@ -32,13 +38,17 @@ export function UserNav() {
     );
   }
 
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src="https://placehold.co/40x40.png" alt="@shadcn" data-ai-hint="person" />
-            <AvatarFallback>AP</AvatarFallback>
+            <AvatarImage src={`https://placehold.co/40x40.png?text=${getInitials(user.name)}`} alt={user.name} data-ai-hint="person" />
+            <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -57,18 +67,22 @@ export function UserNav() {
               <span>Dashboard</span>
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/dashboard/profile">
-              <User className="mr-2 h-4 w-4" />
-              <span>Profil</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/dashboard/billing">
-              <CreditCard className="mr-2 h-4 w-4" />
-              <span>Facturation</span>
-            </Link>
-          </DropdownMenuItem>
+           {user.type === 'buyer' && (
+            <>
+              <DropdownMenuItem asChild>
+                 <Link href="/dashboard/orders">
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    <span>Mes Commandes</span>
+                 </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/favorites">
+                    <Heart className="mr-2 h-4 w-4" />
+                    <span>Favoris</span>
+                </Link>
+              </DropdownMenuItem>
+            </>
+           )}
           <DropdownMenuItem asChild>
             <Link href="/dashboard/settings">
               <Settings className="mr-2 h-4 w-4" />
@@ -77,7 +91,7 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Déconnexion</span>
         </DropdownMenuItem>

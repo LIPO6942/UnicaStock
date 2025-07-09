@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, deleteDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, deleteDoc, runTransaction, serverTimestamp, getDocs } from 'firebase/firestore';
 import type { Product, Review } from '@/lib/types';
 
 // This service manages product mutations from the client-side.
@@ -42,29 +42,34 @@ export async function deleteProduct(id: string) {
 }
 
 /**
- * Adds a new review for a product and updates the product's average rating.
+ * Adds a new review for a product and updates the product's average rating and review count
+ * by recounting existing reviews to ensure data integrity.
  * @param productId The ID of the product being reviewed.
  * @param reviewData The review data.
  */
 export async function addReview(productId: string, reviewData: Omit<Review, 'id' | 'createdAt'>) {
     const productRef = doc(db, 'products', productId);
-    
+    const reviewsCollectionRef = collection(db, 'products', productId, 'reviews');
+
+    // First, get all existing reviews to ensure the new count and rating are accurate.
+    // This makes the system self-healing if the counter is ever out of sync.
+    const reviewsSnapshot = await getDocs(reviewsCollectionRef);
+    const existingReviews = reviewsSnapshot.docs.map(doc => doc.data() as Review);
+
     await runTransaction(db, async (transaction) => {
         const productDoc = await transaction.get(productRef);
         if (!productDoc.exists()) {
             throw new Error("Produit non trouvé !");
         }
 
-        // Calculation of new average rating
-        const currentData = productDoc.data();
-        const currentRating = currentData.rating || 0;
-        const currentReviewCount = currentData.reviewCount || 0;
+        // Recalculate rating and count based on the ground truth (actual reviews)
+        const totalRatingOfExisting = existingReviews.reduce((sum, review) => sum + review.rating, 0);
         
-        const newReviewCount = currentReviewCount + 1;
-        const newTotalRating = (currentRating * currentReviewCount) + reviewData.rating;
+        const newReviewCount = existingReviews.length + 1;
+        const newTotalRating = totalRatingOfExisting + reviewData.rating;
         const newAverageRating = newTotalRating / newReviewCount;
 
-        // Update product document
+        // Update product document with the corrected data
         transaction.update(productRef, {
             rating: newAverageRating,
             reviewCount: newReviewCount,

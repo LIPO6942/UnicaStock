@@ -153,6 +153,7 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
   };
 
   const isBuyer = user?.type === 'buyer';
+  const reviewCount = reviews.length;
 
   return (
     <div className="container py-12">
@@ -183,7 +184,7 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
                   />
                 ))}
               </div>
-              <span className="text-muted-foreground text-sm">({product.reviewCount} avis)</span>
+              <span className="text-muted-foreground text-sm">({reviewCount} avis)</span>
             </div>
           </div>
           
@@ -253,7 +254,7 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
       
       <div className="grid md:grid-cols-3 gap-12">
         <div className="md:col-span-2">
-            <h2 className="text-2xl font-bold mb-6 font-headline">Avis des clients ({product.reviewCount})</h2>
+            <h2 className="text-2xl font-bold mb-6 font-headline">Avis des clients ({reviewCount})</h2>
             <div className="space-y-6">
                 {reviews.length > 0 ? reviews.map(review => (
                     <div key={review.id} className="flex gap-4">

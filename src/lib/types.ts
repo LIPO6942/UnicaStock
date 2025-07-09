@@ -1,3 +1,10 @@
+import type { Timestamp } from "firebase/firestore";
+
+export type SerializableTimestamp = {
+  seconds: number;
+  nanoseconds: number;
+};
+
 export type UserProfile = {
   uid: string;
   name: string;
@@ -56,10 +63,10 @@ export type Order = {
 export type Review = {
   id: string;
   userId: string;
-  userName: string;
+  userName:string;
   rating: number;
   comment: string;
-  createdAt: any; // Firestore timestamp
+  createdAt: SerializableTimestamp | Timestamp | null;
 };
 
 

@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, orderBy, Timestamp } from 'firebase/firestore';
 import type { Product, Review } from '@/lib/types';
 
 // This service reads products from Firestore for Server Components.
@@ -50,5 +50,18 @@ export async function getReviewsForProduct(productId: string): Promise<Review[]>
     if (snapshot.empty) {
         return [];
     }
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        // The `createdAt` field is a Firebase Timestamp.
+        // We need to convert it to a serializable format before passing it to the client component.
+        const createdAtTimestamp = data.createdAt as Timestamp | null;
+        return {
+            id: doc.id,
+            ...data,
+            createdAt: createdAtTimestamp ? {
+                seconds: createdAtTimestamp.seconds,
+                nanoseconds: createdAtTimestamp.nanoseconds,
+            } : null,
+        } as Review;
+    });
 }

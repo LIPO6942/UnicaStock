@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { FirebaseError } from 'firebase/app';
@@ -11,10 +11,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
-import type { Product } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { Product, ProductVariant } from '@/lib/types';
 import * as ProductServiceClient from '@/lib/product-service-client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { getProducts } from '@/lib/product-service';
 
 interface EditProductDialogProps {
   isOpen: boolean;
@@ -23,63 +25,112 @@ interface EditProductDialogProps {
   onSave: () => void;
 }
 
+const variantSchema = z.object({
+  id: z.string().min(1, { message: 'ID de variante requis.'}),
+  contenance: z.string().min(1, { message: 'La contenance est requise.' }),
+  price: z.coerce.number().positive({ message: 'Le prix doit être un nombre positif.' }),
+  stock: z.coerce.number().int().min(0, { message: 'Le stock doit être un nombre positif.' }),
+});
+
 const productSchema = z.object({
   name: z.string().min(3, { message: 'Le nom doit contenir au moins 3 caractères.' }),
   inci: z.string().min(3, { message: "L'INCI doit contenir au moins 3 caractères." }),
   category: z.string().min(2, { message: 'La catégorie est requise.' }),
-  price: z.coerce.number().positive({ message: 'Le prix doit être un nombre positif.' }),
-  stock: z.coerce.number().int().min(0, { message: 'Le stock doit être un nombre positif.' }),
+  newCategory: z.string().optional(),
   moq: z.coerce.number().int().min(1, { message: 'Le MOQ doit être au moins 1.' }),
   description: z.string().min(10, { message: 'La description courte est requise (min 10 caractères).' }),
   longDescription: z.string().min(20, { message: 'La description longue est requise (min 20 caractères).' }),
   imageUrl: z.string().url({ message: "Veuillez entrer une URL valide." }).or(z.literal('')),
+  variants: z.array(variantSchema).min(1, { message: 'Au moins une variante de produit est requise.' }),
 });
+
+const NEW_CATEGORY_VALUE = '__new__';
 
 export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditProductDialogProps) {
   const { toast } = useToast();
+  const [categories, setCategories] = useState<string[]>([]);
+  const [showNewCategory, setShowNewCategory] = useState(false);
+
+  useEffect(() => {
+    async function fetchCategories() {
+      const products = await getProducts();
+      const uniqueCategories = Array.from(new Set(products.map(p => p.category))).sort();
+      setCategories(uniqueCategories);
+    }
+    fetchCategories();
+  }, [isOpen]);
+
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '',
       inci: '',
       category: '',
-      price: 0,
-      stock: 0,
+      newCategory: '',
       moq: 1,
       description: '',
       longDescription: '',
       imageUrl: '',
+      variants: [],
     },
   });
 
   const {
     handleSubmit,
     reset,
+    control,
+    watch,
+    setValue,
     formState: { isSubmitting },
   } = form;
 
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'variants',
+  });
+
+  const selectedCategory = watch('category');
+
+  useEffect(() => {
+    if (selectedCategory === NEW_CATEGORY_VALUE) {
+      setShowNewCategory(true);
+    } else {
+      setShowNewCategory(false);
+    }
+  }, [selectedCategory]);
+
   useEffect(() => {
     if (product) {
-      reset(product);
+      reset({
+        ...product,
+        newCategory: '',
+      });
     } else {
       reset({
         name: '',
         inci: '',
         category: '',
-        price: 0,
-        stock: 0,
+        newCategory: '',
         moq: 1,
         description: '',
         longDescription: '',
         imageUrl: 'https://placehold.co/600x600.png',
+        variants: [{ id: 'variante-1', contenance: '', price: 0, stock: 0 }],
       });
     }
   }, [product, reset, isOpen]);
 
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
+    const finalCategory = values.category === NEW_CATEGORY_VALUE ? values.newCategory : values.category;
+    if (!finalCategory) {
+      form.setError('category', { type: 'manual', message: 'La catégorie est requise.' });
+      return;
+    }
+
     try {
-      const productData = {
+      const productData: Omit<Product, 'id' | 'rating' | 'reviewCount' | 'seller'> = {
         ...values,
+        category: finalCategory,
         imageUrl: values.imageUrl || 'https://placehold.co/600x600.png',
       };
       
@@ -114,7 +165,7 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{product ? 'Modifier le produit' : 'Ajouter un nouveau produit'}</DialogTitle>
           <DialogDescription>
@@ -122,7 +173,7 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6 py-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                <FormField
                 control={form.control}
@@ -147,52 +198,114 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
                 )}
               />
             </div>
-             <FormField
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
                 control={form.control}
                 name="category"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Catégorie</FormLabel>
-                    <FormControl><Input placeholder="Huiles Végétales" {...field} /></FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionnez une catégorie" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                        <SelectItem value={NEW_CATEGORY_VALUE}>Ajouter une nouvelle catégorie</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-               <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Prix (TND/kg)</FormLabel>
-                    <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="stock"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Stock (kg)</FormLabel>
-                    <FormControl><Input type="number" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="moq"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>MOQ (kg)</FormLabel>
-                    <FormControl><Input type="number" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {showNewCategory && (
+                <FormField
+                  control={form.control}
+                  name="newCategory"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nom de la nouvelle catégorie</FormLabel>
+                      <FormControl><Input placeholder="Ex: Argiles" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
+
+            <div className="space-y-4 rounded-md border p-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium">Variantes du produit (Contenance, Prix, Stock)</h3>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => append({ id: `variante-${fields.length + 1}`, contenance: '', price: 0, stock: 0 })}
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Ajouter une variante
+                </Button>
+              </div>
+
+              {fields.map((field, index) => (
+                <div key={field.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end border-t pt-4">
+                  <FormField
+                    control={form.control}
+                    name={`variants.${index}.contenance`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contenance</FormLabel>
+                        <FormControl><Input placeholder="Ex: 100ml, 1kg" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`variants.${index}.price`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Prix (TND)</FormLabel>
+                        <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`variants.${index}.stock`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Stock (unités)</FormLabel>
+                        <FormControl><Input type="number" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+              <FormMessage>{form.formState.errors.variants?.message}</FormMessage>
+            </div>
+             
+            <FormField
+              control={form.control}
+              name="moq"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>MOQ (unités)</FormLabel>
+                  <FormControl><Input type="number" {...field} /></FormControl>
+                  <FormDescription>Quantité minimale de commande, toutes variantes confondues.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
              <FormField
                 control={form.control}
                 name="description"

@@ -29,7 +29,9 @@ export async function addProduct(productData: Omit<Product, 'id' | 'rating' | 'r
  */
 export async function updateProduct(id: string, productData: Partial<Omit<Product, 'id'>>) {
     const docRef = doc(db, 'products', id);
-    await updateDoc(docRef, productData);
+    // Firestore does not allow undefined values. We must remove them.
+    const cleanData = Object.fromEntries(Object.entries(productData).filter(([_, v]) => v !== undefined));
+    await updateDoc(docRef, cleanData);
 }
 
 /**

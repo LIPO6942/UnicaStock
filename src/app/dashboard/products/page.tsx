@@ -98,6 +98,23 @@ export default function SellerProductsPage() {
     return <Loading />;
   }
 
+  const getProductStockStatus = (product: Product) => {
+    const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
+    return totalStock > 0;
+  }
+
+  const getPriceRange = (product: Product) => {
+    if (!product.variants || product.variants.length === 0) return "N/A";
+    const prices = product.variants.map(v => v.price);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+
+    if (minPrice === maxPrice) {
+      return `${minPrice.toFixed(2)} TND`;
+    }
+    return `${minPrice.toFixed(2)} - ${maxPrice.toFixed(2)} TND`;
+  }
+
   return (
     <>
       <div className="flex items-center justify-between mb-4">
@@ -132,8 +149,8 @@ export default function SellerProductsPage() {
                 <TableHead className="hidden w-[100px] sm:table-cell">Image</TableHead>
                 <TableHead>Nom</TableHead>
                 <TableHead>Catégorie</TableHead>
-                <TableHead>Prix (TND/kg)</TableHead>
-                <TableHead>Stock (kg)</TableHead>
+                <TableHead>Prix</TableHead>
+                <TableHead>Stock total</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -154,10 +171,12 @@ export default function SellerProductsPage() {
                     </TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>{product.category}</TableCell>
-                    <TableCell>{product.price.toFixed(2)}</TableCell>
-                    <TableCell>{product.stock}</TableCell>
+                    <TableCell>{getPriceRange(product)}</TableCell>
+                    <TableCell>{product.variants.reduce((sum, v) => sum + v.stock, 0)} unités</TableCell>
                     <TableCell>
-                      <Badge variant={product.stock > 0 ? 'outline' : 'destructive'}>{product.stock > 0 ? 'En stock' : 'Épuisé'}</Badge>
+                      <Badge variant={getProductStockStatus(product) ? 'outline' : 'destructive'}>
+                        {getProductStockStatus(product) ? 'En stock' : 'Épuisé'}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>

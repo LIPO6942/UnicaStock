@@ -85,7 +85,7 @@ export default function DashboardOrdersPage() {
 
     const csvRows = orders.map(order => {
       const productsString = order.items
-        .map(item => `${item.quantity}kg - ${item.product.name}`)
+        .map(item => `${item.quantity} x ${item.productName} (${item.variant.contenance})`)
         .join(" | ");
 
       const row = [
@@ -136,7 +136,7 @@ export default function DashboardOrdersPage() {
   
   const handleContactSeller = (order: Order) => {
     const productPreview = order.items.length > 0 
-      ? order.items.slice(0, 2).map(item => item.product.name).join(', ') + (order.items.length > 2 ? ', etc.' : '')
+      ? order.items.slice(0, 2).map(item => item.productName).join(', ') + (order.items.length > 2 ? ', etc.' : '')
       : 'Commande sans produits spécifiés';
     
     router.push(`/dashboard/messages?orderId=${order.id}&orderNumber=${order.orderNumber}&productPreview=${encodeURIComponent(productPreview)}`);
@@ -292,12 +292,12 @@ export default function DashboardOrdersPage() {
                             </TableHeader>
                             <TableBody>
                               {order.items.map((item, index) => (
-                                <TableRow key={`${item.product.id}-${index}`} className="border-b-0">
-                                  <TableCell className="font-medium">{item.product.name}</TableCell>
-                                  <TableCell>{item.quantity} kg</TableCell>
-                                  <TableCell className="text-right">{item.product.price.toFixed(2)} TND</TableCell>
+                                <TableRow key={`${item.productId}-${index}`} className="border-b-0">
+                                  <TableCell className="font-medium">{item.productName} ({item.variant.contenance})</TableCell>
+                                  <TableCell>{item.quantity}</TableCell>
+                                  <TableCell className="text-right">{item.variant.price.toFixed(2)} TND</TableCell>
                                   <TableCell className="text-right">
-                                    {(item.product.price * item.quantity).toFixed(2)} TND
+                                    {(item.variant.price * item.quantity).toFixed(2)} TND
                                   </TableCell>
                                 </TableRow>
                               ))}

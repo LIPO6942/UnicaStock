@@ -12,20 +12,26 @@ export type UserProfile = {
   type: 'buyer' | 'seller';
 };
 
+export type ProductVariant = {
+  id: string; // e.g., '100ml'
+  contenance: string; // e.g., '100ml'
+  price: number;
+  stock: number;
+};
+
 export type Product = {
   id: string;
   name: string;
   inci: string;
   seller: string;
-  price: number;
-  moq: number;
-  stock: number;
   category: string;
   description: string;
   longDescription: string;
   imageUrl: string;
   rating: number;
   reviewCount: number;
+  variants: ProductVariant[];
+  moq: number; // MOQ can remain as a general value for the product, e.g. min 1 unit of any variant
   certifications?: string[];
   dataSheetUrl?: string;
   coaUrl?: string;
@@ -33,7 +39,10 @@ export type Product = {
 
 export type CartItem = {
   id: string; // Firestore document ID
-  product: Product;
+  productId: string;
+  productName: string;
+  productImage: string;
+  variant: ProductVariant;
   quantity: number;
 };
 
@@ -49,7 +58,9 @@ export type Order = {
   status: OrderStatus;
   payment: 'En attente' | 'Réglé' | 'Remboursé';
   items: {
-    product: Product;
+    productId: string;
+    productName: string;
+    variant: ProductVariant;
     quantity: number;
   }[];
   createdAt: any;
@@ -85,7 +96,7 @@ export type Message = {
 };
 
 export type Banner = {
-  id: string;
+  id:string;
   title: string;
   description: string;
   imageUrl: string;

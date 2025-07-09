@@ -13,7 +13,7 @@ import { useAuth } from '@/context/auth-context';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import type { Product, Review } from '@/lib/types';
+import type { Product, Review, ProductVariant } from '@/lib/types';
 import * as ProductServiceClient from '@/lib/product-service-client';
 import { Textarea } from './ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -21,6 +21,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { FirebaseError } from 'firebase/app';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 
 // Helper component for the review form
 function AddReviewForm({ productId, onReviewAdded }: { productId: string, onReviewAdded: () => void }) {
@@ -118,22 +119,29 @@ function AddReviewForm({ productId, onReviewAdded }: { productId: string, onRevi
 export function ProductDetailClient({ product, relatedProducts, reviews }: { product: Product, relatedProducts: Product[], reviews: Review[] }) {
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(product.variants?.[0]?.id || null);
   const [isAdding, setIsAdding] = useState(false);
   const router = useRouter();
   const { user, addToCart } = useAuth();
   
+  const selectedVariant = product.variants.find(v => v.id === selectedVariantId);
+
   const handleAddToCart = async () => {
     if (!user) {
         router.push('/login?redirect=/products/' + product.id);
         return;
     }
+    if (!selectedVariant) {
+        toast({ title: 'Veuillez sélectionner une contenance', variant: 'destructive'});
+        return;
+    }
     if (quantity > 0) {
       setIsAdding(true);
       try {
-        await addToCart(product, quantity);
+        await addToCart(product.id, product.name, product.imageUrl, selectedVariant, quantity);
         toast({
           title: "Ajouté au panier",
-          description: `${quantity} x ${product.name} a été ajouté à votre panier.`,
+          description: `${quantity} x ${product.name} (${selectedVariant.contenance}) a été ajouté à votre panier.`,
         });
       } catch (error: any) {
         console.error(error);
@@ -155,7 +163,8 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
   const isBuyer = user?.type === 'buyer';
   const reviewCount = reviews.length;
   const averageRating = reviews.length > 0 ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length : product.rating;
-
+  const currentStock = selectedVariant?.stock ?? 0;
+  const isOutOfStock = currentStock === 0;
 
   return (
     <div className="container py-12 md:py-16">
@@ -193,14 +202,36 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
           <p className="text-base leading-relaxed text-muted-foreground">{product.description}</p>
           
           <Card className="bg-secondary/40 border-border/60">
-            <CardContent className="p-4">
+            <CardContent className="p-4 space-y-4">
+              {product.variants.length > 1 && (
+                <div>
+                  <Label className="font-semibold">Contenance :</Label>
+                  <RadioGroup 
+                    value={selectedVariantId || ''} 
+                    onValueChange={setSelectedVariantId} 
+                    className="flex flex-wrap gap-2 mt-2"
+                  >
+                    {product.variants.map(variant => (
+                       <Label key={variant.id} htmlFor={variant.id} className={cn(
+                           "flex items-center justify-center rounded-md border-2 px-4 py-2 text-sm font-medium hover:bg-accent cursor-pointer",
+                           selectedVariantId === variant.id ? "border-primary bg-primary/10" : "border-border",
+                           variant.stock === 0 && "opacity-50 cursor-not-allowed"
+                       )}>
+                          <RadioGroupItem value={variant.id} id={variant.id} className="sr-only" disabled={variant.stock === 0} />
+                          {variant.contenance}
+                       </Label>
+                    ))}
+                  </RadioGroup>
+                </div>
+              )}
+
               <div className="flex justify-between items-center">
-                <p className="text-3xl font-bold font-headline">{product.price.toFixed(2)} <span className="text-lg font-normal text-muted-foreground">TND / kg</span></p>
-                <Badge variant={product.stock > 0 ? 'outline' : 'destructive'} className={cn(product.stock > 0 && "border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-950 dark:text-green-400 font-medium")}>
-                    {product.stock > 0 ? 'En stock' : 'Hors stock'}
+                <p className="text-3xl font-bold font-headline">{selectedVariant?.price.toFixed(2) || '...'} <span className="text-lg font-normal text-muted-foreground">TND</span></p>
+                <Badge variant={isOutOfStock ? 'destructive' : 'outline'} className={cn(!isOutOfStock && "border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-950 dark:text-green-400 font-medium")}>
+                    {isOutOfStock ? 'Hors stock' : 'En stock'}
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground mt-1">Quantité minimale (MOQ): {product.moq} kg</p>
+              <p className="text-sm text-muted-foreground mt-1">Quantité minimale (MOQ): {product.moq} unités</p>
             </CardContent>
           </Card>
           
@@ -215,12 +246,12 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
                         onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
                         className="w-24 h-12 text-center text-lg"
                         min="1"
-                        max={product.stock}
-                        disabled={product.stock === 0}
+                        max={currentStock}
+                        disabled={isOutOfStock || !selectedVariant}
                     />
                 </div>
-                <Button size="lg" className="flex-1 h-12" onClick={handleAddToCart} disabled={isAdding || quantity > product.stock || product.stock === 0}>
-                    {isAdding ? <LoaderCircle className="mr-2 h-5 w-5 animate-spin" /> : product.stock === 0 ? 'Épuisé' : <><ShoppingCart className="mr-2 h-5 w-5" /> Ajouter au panier</>}
+                <Button size="lg" className="flex-1 h-12" onClick={handleAddToCart} disabled={isAdding || isOutOfStock || !selectedVariant || quantity > currentStock}>
+                    {isAdding ? <LoaderCircle className="mr-2 h-5 w-5 animate-spin" /> : isOutOfStock ? 'Épuisé' : <><ShoppingCart className="mr-2 h-5 w-5" /> Ajouter au panier</>}
                 </Button>
                 <Button size="lg" variant="outline" className="h-12"><Heart className="h-5 w-5" /></Button>
             </div>

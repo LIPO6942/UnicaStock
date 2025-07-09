@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { onAuthStateChanged, User as FirebaseUser, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, collection, addDoc, serverTimestamp, query, where, getDocs, writeBatch, deleteDoc, runTransaction, DocumentReference } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import type { UserProfile, Product, CartItem, Order } from '@/lib/types';
+import type { UserProfile, Product, CartItem, Order, ProductVariant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
@@ -16,7 +16,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   cart: CartItem[];
-  addToCart: (product: Product, quantity: number) => Promise<void>;
+  addToCart: (productId: string, productName: string, productImage: string, variant: ProductVariant, quantity: number) => Promise<void>;
   removeFromCart: (cartItemId: string) => Promise<void>;
   updateCartItemQuantity: (cartItemId: string, quantity: number) => Promise<void>;
   placeOrder: () => Promise<Order | null>;
@@ -149,25 +149,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
-  const addToCart = async (product: Product, quantity: number) => {
+  const addToCart = async (productId: string, productName: string, productImage: string, variant: ProductVariant, quantity: number) => {
     if (!user) throw new Error("Vous devez être connecté pour ajouter au panier.");
-    if (product.stock < quantity) {
+    if (variant.stock < quantity) {
       throw new Error("Quantité en stock insuffisante.");
     }
 
     const cartCollectionRef = collection(db, 'users', user.uid, 'cart');
-    const q = query(cartCollectionRef, where("product.id", "==", product.id));
+    const q = query(cartCollectionRef, where("productId", "==", productId), where("variant.id", "==", variant.id));
     
     const querySnapshot = await getDocs(q);
 
     if (!querySnapshot.empty) {
-      // Product exists, update quantity
+      // Product variant exists, update quantity
       const existingDoc = querySnapshot.docs[0];
       await updateCartItemQuantity(existingDoc.id, existingDoc.data().quantity + quantity);
     } else {
       // Product doesn't exist, add new item
       await addDoc(cartCollectionRef, {
-        product,
+        productId,
+        productName,
+        productImage,
+        variant,
         quantity,
       });
     }
@@ -181,11 +184,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const updateCartItemQuantity = async (cartItemId: string, quantity: number) => {
     if (!user) throw new Error("Utilisateur non trouvé.");
+    const cartItemDocRef = doc(db, 'users', user.uid, 'cart', cartItemId);
+
+    const cartItem = cart.find(item => item.id === cartItemId);
+    if (!cartItem) return;
+
+    if (quantity > cartItem.variant.stock) {
+      toast({
+        title: 'Stock insuffisant',
+        description: `Il ne reste que ${cartItem.variant.stock} unités pour ${cartItem.productName} (${cartItem.variant.contenance}).`,
+        variant: 'destructive',
+      });
+      await setDoc(cartItemDocRef, { quantity: cartItem.variant.stock }, { merge: true });
+      return;
+    }
+
     if (quantity <= 0) {
       await removeFromCart(cartItemId);
       return;
     }
-    const cartItemDocRef = doc(db, 'users', user.uid, 'cart', cartItemId);
+
     await setDoc(cartItemDocRef, { quantity }, { merge: true });
   };
 
@@ -198,19 +216,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     try {
       const createdOrder = await runTransaction(db, async (transaction) => {
-        const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-        const productUpdates: { ref: DocumentReference; newStock: number }[] = [];
+        const total = cart.reduce((sum, item) => sum + item.variant.price * item.quantity, 0);
 
         for (const item of cart) {
-          const productRef = doc(db, 'products', item.product.id);
+          const productRef = doc(db, 'products', item.productId);
           const productDoc = await transaction.get(productRef);
-          if (!productDoc.exists()) throw new Error(`Produit ${item.product.name} non trouvé.`);
+          if (!productDoc.exists()) throw new Error(`Produit ${item.productName} non trouvé.`);
           
-          const currentStock = productDoc.data().stock;
-          if (currentStock < item.quantity) {
-            throw new Error(`Stock insuffisant pour ${item.product.name}. Disponible: ${currentStock}, Demandé: ${item.quantity}.`);
+          const productData = productDoc.data() as Product;
+          const variantToUpdate = productData.variants.find(v => v.id === item.variant.id);
+          
+          if (!variantToUpdate) throw new Error(`Variante ${item.variant.contenance} non trouvée pour ${item.productName}`);
+          if (variantToUpdate.stock < item.quantity) {
+            throw new Error(`Stock insuffisant pour ${item.productName} (${item.variant.contenance}). Disponible: ${variantToUpdate.stock}, Demandé: ${item.quantity}.`);
           }
-          productUpdates.push({ ref: productRef, newStock: currentStock - item.quantity });
+
+          const newVariants = productData.variants.map(v => 
+            v.id === item.variant.id ? { ...v, stock: v.stock - item.quantity } : v
+          );
+
+          transaction.update(productRef, { variants: newVariants });
         }
 
         const newOrderData: Omit<Order, 'id' | 'orderNumber'> = {
@@ -221,14 +246,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           total,
           status: 'En attente',
           payment: 'En attente',
-          items: cart.map(({ product, quantity }) => ({ product, quantity })),
+          items: cart.map(({ productId, productName, variant, quantity }) => ({ productId, productName, variant, quantity })),
           createdAt: serverTimestamp(),
         };
         transaction.set(newOrderRef, newOrderData);
-
-        for (const update of productUpdates) {
-          transaction.update(update.ref, { stock: update.newStock });
-        }
 
         const cartCollectionRef = collection(db, 'users', user.uid, 'cart');
         for (const item of cart) {
@@ -246,7 +267,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     } catch (e: any) {
       console.error("La transaction de commande a échoué:", e);
-      // Re-throw the error to be handled by the calling UI component
       throw e;
     }
   };

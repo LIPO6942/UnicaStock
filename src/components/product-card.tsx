@@ -17,6 +17,21 @@ function ProductCardComponent({ product }: ProductCardProps) {
   const { user } = useAuth();
   const isBuyer = user?.type === 'buyer';
 
+  const getPriceDisplay = () => {
+    if (!product.variants || product.variants.length === 0) {
+      return <div className="text-lg font-bold">Prix non disponible</div>;
+    }
+    
+    const firstVariant = product.variants[0];
+    
+    return (
+      <div className="text-xl font-bold font-headline">
+        {firstVariant.price.toFixed(2)} <span className="text-sm font-normal text-muted-foreground">TND</span>
+        {product.variants.length > 1 && <span className="text-sm font-normal text-muted-foreground"> (et plus)</span>}
+      </div>
+    );
+  };
+
   return (
     <Card className="group flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 border-border/60">
       <CardHeader className="p-0 border-b">
@@ -53,9 +68,7 @@ function ProductCardComponent({ product }: ProductCardProps) {
         </div>
       </CardContent>
       <CardFooter className="p-4 pt-0 flex justify-between items-center bg-secondary/30">
-        <div className="text-xl font-bold font-headline">
-          {product.price.toFixed(2)} <span className="text-sm font-normal text-muted-foreground">TND/kg</span>
-        </div>
+        {getPriceDisplay()}
         {isBuyer && (
           <Button asChild>
             <Link href={`/products/${product.id}`}>Voir</Link>

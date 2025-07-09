@@ -19,7 +19,7 @@ export default function CartPage() {
   const { toast } = useToast();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
-  const cartTotal = cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+  const cartTotal = cart.reduce((total, item) => total + item.variant.price * item.quantity, 0);
 
   const handlePlaceOrder = async () => {
     setIsPlacingOrder(true);
@@ -32,9 +32,6 @@ export default function CartPage() {
         });
         router.push('/dashboard/orders');
       } else {
-        // This case should ideally not be hit if the cart has items,
-        // as placeOrder() would throw an error instead of returning null.
-        // It's here as a fallback.
         toast({
           title: 'Erreur',
           description: 'Votre panier est vide ou une erreur inattendue est survenue.',
@@ -89,8 +86,8 @@ export default function CartPage() {
                     <TableRow key={item.id}>
                       <TableCell className="pl-4">
                         <Image
-                          src={item.product.imageUrl}
-                          alt={item.product.name}
+                          src={item.productImage}
+                          alt={item.productName}
                           width={80}
                           height={80}
                           className="rounded-md object-cover"
@@ -98,22 +95,24 @@ export default function CartPage() {
                         />
                       </TableCell>
                       <TableCell className="font-medium">
-                        <Link href={`/products/${item.product.id}`} className="hover:text-primary">
-                          {item.product.name}
+                        <Link href={`/products/${item.productId}`} className="hover:text-primary">
+                          {item.productName}
                         </Link>
+                        <p className="text-sm text-muted-foreground">{item.variant.contenance}</p>
                       </TableCell>
-                      <TableCell>{item.product.price.toFixed(2)} TND</TableCell>
+                      <TableCell>{item.variant.price.toFixed(2)} TND</TableCell>
                       <TableCell>
                         <Input
                           type="number"
                           min="1"
+                          max={item.variant.stock}
                           value={item.quantity}
                           onChange={(e) => updateCartItemQuantity(item.id, parseInt(e.target.value, 10))}
                           className="w-20"
                         />
                       </TableCell>
                       <TableCell className="text-right">
-                        {(item.product.price * item.quantity).toFixed(2)} TND
+                        {(item.variant.price * item.quantity).toFixed(2)} TND
                       </TableCell>
                       <TableCell className="pr-4">
                         <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)}>

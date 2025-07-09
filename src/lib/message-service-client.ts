@@ -3,16 +3,25 @@ import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, doc, upda
 import type { Message, UserProfile } from '@/lib/types';
 
 /**
- * Sends a message.
+ * Sends a message. It cleans up undefined fields before sending to Firestore.
  * @param messageData The message data to send.
  */
 export async function sendMessage(messageData: Omit<Message, 'id' | 'isRead' | 'createdAt'>) {
-    const messagesCollectionRef = collection(db, 'messages');
-    await addDoc(messagesCollectionRef, {
+    const dataToSend: { [key: string]: any } = {
         ...messageData,
         isRead: false,
         createdAt: serverTimestamp()
-    });
+    };
+
+    // Firestore doesn't allow `undefined` values.
+    // We explicitly remove the productPreview field if it's undefined
+    // to prevent runtime errors when replying to older conversations.
+    if (dataToSend.productPreview === undefined) {
+        delete dataToSend.productPreview;
+    }
+
+    const messagesCollectionRef = collection(db, 'messages');
+    await addDoc(messagesCollectionRef, dataToSend);
 }
 
 /**
@@ -60,16 +69,26 @@ export async function getMessagesForUser(user: UserProfile): Promise<Message[]> 
 
 /**
  * Marks a specific list of messages as read by their document IDs.
+ * This is an optimized version that uses the already-fetched messages to avoid extra reads.
  * @param messageIds An array of message document IDs to update.
+ * @param allMessages The full list of messages in the current scope to check against.
  */
-export async function markMessagesAsReadByIds(messageIds: string[]) {
-    if (messageIds.length === 0) {
+export async function markMessagesAsReadByIds(messageIds: string[], allMessages: Message[]) {
+     if (messageIds.length === 0) {
+        return;
+    }
+    
+    // We get all the current conversation messages to avoid another Firestore query.
+    // We only update messages that are actually unread.
+    const messagesToUpdate = allMessages.filter(m => messageIds.includes(m.id) && !m.isRead);
+
+    if(messagesToUpdate.length === 0) {
         return;
     }
 
     const batch = writeBatch(db);
-    messageIds.forEach(id => {
-        const docRef = doc(db, 'messages', id);
+    messagesToUpdate.forEach(msg => {
+        const docRef = doc(db, 'messages', msg.id);
         batch.update(docRef, { isRead: true });
     });
     

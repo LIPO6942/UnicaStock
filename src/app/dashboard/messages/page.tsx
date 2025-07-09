@@ -18,6 +18,7 @@ import { fr } from 'date-fns/locale';
 import { Send, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { FirebaseError } from "firebase/app";
 
 type Conversation = {
   orderId: string;
@@ -63,14 +64,13 @@ function MessagesPageComponent() {
         };
       });
 
-      setConversations(convos);
-
       const initialOrderId = searchParams.get('orderId');
       const initialOrderNumber = searchParams.get('orderNumber');
 
       if (initialOrderId) {
         const existingConvo = convos.find(c => c.orderId === initialOrderId);
         if (existingConvo) {
+          setConversations(convos);
           handleSelectConversation(existingConvo);
         } else if (user?.type === 'buyer' && initialOrderNumber) {
            const newVirtualConvo: Conversation = {
@@ -83,13 +83,15 @@ function MessagesPageComponent() {
           handleSelectConversation(newVirtualConvo, true);
         }
         router.replace('/dashboard/messages', undefined);
+      } else {
+        setConversations(convos);
       }
 
       setIsLoading(false);
     };
 
     fetchAndSetup();
-  }, [user, isAuthLoading]);
+  }, [user, isAuthLoading, searchParams, router]);
 
   const handleSelectConversation = async (convo: Conversation, isNew: boolean = false) => {
     setSelectedConversation(convo);
@@ -108,10 +110,15 @@ function MessagesPageComponent() {
             setConversations(prev => prev.map(c => c.orderId === convo.orderId ? {...c, unreadCount: 0} : c));
         } catch (error) {
             console.error("Failed to mark conversation as read:", error);
+            let description = "Impossible de marquer la conversation comme lue. Vérifiez que les règles de sécurité Firestore sont à jour.";
+            if (error instanceof FirebaseError && error.code === 'permission-denied') {
+              description = "Permission Refusée. Assurez-vous d'être connecté avec le bon compte (acheteur/vendeur) et que les règles de sécurité sont correctes.";
+            }
             toast({
                 title: 'Erreur de Permission',
-                description: "Impossible de marquer la conversation comme lue. Vérifiez que les règles de sécurité Firestore sont à jour.",
-                variant: 'destructive'
+                description: description,
+                variant: 'destructive',
+                duration: 9000
             });
         }
     }
@@ -122,8 +129,8 @@ function MessagesPageComponent() {
 
     setIsSending(true);
     try {
-        const subject = messages.length > 0 
-            ? `Re: ${messages[0].subject}`
+        const subject = messages.length > 0 && messages[0].subject 
+            ? messages[0].subject.startsWith('Re: ') ? messages[0].subject : `Re: ${messages[0].subject}`
             : `Question sur la commande ${selectedConversation.orderNumber}`;
 
         const buyerId = user.type === 'buyer' ? user.uid : selectedConversation.lastMessage!.buyerId;

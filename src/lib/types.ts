@@ -69,6 +69,19 @@ export type Review = {
   createdAt: SerializableTimestamp | Timestamp | null;
 };
 
+export type Message = {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  buyerId: string;
+  buyerName: string;
+  buyerEmail: string;
+  subject: string;
+  body: string;
+  sender: 'buyer' | 'seller';
+  isRead: boolean;
+  createdAt: any; // Keep as any for simplicity with serverTimestamp
+};
 
 export type Banner = {
   id: string;

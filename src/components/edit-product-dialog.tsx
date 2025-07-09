@@ -42,6 +42,8 @@ const productSchema = z.object({
   longDescription: z.string().min(20, { message: 'La description longue est requise (min 20 caractères).' }),
   imageUrl: z.string().url({ message: "Veuillez entrer une URL valide." }).or(z.literal('')),
   variants: z.array(variantSchema).min(1, { message: 'Au moins une variante de produit est requise.' }),
+  dataSheetUrl: z.string().url({ message: "Veuillez entrer une URL valide pour la fiche technique." }).or(z.literal('')).optional(),
+  coaUrl: z.string().url({ message: "Veuillez entrer une URL valide pour le certificat d'analyse." }).or(z.literal('')).optional(),
 });
 
 const NEW_CATEGORY_VALUE = '__new__';
@@ -72,6 +74,8 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
       longDescription: '',
       imageUrl: '',
       variants: [],
+      dataSheetUrl: '',
+      coaUrl: '',
     },
   });
 
@@ -116,6 +120,8 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
         longDescription: '',
         imageUrl: 'https://placehold.co/600x600.png',
         variants: [{ id: 'variante-1', contenance: '', price: 0, stock: 0 }],
+        dataSheetUrl: '',
+        coaUrl: '',
       });
     }
   }, [product, reset, isOpen]);
@@ -333,11 +339,35 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
                 name="imageUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>URL de l'image</FormLabel>
+                    <FormLabel>URL de l'image principale</FormLabel>
                     <FormControl><Input placeholder="https://..." {...field} /></FormControl>
                     <FormDescription>
                       Hébergez votre image sur un service comme <a href="https://postimages.org/" target="_blank" rel="noopener noreferrer" className="underline">postimages.org</a> et collez le lien direct ici.
                     </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="dataSheetUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>URL de la Fiche Technique (PDF)</FormLabel>
+                    <FormControl><Input placeholder="https://..." {...field} /></FormControl>
+                     <FormDescription>Hébergez votre PDF et collez le lien direct ici.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="coaUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>URL du Certificat d'Analyse (PDF)</FormLabel>
+                    <FormControl><Input placeholder="https://..." {...field} /></FormControl>
+                    <FormDescription>Hébergez votre PDF et collez le lien direct ici.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

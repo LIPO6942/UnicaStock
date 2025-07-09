@@ -22,6 +22,7 @@ import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { FirebaseError } from 'firebase/app';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import Link from 'next/link';
 
 // Helper component for the review form
 function AddReviewForm({ productId, onReviewAdded }: { productId: string, onReviewAdded: () => void }) {
@@ -262,7 +263,7 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
           <Separator />
 
           <div>
-            <h3 className="font-semibold text-lg mb-2">Spécifications</h3>
+            <h3 className="font-semibold text-lg mb-2">Spécifications et Documents</h3>
             <ul className="space-y-1 text-sm text-muted-foreground">
               <li><strong>INCI:</strong> {product.inci}</li>
               {product.certifications && product.certifications.length > 0 && (
@@ -273,8 +274,20 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
               )}
             </ul>
              <div className="flex gap-2 mt-4">
-              <Button variant="secondary" size="sm"><Download className="mr-2 h-4 w-4" /> Fiche Technique</Button>
-              <Button variant="secondary" size="sm"><Download className="mr-2 h-4 w-4" /> Certificat d'Analyse</Button>
+              {product.dataSheetUrl && (
+                <Button asChild variant="secondary" size="sm">
+                  <Link href={product.dataSheetUrl} target="_blank" rel="noopener noreferrer">
+                    <Download className="mr-2 h-4 w-4" /> Fiche Technique
+                  </Link>
+                </Button>
+              )}
+              {product.coaUrl && (
+                <Button asChild variant="secondary" size="sm">
+                  <Link href={product.coaUrl} target="_blank" rel="noopener noreferrer">
+                    <Download className="mr-2 h-4 w-4" /> Certificat d'Analyse
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
         </div>

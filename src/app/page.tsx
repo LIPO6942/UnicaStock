@@ -116,6 +116,24 @@ export default async function Home() {
         </div>
       </section>
 
+      <section id="partners" className="py-16 md:py-24 bg-background">
+        <div className="container">
+          <div className="flex flex-col items-center text-center gap-4 mb-12">
+            <h2 className="text-3xl font-bold tracking-tight font-headline">Ils Nous Font Confiance</h2>
+            <p className="max-w-3xl text-muted-foreground">
+              Nous sommes fiers de collaborer avec des marques de cosmétiques innovantes en Tunisie.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-x-16 gap-y-8">
+            <Image src="https://placehold.co/150x50.png" alt="Logo Partenaire 1" width={150} height={50} className="grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all" data-ai-hint="brand logo" />
+            <Image src="https://placehold.co/150x50.png" alt="Logo Partenaire 2" width={150} height={50} className="grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all" data-ai-hint="brand logo" />
+            <Image src="https://placehold.co/150x50.png" alt="Logo Partenaire 3" width={150} height={50} className="grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all" data-ai-hint="brand logo" />
+            <Image src="https://placehold.co/150x50.png" alt="Logo Partenaire 4" width={150} height={50} className="grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all" data-ai-hint="brand logo" />
+            <Image src="https://placehold.co/150x50.png" alt="Logo Partenaire 5" width={150} height={50} className="grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all" data-ai-hint="brand logo" />
+          </div>
+        </div>
+      </section>
+
       <section id="recommended-products" className="py-16 md:py-24 bg-secondary/30">
         <div className="container">
           <div className="flex flex-col items-center text-center gap-4 mb-12">

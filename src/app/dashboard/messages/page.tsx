@@ -58,9 +58,9 @@ function MessagesPageComponent() {
             setConversations(prev => prev.map(c => c.orderId === convo.orderId ? {...c, unreadCount: 0} : c));
         } catch (error) {
             console.error("Erreur de permission Firestore:", error);
-            let description = "Vos règles de sécurité Firestore n'autorisent pas cette action. Veuillez mettre à jour vos règles dans la console Firebase pour corriger ce problème.";
+            let description = "Vos règles de sécurité Firestore n'autorisent pas cette action. Veuillez mettre à jour vos règles dans la console Firebase.";
             if (error instanceof FirebaseError && error.code === 'permission-denied') {
-              description = "Permission Refusée par Firestore. Veuillez mettre à jour vos règles de sécurité. Cette action est requise pour que la messagerie fonctionne.";
+              description = `Permission Refusée par Firestore. Assurez-vous d'être connecté avec le bon compte (acheteur/vendeur) et que vos règles de sécurité sont à jour. C'est une étape cruciale pour le fonctionnement de la messagerie.`;
             }
             toast({
                 title: 'Erreur de Permission Firestore',
@@ -73,14 +73,11 @@ function MessagesPageComponent() {
   }, [user, toast]);
 
   useEffect(() => {
-    // This effect handles both loading existing conversations and selecting
-    // a new one from URL parameters to avoid race conditions.
     if (isAuthLoading || !user) return;
 
     const loadAndSelectConversations = async () => {
       setIsLoading(true);
       
-      // 1. Fetch existing messages from Firestore
       const allMessages = await getMessagesForUser(user);
       const grouped = allMessages.reduce((acc, msg) => {
         (acc[msg.orderId] = acc[msg.orderId] || []).push(msg);
@@ -99,7 +96,6 @@ function MessagesPageComponent() {
         };
       }).sort((a, b) => (b.lastMessage?.createdAt?.seconds || 0) - (a.lastMessage?.createdAt?.seconds || 0));
 
-      // 2. Check for a new conversation from URL parameters
       const initialOrderId = searchParams.get('orderId');
       const initialOrderNumber = searchParams.get('orderNumber');
       
@@ -107,30 +103,26 @@ function MessagesPageComponent() {
       let conversationToSelect: Conversation | null = null;
       let isNewConversation = false;
 
-      if (initialOrderId && initialOrderNumber && user.type === 'buyer') {
+      if (initialOrderId && initialOrderNumber) {
         const existingConvo = loadedConversations.find(c => c.orderId === initialOrderId);
 
         if (existingConvo) {
           conversationToSelect = existingConvo;
         } else {
-          // This is a new conversation, create a "virtual" one to display in the UI
           const newVirtualConvo: Conversation = {
             orderId: initialOrderId,
             orderNumber: initialOrderNumber,
-            otherPartyName: 'Unica Link', // The only seller
+            otherPartyName: user.type === 'buyer' ? 'Unica Link' : 'Nouveau Client',
             unreadCount: 0,
           };
-          // Add it to the list to be rendered
           finalConversations = [newVirtualConvo, ...loadedConversations];
           conversationToSelect = newVirtualConvo;
           isNewConversation = true;
         }
         
-        // Clean the URL to prevent this from re-triggering on unrelated re-renders
         router.replace('/dashboard/messages', { scroll: false });
       }
 
-      // 3. Set all state at once
       setConversations(finalConversations);
       if (conversationToSelect) {
         handleSelectConversation(conversationToSelect, isNewConversation);
@@ -140,9 +132,6 @@ function MessagesPageComponent() {
     };
 
     loadAndSelectConversations();
-    // We need to disable exhaustive-deps because adding `router` and `handleSelectConversation`
-    // creates a risk of infinite loops if not memoized perfectly. This effect's logic
-    // is sound and should only run when the user or search params change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isAuthLoading, searchParams]);
 
@@ -173,12 +162,10 @@ function MessagesPageComponent() {
         await sendMessage(messageData);
         setReplyText("");
         
-        // Refresh messages for the current conversation
         const allMessages = await getMessagesForUser(user!);
         const convoMessages = allMessages.filter(m => m.orderId === selectedConversation.orderId).sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
         setMessages(convoMessages);
 
-        // Refresh the entire conversation list to update last message preview and order
         const grouped = allMessages.reduce((acc, msg) => {
           (acc[msg.orderId] = acc[msg.orderId] || []).push(msg);
           return acc;
@@ -227,7 +214,6 @@ function MessagesPageComponent() {
         <CardDescription>Consultez et répondez aux messages concernant vos commandes.</CardDescription>
       </CardHeader>
       <div className="flex-grow grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 border-t overflow-hidden">
-        {/* Conversations List */}
         <ScrollArea className="md:col-span-1 xl:col-span-1 border-r h-full">
             <div className="p-2 space-y-1">
             {conversations.length === 0 ? (
@@ -254,7 +240,6 @@ function MessagesPageComponent() {
             </div>
         </ScrollArea>
 
-        {/* Message View */}
         <div className="md:col-span-2 xl:col-span-3 flex flex-col h-full bg-muted/20">
             {selectedConversation ? (
                 <>

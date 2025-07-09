@@ -126,7 +126,7 @@ function MessagesPageComponent() {
               console.error("Erreur de permission Firestore lors de la mise à jour du statut de lecture:", error);
               let description = "Une erreur est survenue lors de la mise à jour des messages. C'est probablement dû à une règle de sécurité Firestore incorrecte.";
               if (error?.code === 'permission-denied') {
-                  description = `Permission Refusée. L'application ne peut pas marquer les messages comme lus. Veuillez mettre à jour vos règles de sécurité Firestore avec la version fournie par l'assistant. Assurez-vous d'être connecté avec le bon type de compte (acheteur/vendeur).`;
+                  description = `Permission Refusée. Cette erreur vient de vos règles de sécurité Firestore. Veuillez les mettre à jour dans la console Firebase en utilisant le bloc de code fourni par l'assistant.`;
               }
               toast({ title: 'Erreur de Permission Firestore', description, variant: 'destructive', duration: 15000 });
           });

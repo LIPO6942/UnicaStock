@@ -99,6 +99,7 @@ export default function SellerProductsPage() {
   }
 
   const getProductStockStatus = (product: Product) => {
+    if (!product.variants || product.variants.length === 0) return false;
     const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
     return totalStock > 0;
   }
@@ -172,7 +173,7 @@ export default function SellerProductsPage() {
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>{product.category}</TableCell>
                     <TableCell>{getPriceRange(product)}</TableCell>
-                    <TableCell>{product.variants.reduce((sum, v) => sum + v.stock, 0)} unités</TableCell>
+                    <TableCell>{(product.variants || []).reduce((sum, v) => sum + v.stock, 0)} unités</TableCell>
                     <TableCell>
                       <Badge variant={getProductStockStatus(product) ? 'outline' : 'destructive'}>
                         {getProductStockStatus(product) ? 'En stock' : 'Épuisé'}

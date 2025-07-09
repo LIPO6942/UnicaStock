@@ -58,7 +58,7 @@ function AddReviewForm({ productId, onReviewAdded }: { productId: string, onRevi
             console.error("Failed to add review:", error);
             let description = "Impossible d'ajouter l'avis. Veuillez réessayer.";
             if (error instanceof FirebaseError && error.code === 'permission-denied') {
-                description = "Permission refusée. Veuillez vérifier que vos règles de sécurité Firestore sont à jour pour autoriser l'ajout d'avis par les acheteurs.";
+                description = "Permission refusée. Assurez-vous d'être connecté en tant qu'acheteur et que les règles de sécurité sont correctes.";
             }
             toast({ 
                 title: "Erreur lors de l'ajout de l'avis", 
@@ -265,7 +265,7 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
                             <div className="flex justify-between items-center">
                                 <p className="font-semibold">{review.userName}</p>
                                 <p className="text-xs text-muted-foreground">
-                                    {review.createdAt ? format(review.createdAt.toDate(), 'd MMMM yyyy', { locale: fr }) : ''}
+                                    {review.createdAt?.seconds ? format(new Date(review.createdAt.seconds * 1000), 'd MMMM yyyy', { locale: fr }) : ''}
                                 </p>
                             </div>
                             <div className="flex items-center gap-1 my-1">

@@ -22,6 +22,7 @@ interface AuthContextType {
   placeOrder: () => Promise<Order | null>;
   cartCount: number;
   unreadMessagesCount: number;
+  setUnreadMessagesCount: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -268,6 +269,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     placeOrder,
     cartCount,
     unreadMessagesCount,
+    setUnreadMessagesCount,
   };
 
   return (

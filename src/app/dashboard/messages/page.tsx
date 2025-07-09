@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/context/auth-context";
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getMessagesForUser, markConversationAsRead, sendMessage } from "@/lib/message-service-client";
+import { getMessagesForUser, markMessagesAsReadByIds, sendMessage } from "@/lib/message-service-client";
 import type { Message } from "@/lib/types";
 import Loading from "../loading";
 import { format, isToday, isYesterday } from 'date-fns';
@@ -27,7 +27,7 @@ type Conversation = {
 };
 
 function MessagesPageComponent() {
-  const { user, isLoading: isAuthLoading } = useAuth();
+  const { user, isLoading: isAuthLoading, unreadMessagesCount, setUnreadMessagesCount } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -70,7 +70,6 @@ function MessagesPageComponent() {
         let initialOrderId = searchParams.get('orderId');
 
         if (initialOrderId) {
-            // Clean the URL params once processed
             router.replace('/dashboard/messages', { scroll: false });
             
             if (!finalConversations.some(c => c.orderId === initialOrderId)) {
@@ -110,28 +109,43 @@ function MessagesPageComponent() {
         setMessages([]);
         return;
     }
-    
-    // Existing conversation, fetch messages
-    getMessagesForUser(user).then(allMessages => {
-        const convoMessages = allMessages.filter(m => m.orderId === selectedOrderId).sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-        setMessages(convoMessages);
-    });
 
-    if (convo.unreadCount > 0) {
-        markConversationAsRead(convo.orderId, user.type)
-          .then(() => {
-              setConversations(prev => prev.map(c => c.orderId === selectedOrderId ? {...c, unreadCount: 0} : c));
-          })
-          .catch((error: any) => {
-              console.error("Erreur de permission Firestore lors de la mise à jour du statut de lecture:", error);
-              let description = "Une erreur est survenue lors de la mise à jour des messages. C'est probablement dû à une règle de sécurité Firestore incorrecte.";
-              if (error?.code === 'permission-denied') {
-                  description = `Permission Refusée. Cette erreur vient de vos règles de sécurité Firestore. Veuillez les mettre à jour dans la console Firebase en utilisant le bloc de code fourni par l'assistant.`;
-              }
-              toast({ title: 'Erreur de Permission Firestore', description, variant: 'destructive', duration: 15000 });
-          });
-    }
-  }, [selectedOrderId, user, conversations, toast]);
+    // Unified logic: fetch messages for the convo, then mark them as read
+    const loadMessagesAndMarkAsRead = async () => {
+      try {
+        const allUserMessages = await getMessagesForUser(user);
+        const currentConvoMessages = allUserMessages
+          .filter(m => m.orderId === selectedOrderId)
+          .sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+        
+        setMessages(currentConvoMessages);
+
+        // Find unread messages from the other party and mark them as read
+        const unreadMessageIds = currentConvoMessages
+          .filter(m => !m.isRead && m.sender !== user.type)
+          .map(m => m.id);
+        
+        if (unreadMessageIds.length > 0) {
+          await markMessagesAsReadByIds(unreadMessageIds);
+          // Update conversation list to remove badge
+          setConversations(prev => prev.map(c => 
+            c.orderId === selectedOrderId ? { ...c, unreadCount: 0 } : c
+          ));
+        }
+      } catch (error: any) {
+        console.error("Erreur Firestore:", error);
+        let description = "Vos règles de sécurité Firestore n'autorisent pas cette action. C'est la cause la plus probable de cette erreur.";
+        if (error?.code === 'permission-denied') {
+            description = `Permission Refusée par Firestore. Veuillez mettre à jour vos règles de sécurité dans la console Firebase. Assurez-vous aussi d'être connecté avec un compte du bon type (acheteur/vendeur).`;
+        }
+        toast({ title: 'Erreur de Permission Firestore', description, variant: 'destructive', duration: 15000 });
+      }
+    };
+
+    loadMessagesAndMarkAsRead();
+  // We remove 'conversations' from deps to avoid re-running when badge count changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedOrderId, user, toast]);
 
 
   const handleSendReply = async () => {

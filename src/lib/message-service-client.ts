@@ -59,40 +59,19 @@ export async function getMessagesForUser(user: UserProfile): Promise<Message[]> 
 }
 
 /**
- * Marks all messages in a conversation as read for the current user.
- * This function now queries only by orderId and filters client-side to avoid needing a composite index.
- * @param orderId The ID of the order, which identifies the conversation.
- * @param currentUserType The type of the user marking messages as read ('buyer' or 'seller').
+ * Marks a specific list of messages as read by their document IDs.
+ * @param messageIds An array of message document IDs to update.
  */
-export async function markConversationAsRead(orderId: string, currentUserType: 'buyer' | 'seller') {
-    const messagesCollectionRef = collection(db, 'messages');
-    const senderTypeToMark = currentUserType === 'buyer' ? 'seller' : 'buyer';
-    
-    // Query only by orderId to avoid needing a composite index.
-    const q = query(
-        messagesCollectionRef, 
-        where('orderId', '==', orderId)
-    );
-
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) {
+export async function markMessagesAsReadByIds(messageIds: string[]) {
+    if (messageIds.length === 0) {
         return;
-    }
-    
-    // Filter on the client-side to find the specific messages to update.
-    const docsToUpdate = snapshot.docs.filter(doc => {
-        const data = doc.data();
-        return data.sender === senderTypeToMark && data.isRead === false;
-    });
-
-    if (docsToUpdate.length === 0) {
-        return; // Nothing to mark as read
     }
 
     const batch = writeBatch(db);
-    docsToUpdate.forEach(doc => {
-        batch.update(doc.ref, { isRead: true });
+    messageIds.forEach(id => {
+        const docRef = doc(db, 'messages', id);
+        batch.update(docRef, { isRead: true });
     });
-
+    
     await batch.commit();
 }

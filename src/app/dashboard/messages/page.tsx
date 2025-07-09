@@ -3,12 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/auth-context";
-import { useEffect, useState, useMemo, Suspense, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getMessagesForUser, markConversationAsRead, sendMessage } from "@/lib/message-service-client";
 import type { Message } from "@/lib/types";
@@ -55,7 +53,7 @@ function MessagesPageComponent() {
     if (convo.unreadCount > 0 && user) {
         try {
             await markConversationAsRead(convo.orderId, user.type);
-            setConversations(prev => prev.map(c => c.orderId === convo.orderId ? {...c, unreadCount: 0} : c));
+             setConversations(prev => prev.map(c => c.orderId === convo.orderId ? {...c, unreadCount: 0} : c));
         } catch (error: any) {
             console.error("Erreur de permission Firestore:", JSON.stringify(error, null, 2));
             let description = "Vos règles de sécurité Firestore n'autorisent pas cette action. C'est la cause la plus probable de cette erreur.";
@@ -75,7 +73,7 @@ function MessagesPageComponent() {
   useEffect(() => {
     if (isAuthLoading || !user) return;
 
-    const loadAndSelectConversations = async () => {
+    const loadData = async () => {
       setIsLoading(true);
       
       const allMessages = await getMessagesForUser(user);
@@ -99,39 +97,37 @@ function MessagesPageComponent() {
       const initialOrderId = searchParams.get('orderId');
       const initialOrderNumber = searchParams.get('orderNumber');
       
-      let finalConversations = loadedConversations;
-      let conversationToSelect: Conversation | null = null;
-      let isNewConversation = false;
-
       if (initialOrderId && initialOrderNumber) {
-        const existingConvo = loadedConversations.find(c => c.orderId === initialOrderId);
-
-        if (existingConvo) {
-          conversationToSelect = existingConvo;
-        } else {
-          const newVirtualConvo: Conversation = {
-            orderId: initialOrderId,
-            orderNumber: initialOrderNumber,
-            otherPartyName: user.type === 'buyer' ? 'Unica Link' : 'Nouveau Client',
-            unreadCount: 0,
-          };
-          finalConversations = [newVirtualConvo, ...loadedConversations];
-          conversationToSelect = newVirtualConvo;
-          isNewConversation = true;
-        }
-        
         router.replace('/dashboard/messages', { scroll: false });
-      }
 
-      setConversations(finalConversations);
-      if (conversationToSelect) {
-        handleSelectConversation(conversationToSelect, isNewConversation);
+        const existingConvo = loadedConversations.find(c => c.orderId === initialOrderId);
+        if (existingConvo) {
+            setConversations(loadedConversations);
+            handleSelectConversation(existingConvo);
+        } else {
+            const newVirtualConvo: Conversation = {
+                orderId: initialOrderId,
+                orderNumber: initialOrderNumber,
+                otherPartyName: user.type === 'buyer' ? 'Unica Link' : 'Nouveau Client',
+                unreadCount: 0,
+            };
+            setConversations([newVirtualConvo, ...loadedConversations]);
+            handleSelectConversation(newVirtualConvo, true);
+        }
+      } else {
+         setConversations(prevConvos => {
+            const virtualConvoInState = prevConvos.find(c => !c.lastMessage);
+            if (virtualConvoInState && !loadedConversations.some(c => c.orderId === virtualConvoInState.orderId)) {
+                return [virtualConvoInState, ...loadedConversations];
+            }
+            return loadedConversations;
+        });
       }
       
       setIsLoading(false);
     };
 
-    loadAndSelectConversations();
+    loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isAuthLoading, searchParams]);
 

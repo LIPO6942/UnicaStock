@@ -17,6 +17,7 @@ import { format, isToday, isYesterday } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Send, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 type Conversation = {
   orderId: string;
@@ -30,6 +31,7 @@ function MessagesPageComponent() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -85,9 +87,18 @@ function MessagesPageComponent() {
     setMessages(convoMessages);
     
     if (convo.unreadCount > 0 && user) {
-        await markConversationAsRead(convo.orderId, user.type);
-        // Optimistically update UI
-        setConversations(prev => prev.map(c => c.orderId === convo.orderId ? {...c, unreadCount: 0} : c));
+        try {
+            await markConversationAsRead(convo.orderId, user.type);
+            // Optimistically update UI
+            setConversations(prev => prev.map(c => c.orderId === convo.orderId ? {...c, unreadCount: 0} : c));
+        } catch (error) {
+            console.error("Failed to mark conversation as read:", error);
+            toast({
+                title: 'Erreur de Permission',
+                description: "Impossible de marquer la conversation comme lue. Vérifiez que les règles de sécurité Firestore sont à jour.",
+                variant: 'destructive'
+            });
+        }
     }
   };
 
@@ -115,6 +126,11 @@ function MessagesPageComponent() {
         setMessages(convoMessages);
     } catch (error) {
         console.error("Failed to send reply:", error);
+        toast({
+          title: "Erreur d'envoi",
+          description: "Votre message n'a pas pu être envoyé. Vérifiez vos permissions Firestore.",
+          variant: 'destructive',
+        });
     } finally {
         setIsSending(false);
     }

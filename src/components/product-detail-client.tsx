@@ -20,6 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { FirebaseError } from 'firebase/app';
 
 // Helper component for the review form
 function AddReviewForm({ productId, onReviewAdded }: { productId: string, onReviewAdded: () => void }) {
@@ -54,8 +55,17 @@ function AddReviewForm({ productId, onReviewAdded }: { productId: string, onRevi
             setComment("");
             onReviewAdded(); // This will trigger a data refresh
         } catch (error) {
-            console.error(error);
-            toast({ title: "Erreur", description: "Impossible d'ajouter l'avis. Veuillez réessayer.", variant: "destructive" });
+            console.error("Failed to add review:", error);
+            let description = "Impossible d'ajouter l'avis. Veuillez réessayer.";
+            if (error instanceof FirebaseError && error.code === 'permission-denied') {
+                description = "Permission refusée. Veuillez vérifier que vos règles de sécurité Firestore sont à jour pour autoriser l'ajout d'avis par les acheteurs.";
+            }
+            toast({ 
+                title: "Erreur lors de l'ajout de l'avis", 
+                description: description, 
+                variant: "destructive",
+                duration: 9000,
+            });
         } finally {
             setIsSubmitting(false);
         }

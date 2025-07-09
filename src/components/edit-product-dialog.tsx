@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -12,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Product, ProductVariant } from '@/lib/types';
+import type { Product } from '@/lib/types';
 import * as ProductServiceClient from '@/lib/product-service-client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
@@ -107,6 +108,9 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
     if (product) {
       reset({
         ...product,
+        variants: product.variants || [],
+        dataSheetUrl: product.dataSheetUrl || '',
+        coaUrl: product.coaUrl || '',
         newCategory: '',
       });
     } else {

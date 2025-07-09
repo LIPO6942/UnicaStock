@@ -204,8 +204,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const productRef = doc(db, 'products', item.product.id);
           const productDoc = await transaction.get(productRef);
           if (!productDoc.exists()) throw new Error(`Produit ${item.product.name} non trouvé.`);
+          
           const currentStock = productDoc.data().stock;
-          if (currentStock < item.quantity) throw new Error(`Stock insuffisant pour ${item.product.name}. Disponible: ${currentStock}, Demandé: ${item.quantity}.`);
+          if (currentStock < item.quantity) {
+            throw new Error(`Stock insuffisant pour ${item.product.name}. Disponible: ${currentStock}, Demandé: ${item.quantity}.`);
+          }
           productUpdates.push({ ref: productRef, newStock: currentStock - item.quantity });
         }
 
@@ -242,12 +245,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     } catch (e: any) {
       console.error("La transaction de commande a échoué:", e);
-      toast({
-        title: "Erreur de commande",
-        description: e.message || "La transaction a échoué. Veuillez réessayer.",
-        variant: "destructive",
-      });
-      return null;
+      // Re-throw the error to be handled by the calling UI component
+      throw e;
     }
   };
 

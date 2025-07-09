@@ -32,18 +32,21 @@ export default function CartPage() {
         });
         router.push('/dashboard/orders');
       } else {
+        // This case should ideally not be hit if the cart has items,
+        // as placeOrder() would throw an error instead of returning null.
+        // It's here as a fallback.
         toast({
           title: 'Erreur',
-          description: 'Votre panier est vide ou une erreur est survenue.',
+          description: 'Votre panier est vide ou une erreur inattendue est survenue.',
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to place order:", error);
       toast({
-        title: 'Erreur',
-        description: "Une erreur est survenue lors de la validation de la commande.",
-        variant: 'destructive',
+        title: "Erreur de commande",
+        description: error.message || "Une erreur est survenue lors de la validation de la commande.",
+        variant: "destructive",
       });
     } finally {
       setIsPlacingOrder(false);

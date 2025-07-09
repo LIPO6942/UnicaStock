@@ -70,14 +70,13 @@ function MessagesPageComponent() {
             });
         }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, toast]);
 
-
+  // Effect to load all existing conversations
   useEffect(() => {
     if (isAuthLoading || !user) return;
 
-    const fetchAndSetup = async () => {
+    const fetchConversations = async () => {
       setIsLoading(true);
       const allMessages = await getMessagesForUser(user);
       const grouped = allMessages.reduce((acc, msg) => {
@@ -86,7 +85,7 @@ function MessagesPageComponent() {
       }, {} as Record<string, Message[]>);
 
       const convos: Conversation[] = Object.values(grouped).map(msgs => {
-        const lastMessage = msgs[0];
+        const lastMessage = msgs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0];
         const unreadCount = msgs.filter(m => !m.isRead && m.sender !== user.type).length;
         return {
           orderId: lastMessage.orderId,
@@ -95,44 +94,46 @@ function MessagesPageComponent() {
           lastMessage,
           unreadCount,
         };
-      });
+      }).sort((a, b) => (b.lastMessage?.createdAt?.seconds || 0) - (a.lastMessage?.createdAt?.seconds || 0));
 
-      const initialOrderId = searchParams.get('orderId');
-      const initialOrderNumber = searchParams.get('orderNumber');
-
-      if (initialOrderId) {
-        // We handle the redirect, then clean the URL. This will cause a re-render.
-        // The logic in the `else` block is designed to handle this re-render gracefully.
-        router.replace('/dashboard/messages', undefined);
-        
-        const existingConvo = convos.find(c => c.orderId === initialOrderId);
-        if (existingConvo) {
-          setConversations(convos);
-          handleSelectConversation(existingConvo);
-        } else if (user?.type === 'buyer' && initialOrderNumber) {
-           const newVirtualConvo: Conversation = {
-            orderId: initialOrderId,
-            orderNumber: initialOrderNumber,
-            otherPartyName: 'Unica Link',
-            unreadCount: 0,
-          };
-          setConversations([newVirtualConvo, ...convos]);
-          handleSelectConversation(newVirtualConvo, true);
-        }
-      } else {
-        // This block runs on normal page load, and on the re-render after a redirect.
-        // This condition prevents wiping the state if a "virtual" conversation was just created.
-        if (!selectedConversation || convos.some(c => c.orderId === selectedConversation.orderId)) {
-          setConversations(convos);
-        }
-      }
-
+      setConversations(convos);
       setIsLoading(false);
     };
 
-    fetchAndSetup();
+    fetchConversations();
+  }, [user, isAuthLoading]);
+  
+  // Effect to handle selecting a conversation from a URL parameter
+  useEffect(() => {
+    const initialOrderId = searchParams.get('orderId');
+    const initialOrderNumber = searchParams.get('orderNumber');
+    
+    if (initialOrderId && user) {
+        // Clean the URL to prevent this from re-triggering on unrelated re-renders
+        router.replace('/dashboard/messages', undefined);
+        
+        const existingConvo = conversations.find(c => c.orderId === initialOrderId);
+
+        if (existingConvo) {
+            handleSelectConversation(existingConvo);
+        } else if (user.type === 'buyer' && initialOrderNumber) {
+            // This is a new conversation, create a "virtual" one to display in the UI
+            const newVirtualConvo: Conversation = {
+              orderId: initialOrderId,
+              orderNumber: initialOrderNumber,
+              otherPartyName: 'Unica Link', // The only seller
+              unreadCount: 0,
+            };
+            // Add to the list and select it
+            setConversations(prev => [newVirtualConvo, ...prev]);
+            handleSelectConversation(newVirtualConvo, true);
+        }
+    }
+  // We need to disable exhaustive-deps because adding `conversations` or `handleSelectConversation`
+  // would cause an infinite loop. This effect should ONLY run when `searchParams` or `user` changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, isAuthLoading, searchParams]);
+  }, [searchParams, user]);
+
 
   const handleSendReply = async () => {
     if (!replyText.trim() || !selectedConversation || !user) return;
@@ -160,12 +161,28 @@ function MessagesPageComponent() {
         await sendMessage(messageData);
         setReplyText("");
         
+        // Refresh messages for the current conversation
         const allMessages = await getMessagesForUser(user!);
         const convoMessages = allMessages.filter(m => m.orderId === selectedConversation.orderId).sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
         setMessages(convoMessages);
 
-        // This would be a good place to fully refresh the conversation list
-        // to update the "last message" preview, but for now we just update the current view.
+        // Refresh the entire conversation list to update last message preview and order
+        const grouped = allMessages.reduce((acc, msg) => {
+          (acc[msg.orderId] = acc[msg.orderId] || []).push(msg);
+          return acc;
+        }, {} as Record<string, Message[]>);
+        const updatedConvos: Conversation[] = Object.values(grouped).map(msgs => {
+          const lastMessage = msgs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0];
+          const unreadCount = msgs.filter(m => !m.isRead && m.sender !== user.type).length;
+          return {
+            orderId: lastMessage.orderId,
+            orderNumber: lastMessage.orderNumber,
+            otherPartyName: user.type === 'seller' ? lastMessage.buyerName : 'Unica Link',
+            lastMessage,
+            unreadCount,
+          };
+        }).sort((a, b) => (b.lastMessage?.createdAt?.seconds || 0) - (a.lastMessage?.createdAt?.seconds || 0));
+        setConversations(updatedConvos);
 
     } catch (error) {
         console.error("Failed to send reply:", error);

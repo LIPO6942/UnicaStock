@@ -24,41 +24,41 @@ export default async function ProductsPage() {
   const categories = await getCategories(products);
 
   return (
-    <div className="container py-8">
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
-        <aside className="lg:col-span-1">
-          <div className="sticky top-20">
-            <h2 className="text-2xl font-bold flex items-center gap-2 mb-6 font-headline">
-              <Filter className="h-6 w-6" />
+    <div className="container py-12">
+      <div className="grid grid-cols-1 gap-x-8 gap-y-10 lg:grid-cols-4">
+        <aside className="hidden lg:block">
+          <div className="sticky top-24">
+            <h2 className="text-xl font-bold flex items-center gap-2 mb-6 font-headline">
+              <Filter className="h-5 w-5" />
               Filtres
             </h2>
-            <div className="space-y-8">
+            <div className="space-y-6">
               <div>
-                <Label htmlFor="search" className="text-lg font-semibold">Recherche</Label>
+                <Label htmlFor="search" className="text-base font-semibold">Recherche</Label>
                 <Input id="search" placeholder="Nom du produit, INCI..." className="mt-2" />
               </div>
 
               <div>
-                <Label className="text-lg font-semibold">Catégorie</Label>
+                <Label className="text-base font-semibold">Catégorie</Label>
                 <div className="mt-2 space-y-2">
                   {categories.map((category) => (
-                    <div key={category} className="flex items-center space-x-2">
-                       <Link href="#" className="text-sm hover:text-primary">{category}</Link>
+                    <div key={category} className="flex items-center">
+                       <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">{category}</Link>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <Button className="w-full" size="lg">Appliquer les filtres</Button>
+              <Button className="w-full">Appliquer les filtres</Button>
             </div>
           </div>
         </aside>
 
         <main className="lg:col-span-3">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
             <h1 className="text-3xl font-bold font-headline">Toutes les Matières Premières</h1>
             <Select>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Trier par" />
               </SelectTrigger>
               <SelectContent>

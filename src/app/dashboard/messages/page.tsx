@@ -72,19 +72,22 @@ function MessagesPageComponent() {
     }
   }, [user, toast]);
 
-  // Effect to load all existing conversations
   useEffect(() => {
+    // This effect handles both loading existing conversations and selecting
+    // a new one from URL parameters to avoid race conditions.
     if (isAuthLoading || !user) return;
 
-    const fetchConversations = async () => {
+    const loadAndSelectConversations = async () => {
       setIsLoading(true);
+      
+      // 1. Fetch existing messages from Firestore
       const allMessages = await getMessagesForUser(user);
       const grouped = allMessages.reduce((acc, msg) => {
         (acc[msg.orderId] = acc[msg.orderId] || []).push(msg);
         return acc;
       }, {} as Record<string, Message[]>);
 
-      const convos: Conversation[] = Object.values(grouped).map(msgs => {
+      const loadedConversations: Conversation[] = Object.values(grouped).map(msgs => {
         const lastMessage = msgs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0];
         const unreadCount = msgs.filter(m => !m.isRead && m.sender !== user.type).length;
         return {
@@ -96,43 +99,52 @@ function MessagesPageComponent() {
         };
       }).sort((a, b) => (b.lastMessage?.createdAt?.seconds || 0) - (a.lastMessage?.createdAt?.seconds || 0));
 
-      setConversations(convos);
+      // 2. Check for a new conversation from URL parameters
+      const initialOrderId = searchParams.get('orderId');
+      const initialOrderNumber = searchParams.get('orderNumber');
+      
+      let finalConversations = loadedConversations;
+      let conversationToSelect: Conversation | null = null;
+      let isNewConversation = false;
+
+      if (initialOrderId && initialOrderNumber && user.type === 'buyer') {
+        const existingConvo = loadedConversations.find(c => c.orderId === initialOrderId);
+
+        if (existingConvo) {
+          conversationToSelect = existingConvo;
+        } else {
+          // This is a new conversation, create a "virtual" one to display in the UI
+          const newVirtualConvo: Conversation = {
+            orderId: initialOrderId,
+            orderNumber: initialOrderNumber,
+            otherPartyName: 'Unica Link', // The only seller
+            unreadCount: 0,
+          };
+          // Add it to the list to be rendered
+          finalConversations = [newVirtualConvo, ...loadedConversations];
+          conversationToSelect = newVirtualConvo;
+          isNewConversation = true;
+        }
+        
+        // Clean the URL to prevent this from re-triggering on unrelated re-renders
+        router.replace('/dashboard/messages', { scroll: false });
+      }
+
+      // 3. Set all state at once
+      setConversations(finalConversations);
+      if (conversationToSelect) {
+        handleSelectConversation(conversationToSelect, isNewConversation);
+      }
+      
       setIsLoading(false);
     };
 
-    fetchConversations();
-  }, [user, isAuthLoading]);
-  
-  // Effect to handle selecting a conversation from a URL parameter
-  useEffect(() => {
-    const initialOrderId = searchParams.get('orderId');
-    const initialOrderNumber = searchParams.get('orderNumber');
-    
-    if (initialOrderId && user) {
-        // Clean the URL to prevent this from re-triggering on unrelated re-renders
-        router.replace('/dashboard/messages', undefined);
-        
-        const existingConvo = conversations.find(c => c.orderId === initialOrderId);
-
-        if (existingConvo) {
-            handleSelectConversation(existingConvo);
-        } else if (user.type === 'buyer' && initialOrderNumber) {
-            // This is a new conversation, create a "virtual" one to display in the UI
-            const newVirtualConvo: Conversation = {
-              orderId: initialOrderId,
-              orderNumber: initialOrderNumber,
-              otherPartyName: 'Unica Link', // The only seller
-              unreadCount: 0,
-            };
-            // Add to the list and select it
-            setConversations(prev => [newVirtualConvo, ...prev]);
-            handleSelectConversation(newVirtualConvo, true);
-        }
-    }
-  // We need to disable exhaustive-deps because adding `conversations` or `handleSelectConversation`
-  // would cause an infinite loop. This effect should ONLY run when `searchParams` or `user` changes.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, user]);
+    loadAndSelectConversations();
+    // We need to disable exhaustive-deps because adding `router` and `handleSelectConversation`
+    // creates a risk of infinite loops if not memoized perfectly. This effect's logic
+    // is sound and should only run when the user or search params change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isAuthLoading, searchParams]);
 
 
   const handleSendReply = async () => {
@@ -224,7 +236,7 @@ function MessagesPageComponent() {
                 conversations.map(convo => (
                     <button 
                         key={convo.orderId} 
-                        onClick={() => handleSelectConversation(convo)}
+                        onClick={() => handleSelectConversation(convo, !convo.lastMessage)}
                         className={cn(
                             "w-full text-left p-3 rounded-lg transition-colors flex flex-col gap-1",
                             selectedConversation?.orderId === convo.orderId ? 'bg-muted' : 'hover:bg-muted/50',

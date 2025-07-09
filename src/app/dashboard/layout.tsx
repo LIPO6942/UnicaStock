@@ -10,6 +10,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
+  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -20,6 +21,7 @@ import {
   Heart,
   LoaderCircle,
   Package,
+  Home,
 } from 'lucide-react';
 import { Icons } from '@/components/icons';
 import Link from 'next/link';
@@ -73,6 +75,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/settings', label: 'Paramètres', icon: Settings },
   ];
 
+  const siteNav = [
+    { href: '/', label: 'Accueil', icon: Home },
+    { href: '/products', label: 'Produits', icon: Package },
+  ];
+
   const navItems = user.type === 'seller' ? sellerNav : buyerNav;
 
   return (
@@ -85,6 +92,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </SidebarHeader>
         <SidebarContent>
+           {user.type === 'buyer' && (
+            <>
+              <SidebarMenu>
+                {siteNav.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.href)}
+                      tooltip={{ children: item.label }}
+                    >
+                      <Link href={item.href}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+              <SidebarSeparator />
+            </>
+          )}
           {user.type === 'buyer' && (
             <SidebarMenu>
               <SidebarMenuItem>

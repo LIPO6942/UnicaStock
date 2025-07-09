@@ -25,7 +25,9 @@ export async function sendMessage(messageData: Omit<Message, 'id' | 'isRead' | '
 }
 
 /**
- * Fetches all messages for a user, grouped by order to form conversations.
+ * Fetches all messages for a user.
+ * It avoids server-side sorting to prevent complex index requirements and potential permission errors.
+ * All sorting is handled on the client-side.
  * @returns A promise that resolves to an array of messages.
  */
 export async function getMessagesForUser(user: UserProfile): Promise<Message[]> {
@@ -33,11 +35,10 @@ export async function getMessagesForUser(user: UserProfile): Promise<Message[]> 
     let q;
 
     if (user.type === 'seller') {
-        // The seller query is simple and does not require a composite index.
-        q = query(messagesCollectionRef, orderBy('createdAt', 'desc'));
+        // For sellers, query all messages and sort on the client to avoid indexing issues.
+        q = query(messagesCollectionRef);
     } else {
-        // For buyers, we remove the `orderBy` clause to avoid the need for a composite index.
-        // We will sort the results on the client-side instead.
+        // For buyers, we also query without sorting to avoid needing a composite index.
         q = query(messagesCollectionRef, where('buyerId', '==', user.uid));
     }
     
@@ -59,10 +60,8 @@ export async function getMessagesForUser(user: UserProfile): Promise<Message[]> 
         } as Message
     });
 
-    // If the user is a buyer, we need to sort the messages manually.
-    if (user.type === 'buyer') {
-        messages.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-    }
+    // Always sort messages on the client by creation date for consistent display
+    messages.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
     return messages;
 }

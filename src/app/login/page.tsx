@@ -34,12 +34,12 @@ export default function LoginPage() {
       router.push('/dashboard');
     } catch (err: any) {
       const errorCode = err.code;
-      let errorMessage = "Une erreur est survenue.";
+      let errorMessage = "Une erreur inattendue est survenue. Veuillez réessayer.";
       if (errorCode === 'auth/invalid-credential') {
-        errorMessage = 'Email ou mot de passe incorrect.';
+        errorMessage = "Les identifiants fournis sont incorrects. Veuillez vérifier l'email et le mot de passe.";
       }
       setError(errorMessage);
-      console.error(err);
+      console.error("Login failed:", err);
     } finally {
       setIsLoading(false);
     }

@@ -1,104 +1,242 @@
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { useEffect, useState } from "react";
-import { getMessagesForSeller, markMessageAsRead } from "@/lib/message-service-client";
-import type { Message } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/auth-context";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useMemo, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { getMessagesForUser, markConversationAsRead, sendMessage } from "@/lib/message-service-client";
+import type { Message } from "@/lib/types";
 import Loading from "../loading";
-import { format } from 'date-fns';
+import { format, isToday, isYesterday } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Send, MessageSquare } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export default function MessagesPage() {
+type Conversation = {
+  orderId: string;
+  orderNumber: string;
+  otherPartyName: string;
+  lastMessage: Message;
+  unreadCount: number;
+};
+
+function MessagesPageComponent() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [replyText, setReplyText] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (isAuthLoading) return;
-    if (!user || user.type !== 'seller') {
-      router.replace('/dashboard');
-      return;
-    }
+    if (isAuthLoading || !user) return;
 
-    const fetchMessages = async () => {
-      try {
-        const fetchedMessages = await getMessagesForSeller();
-        setMessages(fetchedMessages);
-      } catch (error) {
-        console.error("Failed to fetch messages", error);
-      } finally {
-        setIsLoading(false);
+    const fetchConversations = async () => {
+      setIsLoading(true);
+      const allMessages = await getMessagesForUser(user);
+      const grouped = allMessages.reduce((acc, msg) => {
+        (acc[msg.orderId] = acc[msg.orderId] || []).push(msg);
+        return acc;
+      }, {} as Record<string, Message[]>);
+
+      const convos: Conversation[] = Object.values(grouped).map(msgs => {
+        const lastMessage = msgs[0];
+        const unreadCount = msgs.filter(m => !m.isRead && m.sender !== user.type).length;
+        return {
+          orderId: lastMessage.orderId,
+          orderNumber: lastMessage.orderNumber,
+          otherPartyName: user.type === 'seller' ? lastMessage.buyerName : 'Unica Link',
+          lastMessage,
+          unreadCount,
+        };
+      });
+
+      setConversations(convos);
+
+      const initialOrderId = searchParams.get('orderId');
+      if (initialOrderId) {
+        const initialConvo = convos.find(c => c.orderId === initialOrderId);
+        if (initialConvo) {
+          handleSelectConversation(initialConvo);
+        }
       }
+
+      setIsLoading(false);
     };
 
-    fetchMessages();
-  }, [user, isAuthLoading, router]);
+    fetchConversations();
+  }, [user, isAuthLoading, searchParams]);
 
-  const handleOpenMessage = async (messageId: string, isRead: boolean) => {
-    if (!isRead) {
-      await markMessageAsRead(messageId);
-      // Optimistically update the UI
-      setMessages(prevMessages => 
-        prevMessages.map(msg => msg.id === messageId ? { ...msg, isRead: true } : msg)
-      );
+  const handleSelectConversation = async (convo: Conversation) => {
+    setSelectedConversation(convo);
+    router.replace('/dashboard/messages', undefined); 
+    const allMessages = await getMessagesForUser(user!);
+    const convoMessages = allMessages.filter(m => m.orderId === convo.orderId).sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+    setMessages(convoMessages);
+    
+    if (convo.unreadCount > 0 && user) {
+        await markConversationAsRead(convo.orderId, user.type);
+        // Optimistically update UI
+        setConversations(prev => prev.map(c => c.orderId === convo.orderId ? {...c, unreadCount: 0} : c));
     }
   };
+
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !selectedConversation || !user) return;
+
+    setIsSending(true);
+    try {
+        const messageData: Omit<Message, 'id' | 'isRead' | 'createdAt'> = {
+            orderId: selectedConversation.orderId,
+            orderNumber: selectedConversation.orderNumber,
+            buyerId: user.type === 'buyer' ? user.uid : selectedConversation.lastMessage.buyerId,
+            buyerName: user.type === 'buyer' ? user.name : selectedConversation.lastMessage.buyerName,
+            buyerEmail: user.type === 'buyer' ? user.email : selectedConversation.lastMessage.buyerEmail,
+            subject: `Re: ${selectedConversation.lastMessage.subject}`,
+            body: replyText,
+            sender: user.type,
+        };
+        await sendMessage(messageData);
+        setReplyText("");
+        
+        // Refresh messages for the current conversation
+        const allMessages = await getMessagesForUser(user!);
+        const convoMessages = allMessages.filter(m => m.orderId === selectedConversation.orderId).sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+        setMessages(convoMessages);
+    } catch (error) {
+        console.error("Failed to send reply:", error);
+    } finally {
+        setIsSending(false);
+    }
+  };
+  
+  const formatMessageDate = (timestamp: any) => {
+    if (!timestamp?.seconds) return '';
+    const date = new Date(timestamp.seconds * 1000);
+    if(isToday(date)) return format(date, 'HH:mm');
+    if(isYesterday(date)) return 'Hier';
+    return format(date, 'd MMM yyyy', {locale: fr})
+  }
 
   if (isAuthLoading || isLoading) {
     return <Loading />;
   }
-
+  
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Boîte de réception</CardTitle>
-        <CardDescription>Consultez les messages envoyés par les acheteurs.</CardDescription>
+    <Card className="h-[calc(100vh-10rem)] flex flex-col">
+       <CardHeader>
+        <CardTitle>Messagerie</CardTitle>
+        <CardDescription>Consultez et répondez aux messages concernant vos commandes.</CardDescription>
       </CardHeader>
-      <CardContent>
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg text-center">
-            <p className="text-lg text-muted-foreground">Votre boîte de réception est vide.</p>
-            <p className="text-sm text-muted-foreground">Les nouveaux messages des clients apparaîtront ici.</p>
-          </div>
-        ) : (
-          <Accordion type="single" collapsible className="w-full">
-            {messages.map((message) => (
-              <AccordionItem value={message.id} key={message.id}>
-                <AccordionTrigger 
-                  className={`flex items-start gap-4 p-4 rounded-lg hover:bg-muted/50 ${!message.isRead ? 'bg-primary/5' : ''}`}
-                  onClick={() => handleOpenMessage(message.id, message.isRead)}
-                >
-                  <div className="flex-1 text-left">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        {!message.isRead && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
-                        <p className={`font-semibold ${!message.isRead ? 'text-foreground' : 'text-muted-foreground'}`}>
-                           {message.buyerName} <span className="font-normal text-muted-foreground">({message.orderNumber})</span>
-                        </p>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                         {message.createdAt ? format(new Date(message.createdAt.seconds * 1000), 'd MMMM yyyy', { locale: fr }) : ''}
-                      </p>
+      <div className="flex-grow grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 border-t overflow-hidden">
+        {/* Conversations List */}
+        <ScrollArea className="md:col-span-1 xl:col-span-1 border-r h-full">
+            <div className="p-2 space-y-1">
+            {conversations.length === 0 ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">Aucune conversation.</div>
+            ) : (
+                conversations.map(convo => (
+                    <button 
+                        key={convo.orderId} 
+                        onClick={() => handleSelectConversation(convo)}
+                        className={cn(
+                            "w-full text-left p-3 rounded-lg transition-colors flex flex-col gap-1",
+                            selectedConversation?.orderId === convo.orderId ? 'bg-muted' : 'hover:bg-muted/50',
+                        )}
+                    >
+                        <div className="flex justify-between items-center">
+                            <p className="font-semibold text-sm truncate">{convo.otherPartyName}</p>
+                             {convo.unreadCount > 0 && <Badge className="h-5 w-5 p-0 flex items-center justify-center">{convo.unreadCount}</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground font-medium">Cde: {convo.orderNumber}</p>
+                        <p className="text-xs text-muted-foreground truncate">{convo.lastMessage.body}</p>
+                    </button>
+                ))
+            )}
+            </div>
+        </ScrollArea>
+
+        {/* Message View */}
+        <div className="md:col-span-2 xl:col-span-3 flex flex-col h-full bg-muted/20">
+            {selectedConversation ? (
+                <>
+                <div className="p-4 border-b flex items-center gap-4 bg-background">
+                    <Avatar>
+                        <AvatarImage src={`https://placehold.co/40x40.png?text=${selectedConversation.otherPartyName.charAt(0)}`} data-ai-hint="person" />
+                        <AvatarFallback>{selectedConversation.otherPartyName.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <p className="font-semibold">{selectedConversation.otherPartyName}</p>
+                        <p className="text-sm text-muted-foreground">Commande {selectedConversation.orderNumber}</p>
                     </div>
-                    <p className={`text-sm font-medium ${!message.isRead ? 'text-foreground' : 'text-muted-foreground'}`}>{message.subject}</p>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="p-4 pl-12 bg-muted/30">
-                  <p className="text-sm text-foreground whitespace-pre-wrap">{message.body}</p>
-                   <a href={`mailto:${message.buyerEmail}?subject=RE: Votre message concernant la commande ${message.orderNumber}`} className="text-primary text-sm font-semibold mt-4 inline-block hover:underline">
-                      Répondre par email
-                    </a>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        )}
-      </CardContent>
+                </div>
+                <ScrollArea className="flex-grow p-4 space-y-4">
+                    {messages.map((msg, index) => (
+                        <div key={index} className={cn("flex items-end gap-2", msg.sender === user?.type ? 'justify-end' : 'justify-start')}>
+                            {msg.sender !== user?.type && <Avatar className="h-8 w-8"><AvatarFallback>{msg.sender === 'buyer' ? msg.buyerName.charAt(0) : 'V'}</AvatarFallback></Avatar>}
+                            <div className={cn(
+                                "max-w-xs lg:max-w-md p-3 rounded-2xl",
+                                msg.sender === user?.type ? "bg-primary text-primary-foreground rounded-br-none" : "bg-background rounded-bl-none border"
+                            )}>
+                                <p className="text-sm">{msg.body}</p>
+                                <p className="text-xs opacity-70 mt-1 text-right">{formatMessageDate(msg.createdAt)}</p>
+                            </div>
+                        </div>
+                    ))}
+                </ScrollArea>
+                <div className="p-4 border-t bg-background">
+                    <div className="relative">
+                        <Textarea 
+                            placeholder="Écrivez votre message..." 
+                            value={replyText}
+                            onChange={e => setReplyText(e.target.value)}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSendReply();
+                                }
+                            }}
+                            className="pr-12"
+                            rows={1}
+                        />
+                        <Button 
+                            size="icon" 
+                            className="absolute right-2 bottom-2 h-8 w-8" 
+                            onClick={handleSendReply}
+                            disabled={isSending || !replyText.trim()}
+                        >
+                            <Send className="h-4 w-4"/>
+                        </Button>
+                    </div>
+                </div>
+                </>
+            ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                     <MessageSquare className="h-16 w-16 text-muted-foreground/50" />
+                     <h3 className="mt-4 text-lg font-medium">Sélectionnez une conversation</h3>
+                     <p className="text-sm text-muted-foreground">Choisissez une conversation dans la liste de gauche pour afficher les messages.</p>
+                </div>
+            )}
+        </div>
+      </div>
     </Card>
   )
+}
+
+export default function MessagesPage() {
+    return (
+        <Suspense fallback={<Loading />}>
+            <MessagesPageComponent />
+        </Suspense>
+    )
 }

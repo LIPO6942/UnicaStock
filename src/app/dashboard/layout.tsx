@@ -26,11 +26,12 @@ import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { useEffect } from 'react';
 import { HeaderActions } from '@/components/header-actions';
+import { Badge } from '@/components/ui/badge';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, unreadMessagesCount } = useAuth();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -54,17 +55,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     )
   }
 
-  const isActive = (path: string) => pathname === path;
+  const isActive = (path: string) => pathname === path || (path === '/dashboard/messages' && pathname.startsWith('/dashboard/messages'));
 
   const sellerNav = [
     { href: '/dashboard/orders', label: 'Commandes', icon: ShoppingCart },
     { href: '/dashboard/products', label: 'Produits', icon: Package },
-    { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare },
+    { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare, notificationCount: unreadMessagesCount },
   ];
 
   const buyerNav = [
     { href: '/dashboard/orders', label: 'Mes Commandes', icon: ShoppingCart },
     { href: '/dashboard/favorites', label: 'Favoris', icon: Heart },
+    { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare, notificationCount: unreadMessagesCount },
   ];
 
   const commonNav = [
@@ -107,9 +109,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   isActive={isActive(item.href)}
                   tooltip={{ children: item.label }}
                 >
-                  <Link href={item.href}>
+                  <Link href={item.href} className="relative">
                     <item.icon />
                     <span>{item.label}</span>
+                     {item.notificationCount && item.notificationCount > 0 && (
+                      <Badge className="absolute right-2 top-1/2 -translate-y-1/2 h-5 min-w-[1.25rem] justify-center p-1 text-xs">
+                        {item.notificationCount}
+                      </Badge>
+                    )}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useEffect } from "react";
@@ -9,106 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-
 import { useAuth } from "@/context/auth-context";
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot, orderBy, doc, updateDoc } from "firebase/firestore";
 import type { Order, OrderStatus } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { sendMessageFromBuyer } from "@/lib/message-service-client";
+import { useRouter } from "next/navigation";
+
 
 const orderStatuses: OrderStatus[] = ['En attente', 'Confirmée', 'Préparation en cours', 'Expédiée', 'Livrée', 'Annulée'];
 
-const MessageDialog = ({ order, user, isOpen, onOpenChange }: { order: Order | null, user: any, isOpen: boolean, onOpenChange: (open: boolean) => void }) => {
-    const { toast } = useToast();
-    const [subject, setSubject] = useState('');
-    const [body, setBody] = useState('');
-    const [isSending, setIsSending] = useState(false);
-
-    const handleSend = async () => {
-        if (!subject || !body || !order || !user) {
-            toast({ title: "Veuillez remplir tous les champs.", variant: 'destructive' });
-            return;
-        }
-        setIsSending(true);
-        try {
-            await sendMessageFromBuyer({
-                orderId: order.id,
-                orderNumber: order.orderNumber,
-                buyerId: user.uid,
-                buyerName: user.name,
-                buyerEmail: user.email,
-                subject,
-                body
-            });
-            toast({ title: "Message envoyé !", description: "Le vendeur a bien reçu votre message." });
-            onOpenChange(false);
-            setSubject('');
-            setBody('');
-        } catch (error) {
-            console.error("Failed to send message:", error);
-            toast({ title: "Erreur", description: "Impossible d'envoyer le message.", variant: 'destructive' });
-        } finally {
-            setIsSending(false);
-        }
-    };
-    
-    return (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Contacter le vendeur</DialogTitle>
-                    <DialogDescription>
-                        Posez une question concernant votre commande {order?.orderNumber}.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="subject">Sujet</Label>
-                        <Select onValueChange={setSubject} value={subject}>
-                            <SelectTrigger id="subject">
-                                <SelectValue placeholder="Sélectionnez un sujet" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Question sur ma commande">Question sur ma commande</SelectItem>
-                                <SelectItem value="Problème avec un produit">Problème avec un produit</SelectItem>
-                                <SelectItem value="Information de livraison">Information de livraison</SelectItem>
-                                <SelectItem value="Autre">Autre</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="body">Message</Label>
-                        <Textarea id="body" value={body} onChange={(e) => setBody(e.target.value)} placeholder="Décrivez votre demande ici..." />
-                    </div>
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button type="button" variant="secondary">Annuler</Button>
-                    </DialogClose>
-                    <Button onClick={handleSend} disabled={isSending}>
-                         {isSending && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
-                        Envoyer
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-};
-
-
 export default function DashboardOrdersPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
+  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const { toast } = useToast();
-
-  const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
-  const [selectedOrderForMessage, setSelectedOrderForMessage] = useState<Order | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -223,9 +138,8 @@ export default function DashboardOrdersPage() {
     setOpenOrderId(openOrderId === orderId ? null : orderId);
   };
   
-  const handleOpenMessageDialog = (order: Order) => {
-    setSelectedOrderForMessage(order);
-    setIsMessageDialogOpen(true);
+  const handleContactSeller = (order: Order) => {
+    router.push(`/dashboard/messages?orderId=${order.id}`);
   };
 
   const getStatusBadgeProps = (status: OrderStatus): { variant: 'outline' | 'default' | 'destructive' | 'secondary', className?: string } => {
@@ -354,20 +268,13 @@ export default function DashboardOrdersPage() {
                                                 </SelectContent>
                                             </Select>
                                         </div>
-                                        {order.buyerInfo?.email && (
-                                          <Button variant="outline" size="sm" asChild>
-                                            <a
-                                              href={`mailto:${order.buyerInfo.email}?subject=Concernant votre commande ${order.orderNumber}`}
-                                              onClick={(e) => e.stopPropagation()}
-                                            >
-                                              <MessageSquare className="mr-2 h-4 w-4" />
-                                              Contacter
-                                            </a>
-                                          </Button>
-                                        )}
+                                        <Button variant="outline" size="sm" onClick={() => handleContactSeller(order)}>
+                                          <MessageSquare className="mr-2 h-4 w-4" />
+                                          Voir Messages
+                                        </Button>
                                       </>
                                   ) : (
-                                    <Button variant="outline" size="sm" onClick={() => handleOpenMessageDialog(order)}>
+                                    <Button variant="outline" size="sm" onClick={() => handleContactSeller(order)}>
                                        <MessageSquare className="mr-2 h-4 w-4" />
                                        Contacter le vendeur
                                     </Button>
@@ -407,13 +314,6 @@ export default function DashboardOrdersPage() {
         )}
       </CardContent>
     </Card>
-
-    <MessageDialog 
-      isOpen={isMessageDialogOpen} 
-      onOpenChange={setIsMessageDialogOpen}
-      order={selectedOrderForMessage}
-      user={user}
-    />
     </>
   )
 }

@@ -21,6 +21,7 @@ interface AuthContextType {
   updateCartItemQuantity: (cartItemId: string, quantity: number) => Promise<void>;
   placeOrder: () => Promise<Order | null>;
   cartCount: number;
+  unreadMessagesCount: number;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -57,14 +59,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (user?.uid) {
+      // Cart listener
       const cartCollectionRef = collection(db, 'users', user.uid, 'cart');
-      const unsubscribe = onSnapshot(cartCollectionRef, (snapshot) => {
+      const cartUnsubscribe = onSnapshot(cartCollectionRef, (snapshot) => {
         const newCart = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CartItem));
         setCart(newCart);
       });
-      return () => unsubscribe();
+
+      // Unread messages listener
+      const messagesCollectionRef = collection(db, 'messages');
+      let q;
+      if (user.type === 'seller') {
+        q = query(messagesCollectionRef, where('sender', '==', 'buyer'), where('isRead', '==', false));
+      } else {
+        q = query(messagesCollectionRef, where('buyerId', '==', user.uid), where('sender', '==', 'seller'), where('isRead', '==', false));
+      }
+      const messagesUnsubscribe = onSnapshot(q, (snapshot) => {
+        setUnreadMessagesCount(snapshot.size);
+      });
+
+      return () => {
+        cartUnsubscribe();
+        messagesUnsubscribe();
+      };
     } else {
       setCart([]);
+      setUnreadMessagesCount(0);
     }
   }, [user]);
 
@@ -248,6 +268,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     updateCartItemQuantity,
     placeOrder,
     cartCount,
+    unreadMessagesCount,
   };
 
   return (

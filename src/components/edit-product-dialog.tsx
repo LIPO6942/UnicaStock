@@ -342,7 +342,7 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
                     <FormLabel>URL de l'image principale</FormLabel>
                     <FormControl><Input placeholder="https://..." {...field} /></FormControl>
                     <FormDescription>
-                      Hébergez votre image sur un service comme <a href="https://postimages.org/" target="_blank" rel="noopener noreferrer" className="underline">postimages.org</a> et collez le lien direct ici.
+                      Pour les images, un service comme <a href="https://postimages.org/" target="_blank" rel="noopener noreferrer" className="underline">postimages.org</a> est recommandé.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -355,7 +355,7 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
                   <FormItem>
                     <FormLabel>URL de la Fiche Technique (PDF)</FormLabel>
                     <FormControl><Input placeholder="https://..." {...field} /></FormControl>
-                     <FormDescription>Hébergez votre PDF et collez le lien direct ici.</FormDescription>
+                     <FormDescription>Pour les fichiers PDF, vous pouvez utiliser un service comme <a href="https://www.google.com/drive/" target="_blank" rel="noopener noreferrer" className="underline">Google Drive</a>. Assurez-vous que le lien est bien public.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -367,7 +367,7 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
                   <FormItem>
                     <FormLabel>URL du Certificat d'Analyse (PDF)</FormLabel>
                     <FormControl><Input placeholder="https://..." {...field} /></FormControl>
-                    <FormDescription>Hébergez votre PDF et collez le lien direct ici.</FormDescription>
+                    <FormDescription>Pour les fichiers PDF, vous pouvez utiliser un service comme <a href="https://www.google.com/drive/" target="_blank" rel="noopener noreferrer" className="underline">Google Drive</a>. Assurez-vous que le lien est bien public.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

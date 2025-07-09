@@ -59,12 +59,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const sellerNav = [
     { href: '/dashboard/orders', label: 'Commandes', icon: ShoppingCart },
     { href: '/dashboard/products', label: 'Produits', icon: Package },
+    { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare },
   ];
 
   const buyerNav = [
     { href: '/dashboard/orders', label: 'Mes Commandes', icon: ShoppingCart },
-    { href: ' /dashboard/favorites', label: 'Favoris', icon: Heart },
-    { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare },
+    { href: '/dashboard/favorites', label: 'Favoris', icon: Heart },
   ];
 
   const commonNav = [

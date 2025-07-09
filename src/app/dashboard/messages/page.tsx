@@ -66,17 +66,18 @@ function MessagesPageComponent() {
             };
         }).sort((a, b) => (b.lastMessage?.createdAt?.seconds || 0) - (a.lastMessage?.createdAt?.seconds || 0));
 
-        const initialOrderId = searchParams.get('orderId');
-        const initialOrderNumber = searchParams.get('orderNumber');
-        
         let finalConversations = loadedConversations;
+        let initialOrderId = searchParams.get('orderId');
 
-        if (initialOrderId && initialOrderNumber) {
+        if (initialOrderId) {
+            // Clean the URL params once processed
             router.replace('/dashboard/messages', { scroll: false });
+            
             if (!finalConversations.some(c => c.orderId === initialOrderId)) {
+                const initialOrderNumber = searchParams.get('orderNumber');
                 const newVirtualConvo: Conversation = {
                     orderId: initialOrderId,
-                    orderNumber: initialOrderNumber,
+                    orderNumber: initialOrderNumber || 'N/A',
                     otherPartyName: user.type === 'buyer' ? 'Unica Link' : 'Nouveau Client',
                     unreadCount: 0,
                 };
@@ -90,8 +91,7 @@ function MessagesPageComponent() {
     };
 
     loadAndInitialize();
-    // We intentionally leave searchParams out of the dependency array.
-    // We only want to process it once when the user profile is loaded.
+    // We intentionally leave searchParams out of the dependency array to only process it once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isAuthLoading]);
 
@@ -123,10 +123,10 @@ function MessagesPageComponent() {
               setConversations(prev => prev.map(c => c.orderId === selectedOrderId ? {...c, unreadCount: 0} : c));
           })
           .catch((error: any) => {
-              console.error("Erreur de permission Firestore:", JSON.stringify(error, null, 2));
-              let description = "Vos règles de sécurité Firestore n'autorisent pas cette action. C'est la cause la plus probable de cette erreur.";
+              console.error("Erreur de permission Firestore lors de la mise à jour du statut de lecture:", error);
+              let description = "Une erreur est survenue lors de la mise à jour des messages. C'est probablement dû à une règle de sécurité Firestore incorrecte.";
               if (error?.code === 'permission-denied') {
-                  description = `Permission Refusée par Firestore. Veuillez mettre à jour vos règles de sécurité dans la console Firebase. Assurez-vous aussi d'être connecté avec un compte du bon type (acheteur/vendeur).`;
+                  description = `Permission Refusée. L'application ne peut pas marquer les messages comme lus. Veuillez mettre à jour vos règles de sécurité Firestore avec la version fournie par l'assistant. Assurez-vous d'être connecté avec le bon type de compte (acheteur/vendeur).`;
               }
               toast({ title: 'Erreur de Permission Firestore', description, variant: 'destructive', duration: 15000 });
           });

@@ -56,11 +56,11 @@ function MessagesPageComponent() {
         try {
             await markConversationAsRead(convo.orderId, user.type);
             setConversations(prev => prev.map(c => c.orderId === convo.orderId ? {...c, unreadCount: 0} : c));
-        } catch (error) {
-            console.error("Erreur de permission Firestore:", error);
-            let description = "Vos règles de sécurité Firestore n'autorisent pas cette action. Veuillez mettre à jour vos règles dans la console Firebase.";
-            if (error instanceof FirebaseError && error.code === 'permission-denied') {
-              description = `Permission Refusée par Firestore. Assurez-vous d'être connecté avec le bon compte (acheteur/vendeur) et que vos règles de sécurité sont à jour. C'est une étape cruciale pour le fonctionnement de la messagerie.`;
+        } catch (error: any) {
+            console.error("Erreur de permission Firestore:", JSON.stringify(error, null, 2));
+            let description = "Vos règles de sécurité Firestore n'autorisent pas cette action. C'est la cause la plus probable de cette erreur.";
+            if (error?.code === 'permission-denied') {
+              description = `Permission Refusée par Firestore. Veuillez mettre à jour vos règles de sécurité dans la console Firebase. Assurez-vous aussi d'être connecté avec un compte du bon type (acheteur/vendeur).`;
             }
             toast({
                 title: 'Erreur de Permission Firestore',

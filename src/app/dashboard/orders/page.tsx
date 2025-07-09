@@ -139,7 +139,7 @@ export default function DashboardOrdersPage() {
   };
   
   const handleContactSeller = (order: Order) => {
-    router.push(`/dashboard/messages?orderId=${order.id}`);
+    router.push(`/dashboard/messages?orderId=${order.id}&orderNumber=${order.orderNumber}`);
   };
 
   const getStatusBadgeProps = (status: OrderStatus): { variant: 'outline' | 'default' | 'destructive' | 'secondary', className?: string } => {

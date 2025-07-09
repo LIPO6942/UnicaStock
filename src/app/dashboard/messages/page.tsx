@@ -23,7 +23,7 @@ type Conversation = {
   orderId: string;
   orderNumber: string;
   otherPartyName: string;
-  lastMessage: Message;
+  lastMessage?: Message;
   unreadCount: number;
 };
 
@@ -43,7 +43,7 @@ function MessagesPageComponent() {
   useEffect(() => {
     if (isAuthLoading || !user) return;
 
-    const fetchConversations = async () => {
+    const fetchAndSetup = async () => {
       setIsLoading(true);
       const allMessages = await getMessagesForUser(user);
       const grouped = allMessages.reduce((acc, msg) => {
@@ -66,30 +66,45 @@ function MessagesPageComponent() {
       setConversations(convos);
 
       const initialOrderId = searchParams.get('orderId');
+      const initialOrderNumber = searchParams.get('orderNumber');
+
       if (initialOrderId) {
-        const initialConvo = convos.find(c => c.orderId === initialOrderId);
-        if (initialConvo) {
-          handleSelectConversation(initialConvo);
+        const existingConvo = convos.find(c => c.orderId === initialOrderId);
+        if (existingConvo) {
+          handleSelectConversation(existingConvo);
+        } else if (user?.type === 'buyer' && initialOrderNumber) {
+           const newVirtualConvo: Conversation = {
+            orderId: initialOrderId,
+            orderNumber: initialOrderNumber,
+            otherPartyName: 'Unica Link',
+            unreadCount: 0,
+          };
+          setConversations(prev => [newVirtualConvo, ...prev.filter(c => c.orderId !== newVirtualConvo.orderId)]);
+          handleSelectConversation(newVirtualConvo, true);
         }
+        router.replace('/dashboard/messages', undefined);
       }
 
       setIsLoading(false);
     };
 
-    fetchConversations();
-  }, [user, isAuthLoading, searchParams]);
+    fetchAndSetup();
+  }, [user, isAuthLoading]);
 
-  const handleSelectConversation = async (convo: Conversation) => {
+  const handleSelectConversation = async (convo: Conversation, isNew: boolean = false) => {
     setSelectedConversation(convo);
-    router.replace('/dashboard/messages', undefined); 
-    const allMessages = await getMessagesForUser(user!);
-    const convoMessages = allMessages.filter(m => m.orderId === convo.orderId).sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-    setMessages(convoMessages);
+    
+    if (isNew) {
+        setMessages([]);
+    } else {
+        const allMessages = await getMessagesForUser(user!);
+        const convoMessages = allMessages.filter(m => m.orderId === convo.orderId).sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+        setMessages(convoMessages);
+    }
     
     if (convo.unreadCount > 0 && user) {
         try {
             await markConversationAsRead(convo.orderId, user.type);
-            // Optimistically update UI
             setConversations(prev => prev.map(c => c.orderId === convo.orderId ? {...c, unreadCount: 0} : c));
         } catch (error) {
             console.error("Failed to mark conversation as read:", error);
@@ -107,23 +122,34 @@ function MessagesPageComponent() {
 
     setIsSending(true);
     try {
+        const subject = messages.length > 0 
+            ? `Re: ${messages[0].subject}`
+            : `Question sur la commande ${selectedConversation.orderNumber}`;
+
+        const buyerId = user.type === 'buyer' ? user.uid : selectedConversation.lastMessage!.buyerId;
+        const buyerName = user.type === 'buyer' ? user.name : selectedConversation.lastMessage!.buyerName;
+        const buyerEmail = user.type === 'buyer' ? user.email : selectedConversation.lastMessage!.buyerEmail;
+
         const messageData: Omit<Message, 'id' | 'isRead' | 'createdAt'> = {
             orderId: selectedConversation.orderId,
             orderNumber: selectedConversation.orderNumber,
-            buyerId: user.type === 'buyer' ? user.uid : selectedConversation.lastMessage.buyerId,
-            buyerName: user.type === 'buyer' ? user.name : selectedConversation.lastMessage.buyerName,
-            buyerEmail: user.type === 'buyer' ? user.email : selectedConversation.lastMessage.buyerEmail,
-            subject: `Re: ${selectedConversation.lastMessage.subject}`,
+            buyerId,
+            buyerName,
+            buyerEmail,
+            subject,
             body: replyText,
             sender: user.type,
         };
         await sendMessage(messageData);
         setReplyText("");
         
-        // Refresh messages for the current conversation
         const allMessages = await getMessagesForUser(user!);
         const convoMessages = allMessages.filter(m => m.orderId === selectedConversation.orderId).sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
         setMessages(convoMessages);
+
+        // This would be a good place to fully refresh the conversation list
+        // to update the "last message" preview, but for now we just update the current view.
+
     } catch (error) {
         console.error("Failed to send reply:", error);
         toast({
@@ -175,7 +201,7 @@ function MessagesPageComponent() {
                              {convo.unreadCount > 0 && <Badge className="h-5 w-5 p-0 flex items-center justify-center">{convo.unreadCount}</Badge>}
                         </div>
                         <p className="text-xs text-muted-foreground font-medium">Cde: {convo.orderNumber}</p>
-                        <p className="text-xs text-muted-foreground truncate">{convo.lastMessage.body}</p>
+                        <p className="text-xs text-muted-foreground truncate">{convo.lastMessage?.body || 'Commencez la conversation...'}</p>
                     </button>
                 ))
             )}

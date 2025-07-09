@@ -32,7 +32,6 @@ export default function DashboardOrdersPage() {
     const ordersCollectionRef = collection(db, 'orders');
     let q;
     
-    // To avoid mandatory composite indexes, we sort on the client-side.
     if (user.type === 'seller') {
       q = query(ordersCollectionRef);
     } else {
@@ -46,7 +45,6 @@ export default function DashboardOrdersPage() {
         ...doc.data()
       } as Order));
 
-      // Always sort by date descending on the client
       fetchedOrders.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
       setOrders(fetchedOrders);
@@ -76,7 +74,6 @@ export default function DashboardOrdersPage() {
       return;
     }
 
-    // Helper to format cells for CSV, handling commas and quotes
     const formatCsvCell = (value: any): string => {
       const stringValue = String(value ?? '').replace(/"/g, '""');
       return `"${stringValue}"`;
@@ -105,7 +102,6 @@ export default function DashboardOrdersPage() {
     });
 
     const csvContent = [csvHeader, ...csvRows].join('\n');
-    // Add BOM for Excel to recognize UTF-8
     const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -139,7 +135,11 @@ export default function DashboardOrdersPage() {
   };
   
   const handleContactSeller = (order: Order) => {
-    router.push(`/dashboard/messages?orderId=${order.id}&orderNumber=${order.orderNumber}`);
+    const productPreview = order.items.length > 0 
+      ? order.items.slice(0, 2).map(item => item.product.name).join(', ') + (order.items.length > 2 ? ', etc.' : '')
+      : 'Commande sans produits spécifiés';
+    
+    router.push(`/dashboard/messages?orderId=${order.id}&orderNumber=${order.orderNumber}&productPreview=${encodeURIComponent(productPreview)}`);
   };
 
   const getStatusBadgeProps = (status: OrderStatus): { variant: 'outline' | 'default' | 'destructive' | 'secondary', className?: string } => {

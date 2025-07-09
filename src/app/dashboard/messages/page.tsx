@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/context/auth-context";
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getMessagesForUser, markMessagesAsReadByIds, sendMessage } from "@/lib/message-service-client";
 import type { Message } from "@/lib/types";
@@ -24,6 +24,7 @@ type Conversation = {
   otherPartyName: string;
   lastMessage?: Message;
   unreadCount: number;
+  productPreview?: string;
 };
 
 function MessagesPageComponent() {
@@ -38,63 +39,67 @@ function MessagesPageComponent() {
   const [replyText, setReplyText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const searchParamsRef = useRef(searchParams);
+
 
   const selectedConversation = conversations.find(c => c.orderId === selectedOrderId) || null;
 
-  // Effect to load the list of conversations and handle initial navigation
+  const loadConversations = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+
+    const allMessages = await getMessagesForUser(user);
+
+    const grouped = allMessages.reduce((acc, msg) => {
+      (acc[msg.orderId] = acc[msg.orderId] || []).push(msg);
+      return acc;
+    }, {} as Record<string, Message[]>);
+
+    let finalConversations: Conversation[] = Object.values(grouped).map(msgs => {
+      const lastMessage = msgs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0];
+      const unreadCount = msgs.filter(m => !m.isRead && m.sender !== user.type).length;
+      const messageWithPreview = msgs.find(m => m.productPreview);
+
+      return {
+        orderId: lastMessage.orderId,
+        orderNumber: lastMessage.orderNumber,
+        otherPartyName: user.type === 'seller' ? lastMessage.buyerName : 'Unica Link',
+        lastMessage,
+        unreadCount,
+        productPreview: messageWithPreview?.productPreview,
+      };
+    }).sort((a, b) => (b.lastMessage?.createdAt?.seconds || 0) - (a.lastMessage?.createdAt?.seconds || 0));
+
+    const initialOrderId = searchParamsRef.current.get('orderId');
+    if (initialOrderId) {
+      if (!finalConversations.some(c => c.orderId === initialOrderId)) {
+        const initialOrderNumber = searchParamsRef.current.get('orderNumber');
+        const productPreview = searchParamsRef.current.get('productPreview');
+        const newVirtualConvo: Conversation = {
+          orderId: initialOrderId,
+          orderNumber: initialOrderNumber || 'N/A',
+          otherPartyName: user.type === 'buyer' ? 'Unica Link' : 'Nouveau Client',
+          unreadCount: 0,
+          productPreview: productPreview ? decodeURIComponent(productPreview) : undefined,
+        };
+        finalConversations.unshift(newVirtualConvo);
+      }
+      setSelectedOrderId(initialOrderId);
+      // Clean URL after processing params
+      router.replace('/dashboard/messages', { scroll: false });
+    }
+    
+    setConversations(finalConversations);
+    setIsLoading(false);
+  }, [user, router]);
+
   useEffect(() => {
-    if (isAuthLoading || !user) return;
+    if (!isAuthLoading) {
+      loadConversations();
+    }
+  }, [isAuthLoading, loadConversations]);
 
-    const loadAndInitialize = async () => {
-        setIsLoading(true);
-        const allMessages = await getMessagesForUser(user);
 
-        const grouped = allMessages.reduce((acc, msg) => {
-            (acc[msg.orderId] = acc[msg.orderId] || []).push(msg);
-            return acc;
-        }, {} as Record<string, Message[]>);
-
-        const loadedConversations: Conversation[] = Object.values(grouped).map(msgs => {
-            const lastMessage = msgs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0];
-            const unreadCount = msgs.filter(m => !m.isRead && m.sender !== user.type).length;
-            return {
-                orderId: lastMessage.orderId,
-                orderNumber: lastMessage.orderNumber,
-                otherPartyName: user.type === 'seller' ? lastMessage.buyerName : 'Unica Link',
-                lastMessage,
-                unreadCount,
-            };
-        }).sort((a, b) => (b.lastMessage?.createdAt?.seconds || 0) - (a.lastMessage?.createdAt?.seconds || 0));
-
-        let finalConversations = loadedConversations;
-        let initialOrderId = searchParams.get('orderId');
-
-        if (initialOrderId) {
-            router.replace('/dashboard/messages', { scroll: false });
-            
-            if (!finalConversations.some(c => c.orderId === initialOrderId)) {
-                const initialOrderNumber = searchParams.get('orderNumber');
-                const newVirtualConvo: Conversation = {
-                    orderId: initialOrderId,
-                    orderNumber: initialOrderNumber || 'N/A',
-                    otherPartyName: user.type === 'buyer' ? 'Unica Link' : 'Nouveau Client',
-                    unreadCount: 0,
-                };
-                finalConversations = [newVirtualConvo, ...finalConversations];
-            }
-            setSelectedOrderId(initialOrderId);
-        }
-        
-        setConversations(finalConversations);
-        setIsLoading(false);
-    };
-
-    loadAndInitialize();
-    // We intentionally leave searchParams out of the dependency array to only process it once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, isAuthLoading]);
-
-  // Effect to load messages and handle read status when a conversation is selected
   useEffect(() => {
     if (!selectedOrderId || !user) {
         setMessages([]);
@@ -104,13 +109,11 @@ function MessagesPageComponent() {
     const convo = conversations.find(c => c.orderId === selectedOrderId);
     if (!convo) return;
     
-    // Virtual conversation (no lastMessage) means it's new. No messages to fetch.
     if (!convo.lastMessage) {
         setMessages([]);
         return;
     }
 
-    // Unified logic: fetch messages for the convo, then mark them as read
     const loadMessagesAndMarkAsRead = async () => {
       try {
         const allUserMessages = await getMessagesForUser(user);
@@ -120,32 +123,28 @@ function MessagesPageComponent() {
         
         setMessages(currentConvoMessages);
 
-        // Find unread messages from the other party and mark them as read
-        const unreadMessageIds = currentConvoMessages
-          .filter(m => !m.isRead && m.sender !== user.type)
-          .map(m => m.id);
+        const unreadMessages = currentConvoMessages
+          .filter(m => !m.isRead && m.sender !== user.type);
         
-        if (unreadMessageIds.length > 0) {
+        if (unreadMessages.length > 0) {
+          const unreadMessageIds = unreadMessages.map(m => m.id);
           await markMessagesAsReadByIds(unreadMessageIds);
-          // Update conversation list to remove badge
           setConversations(prev => prev.map(c => 
             c.orderId === selectedOrderId ? { ...c, unreadCount: 0 } : c
           ));
         }
-      } catch (error: any) {
-        console.error("Erreur Firestore:", error);
-        let description = "Vos règles de sécurité Firestore n'autorisent pas cette action. C'est la cause la plus probable de cette erreur.";
-        if (error?.code === 'permission-denied') {
+      } catch (error) {
+        console.error("Erreur Firestore lors du chargement ou de la mise à jour des messages:", error);
+        let description = "Une erreur est survenue lors de la récupération des messages. Vos règles de sécurité Firestore peuvent être incorrectes.";
+        if (error instanceof FirebaseError && error.code === 'permission-denied') {
             description = `Permission Refusée par Firestore. Veuillez mettre à jour vos règles de sécurité dans la console Firebase. Assurez-vous aussi d'être connecté avec un compte du bon type (acheteur/vendeur).`;
         }
-        toast({ title: 'Erreur de Permission Firestore', description, variant: 'destructive', duration: 15000 });
+        toast({ title: 'Erreur Firestore', description, variant: 'destructive', duration: 15000 });
       }
     };
 
     loadMessagesAndMarkAsRead();
-  // We remove 'conversations' from deps to avoid re-running when badge count changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOrderId, user, toast]);
+  }, [selectedOrderId, user, conversations, toast]);
 
 
   const handleSendReply = async () => {
@@ -157,10 +156,11 @@ function MessagesPageComponent() {
             ? messages[0].subject.startsWith('Re: ') ? messages[0].subject : `Re: ${messages[0].subject}`
             : `Question sur la commande ${selectedConversation.orderNumber}`;
 
-        // Determine buyer info from context or existing message
         const buyerId = user.type === 'buyer' ? user.uid : selectedConversation.lastMessage!.buyerId;
         const buyerName = user.type === 'buyer' ? user.name : selectedConversation.lastMessage!.buyerName;
         const buyerEmail = user.type === 'buyer' ? user.email : selectedConversation.lastMessage!.buyerEmail;
+
+        const productPreview = selectedConversation.productPreview || (messages.length > 0 ? messages.find(m => m.productPreview)?.productPreview : undefined);
 
         const messageData: Omit<Message, 'id' | 'isRead' | 'createdAt'> = {
             orderId: selectedConversation.orderId,
@@ -171,33 +171,15 @@ function MessagesPageComponent() {
             subject,
             body: replyText,
             sender: user.type,
+            productPreview,
         };
         
         await sendMessage(messageData);
         setReplyText("");
         
-        // Refetch all messages to update conversation list and current messages
+        await loadConversations();
+        
         const allMessages = await getMessagesForUser(user);
-        
-        const grouped = allMessages.reduce((acc, msg) => {
-          (acc[msg.orderId] = acc[msg.orderId] || []).push(msg);
-          return acc;
-        }, {} as Record<string, Message[]>);
-
-        const updatedConvos: Conversation[] = Object.values(grouped).map(msgs => {
-          const lastMessage = msgs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0];
-          const unreadCount = msgs.filter(m => !m.isRead && m.sender !== user.type).length;
-          return {
-            orderId: lastMessage.orderId,
-            orderNumber: lastMessage.orderNumber,
-            otherPartyName: user.type === 'seller' ? lastMessage.buyerName : 'Unica Link',
-            lastMessage,
-            unreadCount,
-          };
-        }).sort((a, b) => (b.lastMessage?.createdAt?.seconds || 0) - (a.lastMessage?.createdAt?.seconds || 0));
-        
-        setConversations(updatedConvos);
-        
         const convoMessages = allMessages.filter(m => m.orderId === selectedConversation.orderId).sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
         setMessages(convoMessages);
 
@@ -251,6 +233,11 @@ function MessagesPageComponent() {
                              {convo.unreadCount > 0 && <Badge className="h-5 w-5 p-0 flex items-center justify-center">{convo.unreadCount}</Badge>}
                         </div>
                         <p className="text-xs text-muted-foreground font-medium">Cde: {convo.orderNumber}</p>
+                        {convo.productPreview && user?.type === 'seller' && (
+                            <p className="text-xs text-muted-foreground truncate italic">
+                                {convo.productPreview}
+                            </p>
+                        )}
                         <p className="text-xs text-muted-foreground truncate">{convo.lastMessage?.body || 'Commencez la conversation...'}</p>
                     </button>
                 ))

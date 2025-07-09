@@ -81,6 +81,7 @@ export type Message = {
   sender: 'buyer' | 'seller';
   isRead: boolean;
   createdAt: any; // Keep as any for simplicity with serverTimestamp
+  productPreview?: string;
 };
 
 export type Banner = {

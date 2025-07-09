@@ -57,16 +57,16 @@ function MessagesPageComponent() {
             await markConversationAsRead(convo.orderId, user.type);
             setConversations(prev => prev.map(c => c.orderId === convo.orderId ? {...c, unreadCount: 0} : c));
         } catch (error) {
-            console.error("Failed to mark conversation as read:", error);
-            let description = "Impossible de marquer la conversation comme lue. Vérifiez que les règles de sécurité Firestore sont à jour.";
+            console.error("Erreur de permission Firestore:", error);
+            let description = "Vos règles de sécurité Firestore n'autorisent pas cette action. Veuillez mettre à jour vos règles dans la console Firebase pour corriger ce problème.";
             if (error instanceof FirebaseError && error.code === 'permission-denied') {
-              description = "Permission Refusée. Assurez-vous d'être connecté avec le bon compte (acheteur/vendeur) et que les règles de sécurité sont correctes.";
+              description = "Permission Refusée par Firestore. Veuillez mettre à jour vos règles de sécurité. Cette action est requise pour que la messagerie fonctionne.";
             }
             toast({
-                title: 'Erreur de Permission',
+                title: 'Erreur de Permission Firestore',
                 description: description,
                 variant: 'destructive',
-                duration: 9000
+                duration: 15000,
             });
         }
     }

@@ -1,6 +1,6 @@
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import type { Product } from '@/lib/types';
+import { collection, addDoc, doc, updateDoc, deleteDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import type { Product, Review } from '@/lib/types';
 
 // This service manages product mutations from the client-side.
 
@@ -15,8 +15,8 @@ export async function addProduct(productData: Omit<Product, 'id' | 'rating' | 'r
     const newProduct: Omit<Product, 'id'> = {
         ...productData,
         seller: 'Unica Link', // Centralized seller
-        rating: Math.floor(Math.random() * 2) + 4, // 4 or 5
-        reviewCount: Math.floor(Math.random() * 50) + 10,
+        rating: 0,
+        reviewCount: 0,
     };
     const docRef = await addDoc(productsCollectionRef, newProduct);
     return docRef.id;
@@ -39,4 +39,42 @@ export async function updateProduct(id: string, productData: Partial<Omit<Produc
 export async function deleteProduct(id: string) {
     const docRef = doc(db, 'products', id);
     await deleteDoc(docRef);
+}
+
+/**
+ * Adds a new review for a product and updates the product's average rating.
+ * @param productId The ID of the product being reviewed.
+ * @param reviewData The review data.
+ */
+export async function addReview(productId: string, reviewData: Omit<Review, 'id' | 'createdAt'>) {
+    const productRef = doc(db, 'products', productId);
+    
+    await runTransaction(db, async (transaction) => {
+        const productDoc = await transaction.get(productRef);
+        if (!productDoc.exists()) {
+            throw new Error("Produit non trouvé !");
+        }
+
+        // Calculation of new average rating
+        const currentData = productDoc.data();
+        const currentRating = currentData.rating || 0;
+        const currentReviewCount = currentData.reviewCount || 0;
+        
+        const newReviewCount = currentReviewCount + 1;
+        const newTotalRating = (currentRating * currentReviewCount) + reviewData.rating;
+        const newAverageRating = newTotalRating / newReviewCount;
+
+        // Update product document
+        transaction.update(productRef, {
+            rating: newAverageRating,
+            reviewCount: newReviewCount,
+        });
+
+        // Add the new review document
+        const newReviewRef = doc(collection(db, 'products', productId, 'reviews'));
+        transaction.set(newReviewRef, {
+            ...reviewData,
+            createdAt: serverTimestamp(),
+        });
+    });
 }

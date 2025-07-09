@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
-import { getProduct, getProducts } from '@/lib/product-service';
+import { getProduct, getProducts, getReviewsForProduct } from '@/lib/product-service';
 import { ProductDetailClient } from '@/components/product-detail-client';
+import type { Review } from '@/lib/types';
 
 // This is the Server Component page that fetches data
 export default async function ProductDetailPage({ params }: { params: { id: string } }) {
@@ -10,11 +11,13 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
         notFound();
     }
 
-    // Fetch related products on the server as well
+    // Fetch related products and reviews on the server as well
     const allProducts = await getProducts();
     const relatedProducts = allProducts
         .filter(p => p.category === product.category && p.id !== product.id)
         .slice(0, 3);
     
-    return <ProductDetailClient product={product} relatedProducts={relatedProducts} />;
+    const reviews = await getReviewsForProduct(params.id);
+    
+    return <ProductDetailClient product={product} relatedProducts={relatedProducts} reviews={reviews} />;
 }

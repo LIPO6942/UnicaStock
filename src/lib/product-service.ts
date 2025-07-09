@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, getDoc, query, orderBy } from 'firebase/firestore';
-import type { Product } from '@/lib/types';
+import type { Product, Review } from '@/lib/types';
 
 // This service reads products from Firestore for Server Components.
 
@@ -34,4 +34,21 @@ export async function getProduct(id: string): Promise<Product | null> {
         return { id: docSnap.id, ...docSnap.data() } as Product;
     }
     return null;
+}
+
+
+/**
+ * Fetches all reviews for a specific product.
+ * @param productId The ID of the product.
+ * @returns A promise that resolves to an array of reviews.
+ */
+export async function getReviewsForProduct(productId: string): Promise<Review[]> {
+    if (!productId) return [];
+    const reviewsCollectionRef = collection(db, 'products', productId, 'reviews');
+    const q = query(reviewsCollectionRef, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+        return [];
+    }
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
 }

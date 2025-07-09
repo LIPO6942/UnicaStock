@@ -53,6 +53,15 @@ export type Order = {
   };
 };
 
+export type Review = {
+  id: string;
+  userId: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  createdAt: any; // Firestore timestamp
+};
+
 
 export type Banner = {
   id: string;

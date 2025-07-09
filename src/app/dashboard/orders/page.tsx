@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from "react";
@@ -135,12 +136,21 @@ export default function DashboardOrdersPage() {
     setOpenOrderId(openOrderId === orderId ? null : orderId);
   };
 
-  const getStatusBadgeVariant = (status: OrderStatus) => {
+  const getStatusBadgeProps = (status: OrderStatus): { variant: 'default' | 'destructive' | 'secondary' | 'outline', className?: string } => {
     switch (status) {
-      case 'Livrée': return 'default';
-      case 'Annulée': return 'destructive';
-      case 'Expédiée': return 'outline';
-      default: return 'secondary';
+      case 'Livrée':
+        return { variant: 'default', className: 'bg-chart-2 hover:bg-chart-2/90 text-primary-foreground' }; // Green
+      case 'Expédiée':
+        return { variant: 'default', className: 'bg-chart-4 hover:bg-chart-4/90 text-card-foreground' }; // Yellow
+      case 'Préparation en cours':
+        return { variant: 'default', className: 'bg-chart-3 hover:bg-chart-3/90 text-primary-foreground' }; // Blue
+      case 'Confirmée':
+        return { variant: 'default' }; // Theme Primary (Orange)
+      case 'Annulée':
+        return { variant: 'destructive' }; // Theme Destructive (Red)
+      case 'En attente':
+      default:
+        return { variant: 'secondary' }; // Gray
     }
   }
 
@@ -191,7 +201,7 @@ export default function DashboardOrdersPage() {
                     <TableCell className="hidden md:table-cell">{new Date(order.date).toLocaleDateString('fr-FR')}</TableCell>
                     <TableCell className="text-right">{`${order.total.toFixed(2).replace('.', ',')} TND`}</TableCell>
                     <TableCell className="text-center hidden sm:table-cell">
-                      <Badge variant={getStatusBadgeVariant(order.status)}>
+                      <Badge {...getStatusBadgeProps(order.status)}>
                         {order.status}
                       </Badge>
                     </TableCell>

@@ -29,6 +29,7 @@ import { useAuth } from '@/context/auth-context';
 import { useEffect } from 'react';
 import { HeaderActions } from '@/components/header-actions';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -76,8 +77,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   ];
 
   const siteNav = [
-    { href: '/', label: 'Accueil', icon: Home },
-    { href: '/products', label: 'Produits', icon: Package },
+    { href: '/', label: 'Accueil' },
+    { href: '/products', label: 'Produits' },
   ];
 
   const navItems = user.type === 'seller' ? sellerNav : buyerNav;
@@ -92,27 +93,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </SidebarHeader>
         <SidebarContent>
-           {user.type === 'buyer' && (
-            <>
-              <SidebarMenu>
-                {siteNav.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive(item.href)}
-                      tooltip={{ children: item.label }}
-                    >
-                      <Link href={item.href}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-              <SidebarSeparator />
-            </>
-          )}
           {user.type === 'buyer' && (
             <SidebarMenu>
               <SidebarMenuItem>
@@ -172,7 +152,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:h-[60px] lg:px-6">
           <SidebarTrigger className="md:hidden" />
           <div className="w-full flex-1">
-            {/* Can add search bar here if needed */}
+            {user.type === 'buyer' && (
+                <nav className="hidden items-center space-x-6 text-sm font-medium md:flex">
+                {siteNav.map((item) => (
+                    <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                        'transition-colors hover:text-foreground/80',
+                        pathname === item.href ? 'text-foreground' : 'text-foreground/60'
+                    )}
+                    >
+                    {item.label}
+                    </Link>
+                ))}
+                </nav>
+            )}
           </div>
           <HeaderActions />
         </header>

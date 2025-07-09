@@ -1,4 +1,3 @@
-
 import { ProductCard } from '@/components/product-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +18,7 @@ export default async function Home() {
         <div className="container relative z-10 flex min-h-[70vh] flex-col items-center justify-center gap-6 py-20 text-center">
           <div className="absolute inset-0 -z-10">
              <Image
-              src="https://i.postimg.cc/jSkJ3DGv/T001-UNICA-20-LUX-20-CREAM-20-NEW-02.webp"
+              src="https://images.unsplash.com/photo-1598454449835-33454c134f59?q=80&w=2940"
               alt="Hero background"
               fill
               className="object-cover opacity-10"
@@ -28,7 +27,7 @@ export default async function Home() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
           </div>
-          <h1 className="text-4xl font-bold tracking-tighter md:text-5xl lg:text-7xl font-headline">
+          <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-7xl font-headline">
             Matières Premières d'Exception
           </h1>
           <p className="max-w-2xl text-lg text-muted-foreground md:text-xl">
@@ -83,7 +82,7 @@ export default async function Home() {
             </p>
           </div>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            <Card className="flex flex-col items-center text-center p-8 border-none bg-secondary/30">
+            <div className="flex flex-col items-center text-center p-8">
               <div className="mb-4 rounded-full bg-primary/10 p-4 text-primary">
                 <Leaf className="h-10 w-10" />
               </div>
@@ -92,8 +91,8 @@ export default async function Home() {
                 Accédez à des matières premières de haute qualité avec une transparence totale sur l'origine et
                 les spécifications.
               </p>
-            </Card>
-            <Card className="flex flex-col items-center text-center p-8 border-none bg-secondary/30">
+            </div>
+            <div className="flex flex-col items-center text-center p-8">
               <div className="mb-4 rounded-full bg-primary/10 p-4 text-primary">
                 <Truck className="h-10 w-10" />
               </div>
@@ -102,8 +101,8 @@ export default async function Home() {
                 Soutenez l'économie locale et réduisez vos délais de livraison en vous approvisionnant
                 directement en Tunisie.
               </p>
-            </Card>
-             <Card className="flex flex-col items-center text-center p-8 border-none bg-secondary/30">
+            </div>
+             <div className="flex flex-col items-center text-center p-8">
               <div className="mb-4 rounded-full bg-primary/10 p-4 text-primary">
                 <ShieldCheck className="h-10 w-10" />
               </div>
@@ -112,12 +111,12 @@ export default async function Home() {
                 Achetez en toute confiance grâce à notre plateforme sécurisée et notre système d'évaluation
                 fiable.
               </p>
-            </Card>
+            </div>
           </div>
         </div>
       </section>
 
-      <section id="partners" className="py-16 md:py-24 bg-background">
+      <section id="partners" className="py-16 md:py-24 bg-secondary/30">
         <div className="container">
           <div className="flex flex-col items-center text-center gap-4 mb-12">
             <h2 className="text-3xl font-bold tracking-tight font-headline">Ils Nous Font Confiance</h2>
@@ -135,7 +134,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section id="recommended-products" className="py-16 md:py-24 bg-secondary/30">
+      <section id="recommended-products" className="py-16 md:py-24">
         <div className="container">
           <div className="flex flex-col items-center text-center gap-4 mb-12">
             <h2 className="text-3xl font-bold tracking-tight font-headline">Recommandé Pour Vous</h2>

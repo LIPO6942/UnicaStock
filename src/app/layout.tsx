@@ -8,7 +8,7 @@ import { Icons } from '@/components/icons';
 import Link from 'next/link';
 import { AuthProvider } from '@/context/auth-context';
 import { HeaderActions } from '@/components/header-actions';
-import { Inter } from 'next/font/google';
+import { Inter, PT_Sans } from 'next/font/google';
 import { usePathname } from 'next/navigation';
 
 const inter = Inter({
@@ -16,11 +16,11 @@ const inter = Inter({
   variable: '--font-body',
 });
 
-// Metadata export is not supported in Client Components, so we add static tags in the <head>
-// export const metadata: Metadata = {
-//   title: 'Unica Link',
-//   description: 'Matières premières pour produits cosmétiques en Tunisie',
-// };
+const ptSans = PT_Sans({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-headline',
+});
 
 export default function RootLayout({
   children,
@@ -36,7 +36,7 @@ export default function RootLayout({
         <title>Unica Link</title>
         <meta name="description" content="Matières premières pour produits cosmétiques en Tunisie" />
       </head>
-      <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable)}>
+      <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable, ptSans.variable)}>
         <AuthProvider>
           <div className="relative flex min-h-screen flex-col">
             {!isDashboard ? (

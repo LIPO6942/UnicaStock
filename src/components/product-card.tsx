@@ -18,8 +18,8 @@ function ProductCardComponent({ product }: ProductCardProps) {
   const isBuyer = user?.type === 'buyer';
 
   return (
-    <Card className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-      <CardHeader className="p-0">
+    <Card className="group flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 border-border/60">
+      <CardHeader className="p-0 border-b">
         <Link href={`/products/${product.id}`} className="block">
           <div className="aspect-square relative w-full overflow-hidden">
             <Image
@@ -32,29 +32,29 @@ function ProductCardComponent({ product }: ProductCardProps) {
           </div>
         </Link>
       </CardHeader>
-      <CardContent className="p-4 flex-grow">
-        <Badge variant="secondary" className="mb-2">
+      <CardContent className="p-4 flex-grow flex flex-col">
+        <Badge variant="secondary" className="mb-2 self-start">
           {product.category}
         </Badge>
-        <CardTitle className="text-lg leading-snug">
+        <CardTitle className="text-lg leading-snug font-semibold">
           <Link href={`/products/${product.id}`} className="hover:text-primary transition-colors">
             {product.name}
           </Link>
         </CardTitle>
-        <p className="text-sm text-muted-foreground mt-1">Par Unica Link</p>
+        <p className="text-sm text-muted-foreground mt-1 flex-grow">Par Unica Link</p>
         <div className="flex items-center gap-1 mt-2">
           {[...Array(5)].map((_, i) => (
             <Star
               key={i}
-              className={`h-4 w-4 ${i < product.rating ? 'text-primary fill-primary' : 'text-muted-foreground/50'}`}
+              className={`h-4 w-4 ${i < product.rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/30'}`}
             />
           ))}
           <span className="text-xs text-muted-foreground ml-1">({product.reviewCount})</span>
         </div>
       </CardContent>
-      <CardFooter className="p-4 pt-0 flex justify-between items-center">
+      <CardFooter className="p-4 pt-0 flex justify-between items-center bg-secondary/30">
         <div className="text-xl font-bold font-headline">
-          {product.price} <span className="text-sm font-normal text-muted-foreground">TND/kg</span>
+          {product.price.toFixed(2)} <span className="text-sm font-normal text-muted-foreground">TND/kg</span>
         </div>
         {isBuyer && (
           <Button asChild>

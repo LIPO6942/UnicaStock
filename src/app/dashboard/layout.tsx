@@ -78,7 +78,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2">
-            <Icons.logo className="size-6 text-primary" />
+            <Icons.logo className="size-7 text-primary" />
             <span className="text-lg font-semibold font-headline">Unica Link</span>
           </div>
         </SidebarHeader>
@@ -134,14 +134,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
+        <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:h-[60px] lg:px-6">
           <SidebarTrigger className="md:hidden" />
           <div className="w-full flex-1">
             {/* Can add search bar here if needed */}
           </div>
           <HeaderActions />
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-muted/40">
+        <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-secondary/40">
             {children}
         </div>
       </SidebarInset>

@@ -48,21 +48,21 @@ export default function DashboardPage() {
     return () => unsubscribe();
   }, [user]);
   
-  const getStatusBadgeProps = (status: OrderStatus): { variant: 'default' | 'destructive' | 'secondary' | 'outline', className?: string } => {
+  const getStatusBadgeProps = (status: OrderStatus): { variant: 'outline' | 'default' | 'destructive' | 'secondary', className?: string } => {
     switch (status) {
       case 'Livrée':
-        return { variant: 'default', className: 'bg-green-600 hover:bg-green-600/90 text-primary-foreground' }; // Green
+        return { variant: 'outline', className: 'border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-950 dark:text-green-400 font-medium' };
       case 'Expédiée':
-        return { variant: 'default', className: 'bg-blue-500 hover:bg-blue-500/90 text-primary-foreground' }; // Blue
+        return { variant: 'outline', className: 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-400 font-medium' };
       case 'Préparation en cours':
-        return { variant: 'default', className: 'bg-yellow-500 hover:bg-yellow-500/90 text-primary-foreground' }; // Yellow
+        return { variant: 'outline', className: 'border-yellow-300 bg-yellow-50 text-yellow-700 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-400 font-medium' };
       case 'Confirmée':
-        return { variant: 'default' }; // Theme Primary (Orange)
+        return { variant: 'default', className: 'bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 font-medium' };
       case 'Annulée':
-        return { variant: 'destructive' }; // Theme Destructive (Red)
+        return { variant: 'destructive' };
       case 'En attente':
       default:
-        return { variant: 'secondary' }; // Gray
+        return { variant: 'secondary' };
     }
   }
 

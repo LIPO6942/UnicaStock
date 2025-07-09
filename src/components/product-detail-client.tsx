@@ -90,7 +90,7 @@ function AddReviewForm({ productId, onReviewAdded }: { productId: string, onRevi
                                     onClick={() => setRating(star)}
                                     className="text-muted-foreground/30 transition-colors"
                                 >
-                                    <Star className={cn("h-7 w-7", (hoverRating || rating) >= star ? 'text-primary fill-primary' : '')} />
+                                    <Star className={cn("h-7 w-7", (hoverRating || rating) >= star ? 'text-amber-400 fill-amber-400' : '')} />
                                 </button>
                             ))}
                         </div>
@@ -154,10 +154,12 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
 
   const isBuyer = user?.type === 'buyer';
   const reviewCount = reviews.length;
+  const averageRating = reviews.length > 0 ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length : product.rating;
+
 
   return (
-    <div className="container py-12">
-      <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+    <div className="container py-12 md:py-16">
+      <div className="grid md:grid-cols-2 gap-8 lg:gap-16">
         <div>
           <div className="aspect-square relative w-full overflow-hidden rounded-lg shadow-lg">
             <Image
@@ -174,13 +176,13 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
           <div className="flex flex-col gap-2">
             <Badge variant="secondary" className="w-fit">{product.category}</Badge>
             <h1 className="text-3xl lg:text-4xl font-bold font-headline">{product.name}</h1>
-            <p className="text-muted-foreground text-lg">Vendu par <span className="text-primary font-semibold">{product.seller}</span></p>
+            <p className="text-muted-foreground text-lg">Vendu par <span className="text-foreground font-semibold">{product.seller}</span></p>
             <div className="flex items-center gap-2">
               <div className="flex items-center">
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
-                    className={`h-5 w-5 ${i < Math.round(product.rating) ? 'text-primary fill-primary' : 'text-muted-foreground/30'}`}
+                    className={`h-5 w-5 ${i < Math.round(averageRating) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/30'}`}
                   />
                 ))}
               </div>
@@ -188,13 +190,13 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
             </div>
           </div>
           
-          <p className="text-base leading-relaxed">{product.description}</p>
+          <p className="text-base leading-relaxed text-muted-foreground">{product.description}</p>
           
-          <Card>
+          <Card className="bg-secondary/40 border-border/60">
             <CardContent className="p-4">
               <div className="flex justify-between items-center">
                 <p className="text-3xl font-bold font-headline">{product.price.toFixed(2)} <span className="text-lg font-normal text-muted-foreground">TND / kg</span></p>
-                <Badge variant={product.stock > 0 ? 'outline' : 'destructive'}>
+                <Badge variant={product.stock > 0 ? 'outline' : 'destructive'} className={cn(product.stock > 0 && "border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-950 dark:text-green-400 font-medium")}>
                     {product.stock > 0 ? 'En stock' : 'Hors stock'}
                 </Badge>
               </div>
@@ -211,16 +213,16 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
                         type="number"
                         value={quantity}
                         onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                        className="w-20 h-11"
+                        className="w-24 h-12 text-center text-lg"
                         min="1"
                         max={product.stock}
                         disabled={product.stock === 0}
                     />
                 </div>
-                <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={isAdding || quantity > product.stock || product.stock === 0}>
+                <Button size="lg" className="flex-1 h-12" onClick={handleAddToCart} disabled={isAdding || quantity > product.stock || product.stock === 0}>
                     {isAdding ? <LoaderCircle className="mr-2 h-5 w-5 animate-spin" /> : product.stock === 0 ? 'Épuisé' : <><ShoppingCart className="mr-2 h-5 w-5" /> Ajouter au panier</>}
                 </Button>
-                <Button size="lg" variant="outline"><Heart className="mr-2 h-5 w-5" /> Ajouter aux favoris</Button>
+                <Button size="lg" variant="outline" className="h-12"><Heart className="h-5 w-5" /></Button>
             </div>
           )}
 
@@ -245,17 +247,18 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
         </div>
       </div>
 
-      <div className="mt-16">
+      <div className="mt-16 md:mt-24">
+         <Separator className="my-12" />
         <h2 className="text-2xl font-bold mb-4 font-headline">Description Détaillée</h2>
-        <p className="text-muted-foreground leading-loose">{product.longDescription}</p>
+        <div className="prose prose-sm max-w-none text-muted-foreground leading-loose">{product.longDescription}</div>
       </div>
 
-      <Separator className="my-16" />
+      <Separator className="my-12 md:my-16" />
       
       <div className="grid md:grid-cols-3 gap-12">
         <div className="md:col-span-2">
             <h2 className="text-2xl font-bold mb-6 font-headline">Avis des clients ({reviewCount})</h2>
-            <div className="space-y-6">
+            <div className="space-y-8">
                 {reviews.length > 0 ? reviews.map(review => (
                     <div key={review.id} className="flex gap-4">
                         <Avatar>
@@ -266,12 +269,12 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
                             <div className="flex justify-between items-center">
                                 <p className="font-semibold">{review.userName}</p>
                                 <p className="text-xs text-muted-foreground">
-                                    {review.createdAt?.seconds ? format(new Date(review.createdAt.seconds * 1000), 'd MMMM yyyy', { locale: fr }) : ''}
+                                    {review.createdAt ? format(new Date(review.createdAt.seconds * 1000), 'd MMMM yyyy', { locale: fr }) : ''}
                                 </p>
                             </div>
                             <div className="flex items-center gap-1 my-1">
                                 {[...Array(5)].map((_, i) => (
-                                    <Star key={i} className={`h-4 w-4 ${i < review.rating ? 'text-primary fill-primary' : 'text-muted-foreground/30'}`} />
+                                    <Star key={i} className={`h-4 w-4 ${i < review.rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/30'}`} />
                                 ))}
                             </div>
                             <p className="text-muted-foreground text-sm">{review.comment}</p>
@@ -288,7 +291,8 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
       </div>
       
       {relatedProducts.length > 0 && (
-        <div className="mt-16">
+        <div className="mt-16 md:mt-24">
+           <Separator className="my-12" />
           <h2 className="text-2xl font-bold mb-6 text-center font-headline">Produits Similaires</h2>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {relatedProducts.map((p) => (

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -10,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Order } from '@/lib/types';
+import type { Order, OrderStatus } from '@/lib/types';
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth();
@@ -46,6 +47,24 @@ export default function DashboardPage() {
 
     return () => unsubscribe();
   }, [user]);
+  
+  const getStatusBadgeProps = (status: OrderStatus): { variant: 'default' | 'destructive' | 'secondary' | 'outline', className?: string } => {
+    switch (status) {
+      case 'Livrée':
+        return { variant: 'default', className: 'bg-green-600 hover:bg-green-600/90 text-primary-foreground' }; // Green
+      case 'Expédiée':
+        return { variant: 'default', className: 'bg-blue-500 hover:bg-blue-500/90 text-primary-foreground' }; // Blue
+      case 'Préparation en cours':
+        return { variant: 'default', className: 'bg-yellow-500 hover:bg-yellow-500/90 text-primary-foreground' }; // Yellow
+      case 'Confirmée':
+        return { variant: 'default' }; // Theme Primary (Orange)
+      case 'Annulée':
+        return { variant: 'destructive' }; // Theme Destructive (Red)
+      case 'En attente':
+      default:
+        return { variant: 'secondary' }; // Gray
+    }
+  }
 
   if (isLoading || !user || user.type === 'seller') {
     return null; 
@@ -141,7 +160,7 @@ export default function DashboardPage() {
                     <TableCell className="hidden md:table-cell">{new Date(order.date).toLocaleDateString('fr-FR')}</TableCell>
                     <TableCell className="text-right">{order.total.toFixed(2)} TND</TableCell>
                     <TableCell className="text-center">
-                      <Badge variant={order.status === 'Livrée' ? 'default' : 'secondary'}>
+                       <Badge {...getStatusBadgeProps(order.status)}>
                         {order.status}
                       </Badge>
                     </TableCell>

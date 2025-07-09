@@ -139,15 +139,27 @@ export default function DashboardOrdersPage() {
   const getStatusBadgeProps = (status: OrderStatus): { variant: 'default' | 'destructive' | 'secondary' | 'outline', className?: string } => {
     switch (status) {
       case 'Livrée':
-        return { variant: 'default', className: 'bg-chart-2 hover:bg-chart-2/90 text-primary-foreground' }; // Green
+        return { variant: 'default', className: 'bg-green-600 hover:bg-green-600/90 text-primary-foreground' }; // Green
       case 'Expédiée':
-        return { variant: 'default', className: 'bg-chart-4 hover:bg-chart-4/90 text-card-foreground' }; // Yellow
+        return { variant: 'default', className: 'bg-blue-500 hover:bg-blue-500/90 text-primary-foreground' }; // Blue
       case 'Préparation en cours':
-        return { variant: 'default', className: 'bg-chart-3 hover:bg-chart-3/90 text-primary-foreground' }; // Blue
+        return { variant: 'default', className: 'bg-yellow-500 hover:bg-yellow-500/90 text-primary-foreground' }; // Yellow
       case 'Confirmée':
         return { variant: 'default' }; // Theme Primary (Orange)
       case 'Annulée':
         return { variant: 'destructive' }; // Theme Destructive (Red)
+      case 'En attente':
+      default:
+        return { variant: 'secondary' }; // Gray
+    }
+  }
+
+  const getPaymentStatusBadgeProps = (status: Order['payment']): { variant: 'default' | 'destructive' | 'secondary' | 'outline', className?: string } => {
+    switch (status) {
+      case 'Réglé':
+        return { variant: 'default', className: 'bg-green-600 hover:bg-green-600/90 text-primary-foreground' }; // Green
+      case 'Remboursé':
+        return { variant: 'default', className: 'bg-yellow-500 hover:bg-yellow-500/90 text-primary-foreground' }; // Yellow
       case 'En attente':
       default:
         return { variant: 'secondary' }; // Gray
@@ -206,7 +218,7 @@ export default function DashboardOrdersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant={order.payment === 'Réglé' ? 'default' : 'secondary'} className="capitalize">
+                      <Badge {...getPaymentStatusBadgeProps(order.payment)} className="capitalize">
                         {order.payment}
                       </Badge>
                     </TableCell>

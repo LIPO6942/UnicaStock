@@ -215,30 +215,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const newOrderRef = doc(collection(db, 'orders'));
     
     try {
+      // The transaction now only creates the order and clears the cart.
+      // Stock management is moved to the seller's order confirmation step.
       const createdOrder = await runTransaction(db, async (transaction) => {
         const total = cart.reduce((sum, item) => sum + item.variant.price * item.quantity, 0);
 
+        // Check if there's enough stock without decrementing it
         for (const item of cart) {
           const productRef = doc(db, 'products', item.productId);
           const productDoc = await transaction.get(productRef);
           if (!productDoc.exists()) throw new Error(`Produit ${item.productName} non trouvé.`);
           
           const productData = productDoc.data() as Product;
-          const variantToUpdate = productData.variants.find(v => v.id === item.variant.id);
+          const variantToCheck = productData.variants.find(v => v.id === item.variant.id);
           
-          if (!variantToUpdate) throw new Error(`Variante ${item.variant.contenance} non trouvée pour ${item.productName}`);
-          if (variantToUpdate.stock < item.quantity) {
-            throw new Error(`Stock insuffisant pour ${item.productName} (${item.variant.contenance}). Disponible: ${variantToUpdate.stock}, Demandé: ${item.quantity}.`);
+          if (!variantToCheck) throw new Error(`Variante ${item.variant.contenance} non trouvée pour ${item.productName}`);
+          if (variantToCheck.stock < item.quantity) {
+            throw new Error(`Stock insuffisant pour ${item.productName} (${item.variant.contenance}). Disponible: ${variantToCheck.stock}, Demandé: ${item.quantity}.`);
           }
-
-          const newVariants = productData.variants.map(v => 
-            v.id === item.variant.id ? { ...v, stock: v.stock - item.quantity } : v
-          );
-
-          transaction.update(productRef, { variants: newVariants });
         }
 
-        const newOrderData: Omit<Order, 'id' | 'orderNumber'> = {
+        const newOrderData: Omit<Order, 'id' | 'orderNumber' | 'stockDeducted'> = {
           userId: user.uid,
           userName: user.name,
           buyerInfo: { email: user.email },
@@ -248,9 +245,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           payment: 'En attente',
           items: cart.map(({ productId, productName, variant, quantity }) => ({ productId, productName, variant, quantity })),
           createdAt: serverTimestamp(),
+          stockDeducted: false,
         };
         transaction.set(newOrderRef, newOrderData);
 
+        // Clear the cart
         const cartCollectionRef = collection(db, 'users', user.uid, 'cart');
         for (const item of cart) {
           const cartItemRef = doc(cartCollectionRef, item.id);

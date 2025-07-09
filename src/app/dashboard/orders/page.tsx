@@ -9,8 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/context/auth-context";
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, orderBy, doc, updateDoc } from "firebase/firestore";
-import type { Order, OrderStatus } from "@/lib/types";
+import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, runTransaction } from "firebase/firestore";
+import type { Order, OrderStatus, Product } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
@@ -59,12 +59,66 @@ export default function DashboardOrdersPage() {
 
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     const orderRef = doc(db, 'orders', orderId);
+    const orderToUpdate = orders.find(o => o.id === orderId);
+    if (!orderToUpdate) return;
+  
     try {
-      await updateDoc(orderRef, { status: newStatus });
-      toast({ title: "Statut mis à jour", description: `La commande a été marquée comme "${newStatus}".` });
+      await runTransaction(db, async (transaction) => {
+        const orderDoc = await transaction.get(orderRef);
+        if (!orderDoc.exists()) {
+          throw "La commande n'existe pas.";
+        }
+        const currentOrderData = orderDoc.data() as Order;
+  
+        // Deduct stock when confirming order
+        if (newStatus === 'Confirmée' && !currentOrderData.stockDeducted) {
+          for (const item of currentOrderData.items) {
+            const productRef = doc(db, 'products', item.productId);
+            const productDoc = await transaction.get(productRef);
+            if (!productDoc.exists()) throw `Produit ${item.productName} non trouvé.`;
+  
+            const productData = productDoc.data() as Product;
+            const variantToUpdate = productData.variants.find(v => v.id === item.variant.id);
+  
+            if (!variantToUpdate) throw `Variante ${item.variant.contenance} non trouvée pour ${item.productName}`;
+            if (variantToUpdate.stock < item.quantity) throw `Stock insuffisant pour ${item.productName}`;
+  
+            const newVariants = productData.variants.map(v =>
+              v.id === item.variant.id ? { ...v, stock: v.stock - item.quantity } : v
+            );
+            transaction.update(productRef, { variants: newVariants });
+          }
+          transaction.update(orderRef, { status: newStatus, stockDeducted: true });
+          toast({ title: "Commande confirmée", description: "Le stock a été mis à jour." });
+        } 
+        // Restore stock when a confirmed order is cancelled
+        else if (newStatus === 'Annulée' && currentOrderData.stockDeducted) {
+            for (const item of currentOrderData.items) {
+                const productRef = doc(db, 'products', item.productId);
+                const productDoc = await transaction.get(productRef);
+                if (!productDoc.exists()) {
+                    console.warn(`Produit ${item.productName} non trouvé lors de l'annulation, impossible de restituer le stock.`);
+                    continue; 
+                }
+    
+                const productData = productDoc.data() as Product;
+                const newVariants = productData.variants.map(v =>
+                    v.id === item.variant.id ? { ...v, stock: v.stock + item.quantity } : v
+                );
+                transaction.update(productRef, { variants: newVariants });
+            }
+            transaction.update(orderRef, { status: newStatus, stockDeducted: false });
+            toast({ title: "Commande annulée", description: "Le stock a été restitué." });
+        }
+        else {
+          // For other status changes, just update the status
+          transaction.update(orderRef, { status: newStatus });
+          toast({ title: "Statut mis à jour", description: `La commande a été marquée comme "${newStatus}".` });
+        }
+      });
     } catch (error) {
-      console.error("Error updating order status:", error);
-      toast({ title: "Erreur", description: "Impossible de mettre à jour le statut.", variant: "destructive" });
+      console.error("Erreur lors de la mise à jour du statut:", error);
+      toast({ title: "Erreur", description: String(error), variant: "destructive" });
     }
   };
 

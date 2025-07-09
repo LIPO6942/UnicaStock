@@ -64,6 +64,7 @@ export type Order = {
     quantity: number;
   }[];
   createdAt: any;
+  stockDeducted?: boolean; // Track if stock has been deducted for this order
   buyerInfo?: {
     email: string;
     phone?: string;

@@ -119,12 +119,14 @@ function AddReviewForm({ productId, onReviewAdded }: { productId: string, onRevi
 export function ProductDetailClient({ product, relatedProducts, reviews }: { product: Product, relatedProducts: Product[], reviews: Review[] }) {
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(product.variants?.[0]?.id || null);
-  const [isAdding, setIsAdding] = useState(false);
   const router = useRouter();
   const { user, addToCart } = useAuth();
   
-  const selectedVariant = product.variants.find(v => v.id === selectedVariantId);
+  const productVariants = product.variants || [];
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(productVariants?.[0]?.id || null);
+  const [isAdding, setIsAdding] = useState(false);
+  
+  const selectedVariant = productVariants.find(v => v.id === selectedVariantId);
 
   const handleAddToCart = async () => {
     if (!user) {
@@ -203,7 +205,7 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
           
           <Card className="bg-secondary/40 border-border/60">
             <CardContent className="p-4 space-y-4">
-              {product.variants.length > 1 && (
+              {productVariants.length > 1 && (
                 <div>
                   <Label className="font-semibold">Contenance :</Label>
                   <RadioGroup 
@@ -211,7 +213,7 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
                     onValueChange={setSelectedVariantId} 
                     className="flex flex-wrap gap-2 mt-2"
                   >
-                    {product.variants.map(variant => (
+                    {productVariants.map(variant => (
                        <Label key={variant.id} htmlFor={variant.id} className={cn(
                            "flex items-center justify-center rounded-md border-2 px-4 py-2 text-sm font-medium hover:bg-accent cursor-pointer",
                            selectedVariantId === variant.id ? "border-primary bg-primary/10" : "border-border",

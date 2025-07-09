@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/auth-context";
-import { useEffect, useState, useMemo, Suspense } from "react";
+import { useEffect, useState, useMemo, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getMessagesForUser, markConversationAsRead, sendMessage } from "@/lib/message-service-client";
 import type { Message } from "@/lib/types";
@@ -41,59 +41,7 @@ function MessagesPageComponent() {
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (isAuthLoading || !user) return;
-
-    const fetchAndSetup = async () => {
-      setIsLoading(true);
-      const allMessages = await getMessagesForUser(user);
-      const grouped = allMessages.reduce((acc, msg) => {
-        (acc[msg.orderId] = acc[msg.orderId] || []).push(msg);
-        return acc;
-      }, {} as Record<string, Message[]>);
-
-      const convos: Conversation[] = Object.values(grouped).map(msgs => {
-        const lastMessage = msgs[0];
-        const unreadCount = msgs.filter(m => !m.isRead && m.sender !== user.type).length;
-        return {
-          orderId: lastMessage.orderId,
-          orderNumber: lastMessage.orderNumber,
-          otherPartyName: user.type === 'seller' ? lastMessage.buyerName : 'Unica Link',
-          lastMessage,
-          unreadCount,
-        };
-      });
-
-      const initialOrderId = searchParams.get('orderId');
-      const initialOrderNumber = searchParams.get('orderNumber');
-
-      if (initialOrderId) {
-        const existingConvo = convos.find(c => c.orderId === initialOrderId);
-        if (existingConvo) {
-          setConversations(convos);
-          handleSelectConversation(existingConvo);
-        } else if (user?.type === 'buyer' && initialOrderNumber) {
-           const newVirtualConvo: Conversation = {
-            orderId: initialOrderId,
-            orderNumber: initialOrderNumber,
-            otherPartyName: 'Unica Link',
-            unreadCount: 0,
-          };
-          setConversations(prev => [newVirtualConvo, ...prev.filter(c => c.orderId !== newVirtualConvo.orderId)]);
-          handleSelectConversation(newVirtualConvo, true);
-        }
-        router.replace('/dashboard/messages', undefined);
-      } else {
-        setConversations(convos);
-      }
-
-      setIsLoading(false);
-    };
-
-    fetchAndSetup();
-  }, [user, isAuthLoading, searchParams, router]);
-
-  const handleSelectConversation = async (convo: Conversation, isNew: boolean = false) => {
+  const handleSelectConversation = useCallback(async (convo: Conversation, isNew: boolean = false) => {
     setSelectedConversation(convo);
     
     if (isNew) {
@@ -122,7 +70,69 @@ function MessagesPageComponent() {
             });
         }
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, toast]);
+
+
+  useEffect(() => {
+    if (isAuthLoading || !user) return;
+
+    const fetchAndSetup = async () => {
+      setIsLoading(true);
+      const allMessages = await getMessagesForUser(user);
+      const grouped = allMessages.reduce((acc, msg) => {
+        (acc[msg.orderId] = acc[msg.orderId] || []).push(msg);
+        return acc;
+      }, {} as Record<string, Message[]>);
+
+      const convos: Conversation[] = Object.values(grouped).map(msgs => {
+        const lastMessage = msgs[0];
+        const unreadCount = msgs.filter(m => !m.isRead && m.sender !== user.type).length;
+        return {
+          orderId: lastMessage.orderId,
+          orderNumber: lastMessage.orderNumber,
+          otherPartyName: user.type === 'seller' ? lastMessage.buyerName : 'Unica Link',
+          lastMessage,
+          unreadCount,
+        };
+      });
+
+      const initialOrderId = searchParams.get('orderId');
+      const initialOrderNumber = searchParams.get('orderNumber');
+
+      if (initialOrderId) {
+        // We handle the redirect, then clean the URL. This will cause a re-render.
+        // The logic in the `else` block is designed to handle this re-render gracefully.
+        router.replace('/dashboard/messages', undefined);
+        
+        const existingConvo = convos.find(c => c.orderId === initialOrderId);
+        if (existingConvo) {
+          setConversations(convos);
+          handleSelectConversation(existingConvo);
+        } else if (user?.type === 'buyer' && initialOrderNumber) {
+           const newVirtualConvo: Conversation = {
+            orderId: initialOrderId,
+            orderNumber: initialOrderNumber,
+            otherPartyName: 'Unica Link',
+            unreadCount: 0,
+          };
+          setConversations([newVirtualConvo, ...convos]);
+          handleSelectConversation(newVirtualConvo, true);
+        }
+      } else {
+        // This block runs on normal page load, and on the re-render after a redirect.
+        // This condition prevents wiping the state if a "virtual" conversation was just created.
+        if (!selectedConversation || convos.some(c => c.orderId === selectedConversation.orderId)) {
+          setConversations(convos);
+        }
+      }
+
+      setIsLoading(false);
+    };
+
+    fetchAndSetup();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isAuthLoading, searchParams]);
 
   const handleSendReply = async () => {
     if (!replyText.trim() || !selectedConversation || !user) return;

@@ -1,7 +1,9 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from "react";
+import Image from 'next/image';
 import { File, ChevronRight, LoaderCircle, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -356,7 +358,26 @@ export default function DashboardOrdersPage() {
                             <TableBody>
                               {order.items.map((item, index) => (
                                 <TableRow key={`${item.productId}-${index}`} className="border-b-0">
-                                  <TableCell className="font-medium">{item.productName} {item.variant ? `(${item.variant.contenance})` : ''}</TableCell>
+                                  <TableCell className="font-medium">
+                                      <div className="flex items-center gap-3">
+                                        <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted">
+                                            {item.productImage && (
+                                                <Image 
+                                                    src={item.productImage} 
+                                                    alt={item.productName} 
+                                                    fill
+                                                    className="object-cover"
+                                                    data-ai-hint="cosmetic ingredient"
+                                                    sizes="48px"
+                                                />
+                                            )}
+                                        </div>
+                                        <div>
+                                            {item.productName}
+                                            {item.variant ? <p className="text-xs text-muted-foreground">{item.variant.contenance}</p> : ''}
+                                        </div>
+                                      </div>
+                                  </TableCell>
                                   <TableCell>{item.quantity}</TableCell>
                                   <TableCell className="text-right">{item.variant ? `${item.variant.price.toFixed(2)} TND` : 'N/A'}</TableCell>
                                   <TableCell className="text-right">

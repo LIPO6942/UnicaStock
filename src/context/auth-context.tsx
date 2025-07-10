@@ -243,7 +243,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           total,
           status: 'En attente',
           payment: 'En attente',
-          items: cart.map(({ productId, productName, variant, quantity }) => ({ productId, productName, variant, quantity })),
+          items: cart.map(({ productId, productName, productImage, variant, quantity }) => ({ productId, productName, productImage, variant, quantity })),
           createdAt: serverTimestamp(),
           stockDeducted: false,
         };

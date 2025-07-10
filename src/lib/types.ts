@@ -48,6 +48,14 @@ export type CartItem = {
 
 export type OrderStatus = 'En attente' | 'Confirmée' | 'Préparation en cours' | 'Expédiée' | 'Livrée' | 'Annulée';
 
+export type OrderItem = {
+  productId: string;
+  productName: string;
+  productImage: string;
+  variant: ProductVariant;
+  quantity: number;
+}
+
 export type Order = {
   id: string; // Firestore document ID
   orderNumber: string; // Human-readable order number like #3301
@@ -57,12 +65,7 @@ export type Order = {
   total: number;
   status: OrderStatus;
   payment: 'En attente' | 'Réglé' | 'Remboursé';
-  items: {
-    productId: string;
-    productName: string;
-    variant: ProductVariant;
-    quantity: number;
-  }[];
+  items: OrderItem[];
   createdAt: any;
   stockDeducted?: boolean; // Track if stock has been deducted for this order
   buyerInfo?: {

@@ -31,9 +31,9 @@ export default function LoginPage() {
       await login(email, password);
       toast({
         title: 'Connexion réussie',
-        description: 'Bienvenue sur votre tableau de bord.',
+        description: 'Vous êtes maintenant connecté.',
       });
-      router.push('/dashboard');
+      router.push('/');
     } catch (err: any) {
       const errorCode = err.code;
       let errorMessage = "Une erreur inattendue est survenue. Veuillez réessayer.";

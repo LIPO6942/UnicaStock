@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -37,9 +38,9 @@ export default function RegisterPage() {
       await register(name, email, password, 'buyer');
       toast({
         title: "Compte créé avec succès !",
-        description: "Vous allez être redirigé vers votre tableau de bord."
+        description: "Vous êtes maintenant connecté et pouvez commencer vos achats."
       });
-      router.push('/dashboard');
+      router.push('/');
     } catch (err: any) {
       const errorCode = err.code;
       let errorMessage = "Une erreur est survenue lors de l'inscription.";

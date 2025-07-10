@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useAuth } from "@/context/auth-context";
@@ -6,17 +7,80 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Loader2 } from "lucide-react";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function SettingsPage() {
-  const { user, deleteAccount } = useAuth();
+  const { user, deleteAccount, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // State for user profile fields
+  const [name, setName] = useState(user?.name || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+
+  // State for seller-specific fields
+  const [companyName, setCompanyName] = useState(user?.companyName || '');
+  const [companyDescription, setCompanyDescription] = useState(user?.companyDescription || '');
+  const [companyAddress, setCompanyAddress] = useState(user?.companyAddress || '');
+  const [companyBackgroundUrl, setCompanyBackgroundUrl] = useState(user?.companyBackgroundUrl || '');
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setPhone(user.phone || '');
+      if (user.type === 'seller') {
+        setCompanyName(user.companyName || '');
+        setCompanyDescription(user.companyDescription || '');
+        setCompanyAddress(user.companyAddress || '');
+        setCompanyBackgroundUrl(user.companyBackgroundUrl || '');
+      }
+    }
+  }, [user]);
+
+  const handleSaveChanges = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      const dataToUpdate: any = {
+        name,
+        phone,
+      };
+
+      if (user.type === 'seller') {
+        dataToUpdate.companyName = companyName;
+        dataToUpdate.companyDescription = companyDescription;
+        dataToUpdate.companyAddress = companyAddress;
+        dataToUpdate.companyBackgroundUrl = companyBackgroundUrl;
+      }
+      
+      await updateDoc(userDocRef, dataToUpdate);
+
+      toast({
+        title: "Modifications enregistrées",
+        description: "Vos informations ont été mises à jour avec succès.",
+      });
+    } catch (error) {
+       console.error("Error saving settings:", error);
+       toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer les modifications. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
@@ -34,6 +98,14 @@ export default function SettingsPage() {
     }
   };
 
+  if (isAuthLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+       </div>
+    )
+  }
+
   return (
     <div className="grid gap-6">
       <Card>
@@ -45,15 +117,15 @@ export default function SettingsPage() {
           <form className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Nom</Label>
-              <Input id="name" defaultValue={user?.name} />
+              <Input id="name" value={name} onChange={e => setName(e.target.value)} disabled={isSaving} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue={user?.email} disabled />
+              <Input id="email" type="email" value={user?.email || ''} disabled />
             </div>
              <div className="grid gap-2">
               <Label htmlFor="phone">Téléphone</Label>
-              <Input id="phone" type="tel" placeholder="+216 12 345 678" />
+              <Input id="phone" type="tel" placeholder="+216 12 345 678" value={phone} onChange={e => setPhone(e.target.value)} disabled={isSaving} />
             </div>
           </form>
         </CardContent>
@@ -92,15 +164,19 @@ export default function SettingsPage() {
             <form className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="company-name">Nom de l'entreprise</Label>
-                <Input id="company-name" defaultValue="Unica Link" />
+                <Input id="company-name" value={companyName} onChange={e => setCompanyName(e.target.value)} disabled={isSaving} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="company-description">Description</Label>
-                <Textarea id="company-description" defaultValue="Fournisseur d'huiles et extraits botaniques de première qualité, basés au coeur de la Tunisie." />
+                <Textarea id="company-description" value={companyDescription} onChange={e => setCompanyDescription(e.target.value)} disabled={isSaving} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="company-address">Adresse</Label>
-                <Input id="company-address" defaultValue="123 Rue des Jasmins, 2092 El Manar, Tunis" />
+                <Input id="company-address" value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} disabled={isSaving} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="company-bg-url">URL de l'image de fond</Label>
+                <Input id="company-bg-url" placeholder="https://images.unsplash.com/..." value={companyBackgroundUrl} onChange={e => setCompanyBackgroundUrl(e.target.value)} disabled={isSaving} />
               </div>
             </form>
           </CardContent>
@@ -108,7 +184,10 @@ export default function SettingsPage() {
       )}
 
       <div className="flex justify-end">
-        <Button>Enregistrer les modifications</Button>
+        <Button onClick={handleSaveChanges} disabled={isSaving}>
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSaving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+        </Button>
       </div>
       
       <Card className="border-destructive">

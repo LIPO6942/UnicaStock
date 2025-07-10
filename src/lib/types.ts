@@ -10,6 +10,12 @@ export type UserProfile = {
   name: string;
   email: string;
   type: 'buyer' | 'seller';
+  phone?: string;
+  // Seller specific fields
+  companyName?: string;
+  companyDescription?: string;
+  companyAddress?: string;
+  companyBackgroundUrl?: string;
 };
 
 export type ProductVariant = {

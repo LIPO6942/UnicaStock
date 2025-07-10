@@ -55,7 +55,7 @@ export default function RootLayout({
                     <div className="flex items-center gap-2">
                       <Icons.logo className="h-6 w-6 text-primary" />
                       <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-                        Construit par votre assistant IA.
+                        Construit avec passion
                       </p>
                     </div>
                     <div className="flex items-center gap-4">

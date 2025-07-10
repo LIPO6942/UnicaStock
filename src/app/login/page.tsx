@@ -48,7 +48,7 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex min-h-[calc(100vh-8rem)] items-center justify-center p-4">
-      <div className="absolute inset-0 -z-10">
+       <div className="absolute inset-0 -z-10">
         <Image
           src="https://images.unsplash.com/photo-1556228720-19b0672b2a04?q=80&w=2832"
           alt="Cosmetic products background"

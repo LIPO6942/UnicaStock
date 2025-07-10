@@ -34,7 +34,7 @@ export default async function Home() {
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
           </div>
           <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-7xl font-headline">
-            Matiéres Premières et Produits d'Exception
+            Matières Premières et Produits d'Exception
           </h1>
           <p className="max-w-2xl text-lg text-muted-foreground md:text-xl">
             Votre source fiable pour les ingrédients cosmétiques de qualité en Tunisie.

@@ -284,7 +284,7 @@ export default function DashboardOrdersPage() {
                     {isSeller ? (
                        <TableCell>
                         <div className="font-medium truncate max-w-xs">
-                          {Array.isArray(order.items) && order.items.map(item => `${item.quantity} x ${item.productName}`).join(', ')}
+                          {Array.isArray(order.items) ? order.items.map(item => `${item.quantity} x ${item.productName}`).join(', ') : 'undefined'}
                         </div>
                         <div className="text-sm text-muted-foreground hidden md:inline">
                           par {order.userName}
@@ -372,16 +372,14 @@ export default function DashboardOrdersPage() {
                                   <TableCell className="font-medium">
                                       <div className="flex items-center gap-3">
                                         <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted">
-                                            {item.productImage && (
-                                                <Image 
-                                                    src={item.productImage} 
-                                                    alt={item.productName} 
-                                                    fill
-                                                    className="object-cover"
-                                                    data-ai-hint="cosmetic ingredient"
-                                                    sizes="48px"
-                                                />
-                                            )}
+                                            <Image 
+                                                src={item.productImage || 'https://placehold.co/64x64.png'} 
+                                                alt={item.productName} 
+                                                fill
+                                                className="object-cover"
+                                                data-ai-hint="cosmetic ingredient"
+                                                sizes="48px"
+                                            />
                                         </div>
                                         <div>
                                             {item.productName}

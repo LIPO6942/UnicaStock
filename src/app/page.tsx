@@ -1,7 +1,7 @@
 import { ProductCard } from '@/components/product-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getProducts } from '@/lib/product-service';
+import { getProducts, getSellerProfile } from '@/lib/product-service';
 import { ArrowRight, Leaf, Search, ShieldCheck, Truck } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -11,6 +11,9 @@ export default async function Home() {
   const allProducts = await getProducts();
   const featuredProducts = allProducts.slice(0, 4);
   const recommendedProducts = [...allProducts].reverse().slice(0, 4);
+  const seller = await getSellerProfile();
+
+  const heroImageUrl = seller?.companyBackgroundUrl || "https://images.unsplash.com/photo-1598454449835-33454c134f59?q=80&w=2940";
 
   return (
     <div className="flex flex-col">
@@ -18,7 +21,7 @@ export default async function Home() {
         <div className="container relative z-10 flex min-h-[70vh] flex-col items-center justify-center gap-6 py-20 text-center">
           <div className="absolute inset-0 -z-10">
              <Image
-              src="https://images.unsplash.com/photo-1598454449835-33454c134f59?q=80&w=2940"
+              src={heroImageUrl}
               alt="Hero background"
               fill
               className="object-cover opacity-10"

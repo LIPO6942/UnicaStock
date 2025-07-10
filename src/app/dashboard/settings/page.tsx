@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Loader2 } from "lucide-react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { Slider } from "@/components/ui/slider";
 
 export default function SettingsPage() {
   const { user, deleteAccount, isLoading: isAuthLoading } = useAuth();
@@ -32,6 +33,8 @@ export default function SettingsPage() {
   const [companyDescription, setCompanyDescription] = useState(user?.companyDescription || '');
   const [companyAddress, setCompanyAddress] = useState(user?.companyAddress || '');
   const [companyBackgroundUrl, setCompanyBackgroundUrl] = useState(user?.companyBackgroundUrl || '');
+  const [homepageImageUrl, setHomepageImageUrl] = useState(user?.homepageImageUrl || '');
+  const [homepageImageOpacity, setHomepageImageOpacity] = useState(user?.homepageImageOpacity !== undefined ? [user.homepageImageOpacity * 100] : [10]);
 
   useEffect(() => {
     if (user) {
@@ -42,6 +45,8 @@ export default function SettingsPage() {
         setCompanyDescription(user.companyDescription || '');
         setCompanyAddress(user.companyAddress || '');
         setCompanyBackgroundUrl(user.companyBackgroundUrl || '');
+        setHomepageImageUrl(user.homepageImageUrl || '');
+        setHomepageImageOpacity(user.homepageImageOpacity !== undefined ? [user.homepageImageOpacity * 100] : [10]);
       }
     }
   }, [user]);
@@ -61,6 +66,8 @@ export default function SettingsPage() {
         dataToUpdate.companyDescription = companyDescription;
         dataToUpdate.companyAddress = companyAddress;
         dataToUpdate.companyBackgroundUrl = companyBackgroundUrl;
+        dataToUpdate.homepageImageUrl = homepageImageUrl;
+        dataToUpdate.homepageImageOpacity = homepageImageOpacity[0] / 100;
       }
       
       await updateDoc(userDocRef, dataToUpdate);
@@ -158,10 +165,10 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Informations de l'entreprise (Vendeur)</CardTitle>
-            <CardDescription>Mettez à jour les informations de votre entreprise.</CardDescription>
+            <CardDescription>Mettez à jour les informations qui apparaissent sur vos pages boutique.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="grid gap-4">
+            <form className="grid gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="company-name">Nom de l'entreprise</Label>
                 <Input id="company-name" value={companyName} onChange={e => setCompanyName(e.target.value)} disabled={isSaving} />
@@ -174,8 +181,16 @@ export default function SettingsPage() {
                 <Label htmlFor="company-address">Adresse</Label>
                 <Input id="company-address" value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} disabled={isSaving} />
               </div>
+               <div className="grid gap-2">
+                <Label htmlFor="homepage-image-url">URL de l'image de la page d'accueil</Label>
+                <Input id="homepage-image-url" placeholder="https://images.unsplash.com/..." value={homepageImageUrl} onChange={e => setHomepageImageUrl(e.target.value)} disabled={isSaving} />
+              </div>
+               <div className="grid gap-2">
+                <Label htmlFor="homepage-image-opacity">Opacité de l'image de la page d'accueil ({homepageImageOpacity[0]}%)</Label>
+                <Slider id="homepage-image-opacity" min={0} max={100} step={5} value={homepageImageOpacity} onValueChange={setHomepageImageOpacity} disabled={isSaving} />
+              </div>
               <div className="grid gap-2">
-                <Label htmlFor="company-bg-url">URL de l'image de fond</Label>
+                <Label htmlFor="company-bg-url">URL de l'image de fond (Page Produits)</Label>
                 <Input id="company-bg-url" placeholder="https://images.unsplash.com/..." value={companyBackgroundUrl} onChange={e => setCompanyBackgroundUrl(e.target.value)} disabled={isSaving} />
               </div>
             </form>

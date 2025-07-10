@@ -14,7 +14,8 @@ export default async function Home() {
   const recommendedProducts = [...allProducts].reverse().slice(0, 4);
   const seller = await getSellerProfile();
 
-  const heroImageUrl = seller?.companyBackgroundUrl || "https://images.unsplash.com/photo-1598454449835-33454c134f59?q=80&w=2940";
+  const heroImageUrl = seller?.homepageImageUrl || "https://images.unsplash.com/photo-1598454449835-33454c134f59?q=80&w=2940";
+  const heroImageOpacity = seller?.homepageImageOpacity !== undefined ? seller.homepageImageOpacity : 0.1;
 
   return (
     <div className="flex flex-col">
@@ -25,7 +26,8 @@ export default async function Home() {
               src={heroImageUrl}
               alt="Hero background"
               fill
-              className="object-cover opacity-10"
+              className="object-cover"
+              style={{ opacity: heroImageOpacity }}
               data-ai-hint="cosmetics cream"
               priority
             />

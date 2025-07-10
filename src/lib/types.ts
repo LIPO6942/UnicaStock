@@ -15,7 +15,9 @@ export type UserProfile = {
   companyName?: string;
   companyDescription?: string;
   companyAddress?: string;
-  companyBackgroundUrl?: string;
+  companyBackgroundUrl?: string; // For products page banner
+  homepageImageUrl?: string;      // For homepage hero background
+  homepageImageOpacity?: number;  // Opacity for homepage hero background (0-1)
 };
 
 export type ProductVariant = {

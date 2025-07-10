@@ -2,10 +2,11 @@ import { ProductCard } from '@/components/product-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getProducts } from '@/lib/product-service';
+import { getProducts, getSellerProfile } from '@/lib/product-service';
 import { Filter } from 'lucide-react';
-import type { Product } from '@/lib/types';
+import type { Product, UserProfile } from '@/lib/types';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Select,
   SelectContent,
@@ -22,9 +23,27 @@ async function getCategories(products: Product[]): Promise<string[]> {
 export default async function ProductsPage() {
   const products = await getProducts();
   const categories = await getCategories(products);
+  const seller = await getSellerProfile();
 
   return (
     <div className="container py-12">
+      {seller?.companyBackgroundUrl && (
+         <section className="relative mb-12 h-64 w-full overflow-hidden rounded-xl flex items-center justify-center p-8 text-center">
+            <Image
+                src={seller.companyBackgroundUrl}
+                alt={seller.companyName || 'Bannière de la boutique'}
+                fill
+                className="object-cover"
+                data-ai-hint="store banner"
+            />
+            <div className="absolute inset-0 bg-black/50" />
+            <div className="relative z-10 text-white">
+                <h1 className="text-4xl font-bold font-headline">{seller.companyName || 'Notre Boutique'}</h1>
+                <p className="mt-2 max-w-2xl text-lg text-white/90">{seller.companyDescription}</p>
+            </div>
+         </section>
+      )}
+
       <div className="grid grid-cols-1 gap-x-8 gap-y-10 lg:grid-cols-4">
         <aside className="hidden lg:block">
           <div className="sticky top-24">

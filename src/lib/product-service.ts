@@ -1,8 +1,8 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, query, orderBy, Timestamp } from 'firebase/firestore';
-import type { Product, Review } from '@/lib/types';
+import { collection, getDocs, doc, getDoc, query, orderBy, Timestamp, where, limit } from 'firebase/firestore';
+import type { Product, Review, UserProfile } from '@/lib/types';
 
 // This service reads products from Firestore for Server Components.
 
@@ -64,4 +64,20 @@ export async function getReviewsForProduct(productId: string): Promise<Review[]>
             } : null,
         } as Review;
     });
+}
+
+/**
+ * Fetches the seller's profile.
+ * As there's only one seller in this architecture, it fetches the first user with type 'seller'.
+ * @returns A promise that resolves to the seller's profile or null if not found.
+ */
+export async function getSellerProfile(): Promise<UserProfile | null> {
+    const usersCollectionRef = collection(db, 'users');
+    const q = query(usersCollectionRef, where('type', '==', 'seller'), limit(1));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+        return null;
+    }
+    const sellerDoc = snapshot.docs[0];
+    return { uid: sellerDoc.id, ...sellerDoc.data() } as UserProfile;
 }

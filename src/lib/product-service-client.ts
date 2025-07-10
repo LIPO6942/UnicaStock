@@ -1,6 +1,6 @@
 import { db } from '@/lib/firebase';
 import { collection, addDoc, doc, updateDoc, deleteDoc, runTransaction, serverTimestamp, getDocs } from 'firebase/firestore';
-import type { Product, Review } from '@/lib/types';
+import type { Product, ProductVariant, Review } from '@/lib/types';
 
 // This service manages product mutations from the client-side.
 
@@ -84,4 +84,34 @@ export async function addReview(productId: string, reviewData: Omit<Review, 'id'
             createdAt: serverTimestamp(),
         });
     });
+}
+
+/**
+ * Restocks a product by adding quantities to its variants.
+ * @param productId The ID of the product to restock.
+ * @param stockUpdates An object where keys are variant IDs and values are the quantities to add.
+ */
+export async function restockProduct(productId: string, stockUpdates: { [variantId: string]: number }) {
+  const productRef = doc(db, 'products', productId);
+  
+  await runTransaction(db, async (transaction) => {
+    const productDoc = await transaction.get(productRef);
+    if (!productDoc.exists()) {
+      throw new Error("Produit non trouvé.");
+    }
+
+    const product = productDoc.data() as Product;
+    const newVariants: ProductVariant[] = product.variants.map(variant => {
+      const stockToAdd = stockUpdates[variant.id];
+      if (stockToAdd > 0) {
+        return {
+          ...variant,
+          stock: variant.stock + stockToAdd,
+        };
+      }
+      return variant;
+    });
+
+    transaction.update(productRef, { variants: newVariants });
+  });
 }

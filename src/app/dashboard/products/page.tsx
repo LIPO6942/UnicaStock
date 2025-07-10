@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { MoreHorizontal, PlusCircle } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, PackagePlus } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import * as ProductService from '@/lib/product-service';
 import * as ProductServiceClient from '@/lib/product-service-client';
 import { useToast } from '@/hooks/use-toast';
 import { EditProductDialog } from '@/components/edit-product-dialog';
+import { RestockDialog } from '@/components/restock-dialog';
 import Loading from '../loading';
 import { useAuth } from '@/context/auth-context';
 
@@ -30,7 +31,8 @@ export default function SellerProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isRestockDialogOpen, setIsRestockDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const fetchProducts = async () => {
@@ -64,12 +66,16 @@ export default function SellerProductsPage() {
 
   const handleAddProduct = () => {
     setSelectedProduct(null);
-    setIsDialogOpen(true);
+    setIsEditDialogOpen(true);
   };
 
   const handleEditProduct = (product: Product) => {
     setSelectedProduct(product);
-    setIsDialogOpen(true);
+    setIsEditDialogOpen(true);
+  };
+  
+  const handleOpenRestockDialog = () => {
+    setIsRestockDialogOpen(true);
   };
 
   const handleDeleteProduct = async (productId: string) => {
@@ -91,7 +97,8 @@ export default function SellerProductsPage() {
   };
 
   const handleDialogSave = () => {
-    setIsDialogOpen(false);
+    setIsEditDialogOpen(false);
+    setIsRestockDialogOpen(false);
     fetchProducts();
   };
 
@@ -107,15 +114,21 @@ export default function SellerProductsPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-2">
         <div>
             <h1 className="text-3xl font-bold font-headline">Gestion des Produits</h1>
             <p className="text-muted-foreground">Ajoutez, modifiez et gérez votre inventaire.</p>
         </div>
-        <Button onClick={handleAddProduct}>
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Ajouter un produit
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleOpenRestockDialog} variant="outline">
+            <PackagePlus className="h-4 w-4 mr-2" />
+            Réapprovisionner
+          </Button>
+          <Button onClick={handleAddProduct}>
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Ajouter un produit
+          </Button>
+        </div>
       </div>
       
       {error && (
@@ -233,12 +246,21 @@ export default function SellerProductsPage() {
         </CardFooter>
       </Card>
       
-      {isDialogOpen && (
+      {isEditDialogOpen && (
          <EditProductDialog
-            isOpen={isDialogOpen}
-            setIsOpen={setIsDialogOpen}
+            isOpen={isEditDialogOpen}
+            setIsOpen={setIsEditDialogOpen}
             product={selectedProduct}
             onSave={handleDialogSave}
+        />
+      )}
+
+      {isRestockDialogOpen && (
+        <RestockDialog
+          isOpen={isRestockDialogOpen}
+          setIsOpen={setIsRestockDialogOpen}
+          products={products}
+          onSave={handleDialogSave}
         />
       )}
     </>

@@ -52,15 +52,20 @@ const NEW_CATEGORY_VALUE = '__new__';
 export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditProductDialogProps) {
   const { toast } = useToast();
   const [categories, setCategories] = useState<string[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [showNewCategory, setShowNewCategory] = useState(false);
 
-  useEffect(() => {
-    async function fetchCategories() {
+  const fetchCategoriesAndProducts = async () => {
       const products = await getProducts();
+      setAllProducts(products);
       const uniqueCategories = Array.from(new Set(products.map(p => p.category))).sort();
       setCategories(uniqueCategories);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchCategoriesAndProducts();
     }
-    fetchCategories();
   }, [isOpen]);
 
   const form = useForm<z.infer<typeof productSchema>>({
@@ -123,16 +128,40 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
         description: '',
         longDescription: '',
         imageUrl: 'https://placehold.co/600x600.png',
-        variants: [{ id: 'variante-1', contenance: '', price: 0, stock: 0 }],
+        variants: [{ id: `variante-${Date.now()}`, contenance: '', price: 0, stock: 0 }],
         dataSheetUrl: '',
         coaUrl: '',
       });
     }
   }, [product, reset, isOpen]);
 
+  const handleDeleteCategory = async () => {
+    if (!selectedCategory || selectedCategory === NEW_CATEGORY_VALUE) {
+      toast({ title: 'Aucune catégorie sélectionnée à supprimer', variant: 'destructive' });
+      return;
+    }
+    const isCategoryInUse = allProducts.some(p => p.category === selectedCategory && p.id !== product?.id);
+
+    if (isCategoryInUse) {
+      toast({
+        title: 'Impossible de supprimer la catégorie',
+        description: `La catégorie "${selectedCategory}" est utilisée par d'autres produits.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Since categories are not a separate collection, "deleting" means removing it from the list
+    // and clearing the selection. The user must then select a new category.
+    setCategories(prev => prev.filter(c => c !== selectedCategory));
+    setValue('category', '');
+    toast({ title: 'Catégorie supprimée', description: `La catégorie "${selectedCategory}" a été retirée de la liste.` });
+  };
+
+
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
     const finalCategory = values.category === NEW_CATEGORY_VALUE ? values.newCategory : values.category;
-    if (!finalCategory) {
+    if (!finalCategory || finalCategory.trim() === '') {
       form.setError('category', { type: 'manual', message: 'La catégorie est requise.' });
       return;
     }
@@ -216,17 +245,23 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Catégorie</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sélectionnez une catégorie" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                        <SelectItem value={NEW_CATEGORY_VALUE}>Ajouter une nouvelle catégorie</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2">
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionnez une catégorie" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                          <SelectItem value={NEW_CATEGORY_VALUE}>Ajouter une nouvelle catégorie</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button type="button" variant="outline" size="icon" onClick={handleDeleteCategory} disabled={!selectedCategory || selectedCategory === NEW_CATEGORY_VALUE}>
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Supprimer la catégorie</span>
+                      </Button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -253,7 +288,7 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
                   type="button" 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => append({ id: `variante-${fields.length + 1}`, contenance: '', price: 0, stock: 0 })}
+                  onClick={() => append({ id: `variante-${Date.now()}`, contenance: '', price: 0, stock: 0 })}
                 >
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Ajouter une variante
@@ -295,7 +330,7 @@ export function EditProductDialog({ isOpen, setIsOpen, product, onSave }: EditPr
                       </FormItem>
                     )}
                   />
-                  <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>

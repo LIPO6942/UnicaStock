@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -61,7 +61,7 @@ export function RestockDialog({ isOpen, setIsOpen, products, onSave }: RestockDi
 
   const productId = watch('productId');
 
-  useState(() => {
+  useEffect(() => {
     if (productId) {
       const product = products.find(p => p.id === productId);
       setSelectedProduct(product || null);
@@ -74,8 +74,7 @@ export function RestockDialog({ isOpen, setIsOpen, products, onSave }: RestockDi
       setSelectedProduct(null);
       setValue('variants', []);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productId, products]);
+  }, [productId, products, setValue]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const stockUpdates = values.variants.reduce((acc, variant) => {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from "react";
@@ -73,6 +74,10 @@ export default function DashboardOrdersPage() {
         // Deduct stock when confirming order
         if (newStatus === 'Confirmée' && !currentOrderData.stockDeducted) {
           for (const item of currentOrderData.items) {
+            if (!item.productId) {
+                console.warn(`Article ignoré car productId est manquant: ${item.productName}`);
+                continue;
+            }
             const productRef = doc(db, 'products', item.productId);
             const productDoc = await transaction.get(productRef);
             if (!productDoc.exists()) throw `Produit ${item.productName} non trouvé.`;
@@ -94,6 +99,10 @@ export default function DashboardOrdersPage() {
         // Restore stock when a confirmed order is cancelled
         else if (newStatus === 'Annulée' && currentOrderData.stockDeducted) {
             for (const item of currentOrderData.items) {
+                if (!item.productId) {
+                    console.warn(`Article ignoré car productId est manquant: ${item.productName}`);
+                    continue;
+                }
                 const productRef = doc(db, 'products', item.productId);
                 const productDoc = await transaction.get(productRef);
                 if (!productDoc.exists()) {

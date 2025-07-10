@@ -1,3 +1,4 @@
+
 import { db } from '@/lib/firebase';
 import { collection, addDoc, doc, updateDoc, deleteDoc, runTransaction, serverTimestamp, getDocs } from 'firebase/firestore';
 import type { Product, ProductVariant, Review } from '@/lib/types';
@@ -14,7 +15,7 @@ const productsCollectionRef = collection(db, 'products');
 export async function addProduct(productData: Omit<Product, 'id' | 'rating' | 'reviewCount' | 'seller'>): Promise<string> {
     const newProduct: Omit<Product, 'id'> = {
         ...productData,
-        seller: 'Unica Link', // Centralized seller
+        seller: 'Ùnica Cosmétiques', // Centralized seller
         rating: 0,
         reviewCount: 0,
     };

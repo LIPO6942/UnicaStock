@@ -1,3 +1,4 @@
+
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -63,7 +64,7 @@ function MessagesPageComponent() {
       return {
         orderId: lastMessage.orderId,
         orderNumber: lastMessage.orderNumber,
-        otherPartyName: user.type === 'seller' ? lastMessage.buyerName : 'Unica Link',
+        otherPartyName: user.type === 'seller' ? lastMessage.buyerName : 'Ùnica Cosmétiques',
         lastMessage,
         unreadCount,
         productPreview: messageWithPreview?.productPreview,
@@ -78,7 +79,7 @@ function MessagesPageComponent() {
         const newVirtualConvo: Conversation = {
           orderId: initialOrderId,
           orderNumber: initialOrderNumber || 'N/A',
-          otherPartyName: user.type === 'buyer' ? 'Unica Link' : 'Nouveau Client',
+          otherPartyName: user.type === 'buyer' ? 'Ùnica Cosmétiques' : 'Nouveau Client',
           unreadCount: 0,
           productPreview: productPreview ? decodeURIComponent(productPreview) : undefined,
         };

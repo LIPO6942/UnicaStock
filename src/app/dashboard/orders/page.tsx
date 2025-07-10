@@ -284,7 +284,7 @@ export default function DashboardOrdersPage() {
                     {isSeller ? (
                        <TableCell>
                         <div className="font-medium truncate max-w-xs">
-                          {Array.isArray(order.items) ? order.items.map(item => `${item.quantity} x ${item.productName}`).join(', ') : 'undefined'}
+                          {Array.isArray(order.items) ? order.items.map(item => `${item.quantity} x ${item.productName}`).join(', ') : ''}
                         </div>
                         <div className="text-sm text-muted-foreground hidden md:inline">
                           par {order.userName}
@@ -374,7 +374,7 @@ export default function DashboardOrdersPage() {
                                         <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted">
                                             <Image 
                                                 src={item.productImage || 'https://placehold.co/64x64.png'} 
-                                                alt={item.productName} 
+                                                alt={item.productName || 'Image du produit'}
                                                 fill
                                                 className="object-cover"
                                                 data-ai-hint="cosmetic ingredient"

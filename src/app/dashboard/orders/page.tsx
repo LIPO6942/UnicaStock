@@ -78,9 +78,9 @@ export default function DashboardOrdersPage() {
             if (!productDoc.exists()) throw `Produit ${item.productName} non trouvé.`;
   
             const productData = productDoc.data() as Product;
-            const variantToUpdate = productData.variants.find(v => v.id === item.variant.id);
+            const variantToUpdate = productData.variants.find(v => v.id === item.variant?.id);
   
-            if (!variantToUpdate) throw `Variante ${item.variant.contenance} non trouvée pour ${item.productName}`;
+            if (!variantToUpdate) throw `Variante ${item.variant?.contenance} non trouvée pour ${item.productName}`;
             if (variantToUpdate.stock < item.quantity) throw `Stock insuffisant pour ${item.productName}`;
   
             const newVariants = productData.variants.map(v =>
@@ -103,7 +103,7 @@ export default function DashboardOrdersPage() {
     
                 const productData = productDoc.data() as Product;
                 const newVariants = productData.variants.map(v =>
-                    v.id === item.variant.id ? { ...v, stock: v.stock + item.quantity } : v
+                    v.id === item.variant?.id ? { ...v, stock: v.stock + item.quantity } : v
                 );
                 transaction.update(productRef, { variants: newVariants });
             }
@@ -139,7 +139,7 @@ export default function DashboardOrdersPage() {
 
     const csvRows = orders.map(order => {
       const productsString = order.items
-        .map(item => `${item.quantity} x ${item.productName} (${item.variant.contenance})`)
+        .map(item => `${item.quantity} x ${item.productName} ${item.variant ? `(${item.variant.contenance})` : ''}`)
         .join(" | ");
 
       const row = [
@@ -347,11 +347,11 @@ export default function DashboardOrdersPage() {
                             <TableBody>
                               {order.items.map((item, index) => (
                                 <TableRow key={`${item.productId}-${index}`} className="border-b-0">
-                                  <TableCell className="font-medium">{item.productName} ({item.variant.contenance})</TableCell>
+                                  <TableCell className="font-medium">{item.productName} {item.variant ? `(${item.variant.contenance})` : ''}</TableCell>
                                   <TableCell>{item.quantity}</TableCell>
-                                  <TableCell className="text-right">{item.variant.price.toFixed(2)} TND</TableCell>
+                                  <TableCell className="text-right">{item.variant ? `${item.variant.price.toFixed(2)} TND` : 'N/A'}</TableCell>
                                   <TableCell className="text-right">
-                                    {(item.variant.price * item.quantity).toFixed(2)} TND
+                                    {item.variant ? `${(item.variant.price * item.quantity).toFixed(2)} TND` : 'N/A'}
                                   </TableCell>
                                 </TableRow>
                               ))}

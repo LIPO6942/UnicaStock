@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -87,10 +88,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <SidebarProvider defaultOpen>
       <Sidebar>
         <SidebarHeader>
-          <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <Icons.logo className="size-7 text-primary" />
             <span className="text-lg font-semibold font-headline">Unica Link</span>
-          </div>
+          </Link>
         </SidebarHeader>
         <SidebarContent>
           {user.type === 'buyer' && (

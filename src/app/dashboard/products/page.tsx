@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -104,18 +105,6 @@ export default function SellerProductsPage() {
     return totalStock > 0;
   }
 
-  const getPriceRange = (product: Product) => {
-    if (!product.variants || product.variants.length === 0) return "N/A";
-    const prices = product.variants.map(v => v.price);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-
-    if (minPrice === maxPrice) {
-      return `${minPrice.toFixed(2)} TND`;
-    }
-    return `${minPrice.toFixed(2)} - ${maxPrice.toFixed(2)} TND`;
-  }
-
   return (
     <>
       <div className="flex items-center justify-between mb-4">
@@ -150,8 +139,7 @@ export default function SellerProductsPage() {
                 <TableHead className="hidden w-[100px] sm:table-cell">Image</TableHead>
                 <TableHead>Nom</TableHead>
                 <TableHead>Catégorie</TableHead>
-                <TableHead>Prix</TableHead>
-                <TableHead>Stock total</TableHead>
+                <TableHead>Variantes (Contenance / Prix / Stock)</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -172,8 +160,21 @@ export default function SellerProductsPage() {
                     </TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>{product.category}</TableCell>
-                    <TableCell>{getPriceRange(product)}</TableCell>
-                    <TableCell>{(product.variants || []).reduce((sum, v) => sum + v.stock, 0)} unités</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1 text-xs">
+                        {product.variants && product.variants.length > 0 ? (
+                           product.variants.map(v => (
+                            <div key={v.id} className="grid grid-cols-3 gap-2">
+                                <span className="font-medium">{v.contenance}</span>
+                                <span className="text-muted-foreground">{v.price.toFixed(2)} TND</span>
+                                <span className="text-muted-foreground">{v.stock} unités</span>
+                            </div>
+                           ))
+                        ) : (
+                            <span className="text-muted-foreground">Aucune variante</span>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={getProductStockStatus(product) ? 'outline' : 'destructive'}>
                         {getProductStockStatus(product) ? 'En stock' : 'Épuisé'}
@@ -217,7 +218,7 @@ export default function SellerProductsPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
+                  <TableCell colSpan={6} className="h-24 text-center">
                     Aucun produit trouvé.
                   </TableCell>
                 </TableRow>

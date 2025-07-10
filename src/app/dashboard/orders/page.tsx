@@ -200,7 +200,7 @@ export default function DashboardOrdersPage() {
   };
   
   const handleContactSeller = (order: Order) => {
-    const productPreview = order.items.length > 0 
+    const productPreview = order.items && order.items.length > 0
       ? order.items.slice(0, 2).map(item => item.productName).join(', ') + (order.items.length > 2 ? ', etc.' : '')
       : 'Commande sans produits spécifiés';
     
@@ -282,9 +282,9 @@ export default function DashboardOrdersPage() {
                       </div>
                     </TableCell>
                     {isSeller ? (
-                      <TableCell>
+                       <TableCell>
                         <div className="font-medium truncate max-w-xs">
-                          {order.items.map(item => `${item.quantity} x ${item.productName}`).join(', ')}
+                          {Array.isArray(order.items) && order.items.map(item => `${item.quantity} x ${item.productName}`).join(', ')}
                         </div>
                         <div className="text-sm text-muted-foreground hidden md:inline">
                           par {order.userName}
@@ -367,7 +367,7 @@ export default function DashboardOrdersPage() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {order.items.map((item, index) => (
+                              {Array.isArray(order.items) && order.items.map((item, index) => (
                                 <TableRow key={`${item.productId}-${index}`} className="border-b-0">
                                   <TableCell className="font-medium">
                                       <div className="flex items-center gap-3">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -46,7 +47,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center p-4">
+    <div className="relative flex min-h-[calc(100vh-8rem)] items-center justify-center p-4">
+      <div className="absolute inset-0 -z-10">
+        <Image
+          src="https://images.unsplash.com/photo-1556228720-19b0672b2a04?q=80&w=2832"
+          alt="Cosmetic products background"
+          fill
+          className="object-cover opacity-20"
+          data-ai-hint="cosmetics background"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
+      </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-2xl font-headline">Connexion</CardTitle>

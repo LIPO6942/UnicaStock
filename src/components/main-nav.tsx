@@ -12,7 +12,7 @@ export function MainNav() {
     <div className="mr-4 hidden md:flex">
       <Link href="/" className="mr-6 flex items-center space-x-2">
         <Icons.logo className="h-6 w-6 text-primary" />
-        <span className="hidden font-bold sm:inline-block font-headline">Unica Link</span>
+        <span className="hidden sm:inline-block font-bold text-lg font-headline tracking-tight">Ùnica Link</span>
       </Link>
       <nav className="flex items-center space-x-6 text-sm font-medium">
         <Link

@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/context/auth-context";
 import { useEffect, useState, useCallback, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getMessagesForUser, markMessagesAsReadByIds } from "@/lib/message-service-client";
+import { getMessagesForUser, markMessagesAsReadByIds, sendMessage } from "@/lib/message-service-client";
 import type { Message } from "@/lib/types";
 import Loading from "../loading";
 import { format, isToday, isYesterday } from 'date-fns';

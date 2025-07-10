@@ -264,7 +264,7 @@ export default function DashboardOrdersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Commande</TableHead>
-                {isSeller && <TableHead>Client</TableHead>}
+                {isSeller ? <TableHead>Produits</TableHead> : <TableHead>Client</TableHead>}
                 <TableHead className="hidden md:table-cell">Date</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-center hidden sm:table-cell">Statut</TableHead>
@@ -281,7 +281,18 @@ export default function DashboardOrdersPage() {
                         {order.orderNumber}
                       </div>
                     </TableCell>
-                    {isSeller && <TableCell>{order.userName}</TableCell>}
+                    {isSeller ? (
+                      <TableCell>
+                        <div className="font-medium truncate max-w-xs">
+                          {order.items.map(item => `${item.quantity} x ${item.productName}`).join(', ')}
+                        </div>
+                        <div className="text-sm text-muted-foreground hidden md:inline">
+                          par {order.userName}
+                        </div>
+                      </TableCell>
+                    ) : (
+                      <TableCell>{order.userName}</TableCell>
+                    )}
                     <TableCell className="hidden md:table-cell">{new Date(order.date).toLocaleDateString('fr-FR')}</TableCell>
                     <TableCell className="text-right">{`${order.total.toFixed(2).replace('.', ',')} TND`}</TableCell>
                     <TableCell className="text-center hidden sm:table-cell">

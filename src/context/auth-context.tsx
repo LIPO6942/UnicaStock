@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User as FirebaseUser, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, collection, addDoc, serverTimestamp, query, where, getDocs, writeBatch, deleteDoc, runTransaction, DocumentReference } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, collection, addDoc, serverTimestamp, query, where, getDocs, writeBatch, deleteDoc, runTransaction, DocumentReference, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import type { UserProfile, Product, CartItem, Order, ProductVariant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -41,21 +41,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (userAuth) {
         setFirebaseUser(userAuth);
         const userDocRef = doc(db, 'users', userAuth.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          setUser({ uid: userAuth.uid, ...userDoc.data() } as UserProfile);
-        } else {
-          setUser(null);
-        }
+        // Use onSnapshot to listen for real-time updates to user profile
+        const unsubUser = onSnapshot(userDocRef, (userDoc) => {
+          if (userDoc.exists()) {
+            setUser({ uid: userAuth.uid, ...userDoc.data() } as UserProfile);
+          } else {
+            setUser(null);
+          }
+          setIsLoading(false);
+        });
+        return () => unsubUser(); // Cleanup user snapshot listener
       } else {
         setFirebaseUser(null);
         setUser(null);
         setCart([]);
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => unsubscribe(); // Cleanup auth state listener
   }, []);
 
   useEffect(() => {
@@ -262,7 +266,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           ...newOrderData
         } as Order;
       });
-      return createdOrder;
+      
+      await updateDoc(newOrderRef, { orderNumber: `#${newOrderRef.id.substring(0, 6).toUpperCase()}`});
+      
+      const finalOrder = await getDoc(newOrderRef);
+      return {id: finalOrder.id, ...finalOrder.data()} as Order;
 
     } catch (e: any) {
       console.error("La transaction de commande a échoué:", e);

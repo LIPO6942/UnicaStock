@@ -38,7 +38,7 @@ export default function RegisterPage() {
       await register(name, email, password, 'buyer');
       toast({
         title: "Compte créé avec succès !",
-        description: "Vous êtes maintenant connecté et pouvez commencer vos achats."
+        description: "Bienvenue ! Vous pouvez maintenant vous connecter."
       });
       router.push('/');
     } catch (err: any) {
@@ -57,7 +57,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center p-4">
+    <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center p-4 bg-secondary/40">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl font-headline">Créer un compte Acheteur</CardTitle>

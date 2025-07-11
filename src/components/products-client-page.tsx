@@ -33,7 +33,6 @@ export function ProductsClientPage({ products, categories, seller }: ProductsCli
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortOrder, setSortOrder] = useState('popular');
-  const [displayedProducts, setDisplayedProducts] = useState<Product[]>(products);
 
   useEffect(() => {
     setSearchTerm(initialSearchTerm);
@@ -60,7 +59,7 @@ export function ProductsClientPage({ products, categories, seller }: ProductsCli
     let sorted = [...filtered];
     switch (sortOrder) {
       case 'price-asc':
-        sorted.sort((a, b) => (a.variants[0]?.price || 0) - (b.variants[0]?.price || 0));
+        sorted.sort((a, b) => (a.variants[0]?.price || Infinity) - (b.variants[0]?.price || Infinity));
         break;
       case 'price-desc':
         sorted.sort((a, b) => (b.variants[0]?.price || 0) - (a.variants[0]?.price || 0));

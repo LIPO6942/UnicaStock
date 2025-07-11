@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -221,10 +222,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       // The transaction now only creates the order and clears the cart.
       // Stock management is moved to the seller's order confirmation step.
-      const createdOrder = await runTransaction(db, async (transaction) => {
+      await runTransaction(db, async (transaction) => {
         const total = cart.reduce((sum, item) => sum + item.variant.price * item.quantity, 0);
 
-        // Check if there's enough stock without decrementing it
+        // Check stock availability before creating order
         for (const item of cart) {
           const productRef = doc(db, 'products', item.productId);
           const productDoc = await transaction.get(productRef);
@@ -239,7 +240,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
 
-        const newOrderData: Omit<Order, 'id' | 'orderNumber' | 'stockDeducted'> = {
+        const newOrderData: Omit<Order, 'id'> = {
+          orderNumber: `#${newOrderRef.id.substring(0, 6).toUpperCase()}`,
           userId: user.uid,
           userName: user.name,
           buyerInfo: { email: user.email },
@@ -259,15 +261,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const cartItemRef = doc(cartCollectionRef, item.id);
           transaction.delete(cartItemRef);
         }
-        
-        return {
-          id: newOrderRef.id,
-          orderNumber: `#${newOrderRef.id.substring(0, 6).toUpperCase()}`,
-          ...newOrderData
-        } as Order;
       });
-      
-      await updateDoc(newOrderRef, { orderNumber: `#${newOrderRef.id.substring(0, 6).toUpperCase()}`});
       
       const finalOrder = await getDoc(newOrderRef);
       return {id: finalOrder.id, ...finalOrder.data()} as Order;

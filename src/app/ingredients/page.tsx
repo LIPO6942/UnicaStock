@@ -40,7 +40,7 @@ const ingredients: Ingredient[] = [
     name: 'Argile Verte',
     location: 'Montagnes du Nord-Ouest',
     description: 'Extraite des gisements naturels tunisiens, notre argile verte purifie en profondeur et régule l’excès de sébum pour une peau nette et matifiée.',
-    imageUrl: 'https://placehold.co/500x350.png',
+    imageUrl: 'https://images.unsplash.com/photo-1626783416763-67a92e5e7266?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxncmVlbiUyMGNsYXklMjBjb3NtZXRpY3xlbnwwfHx8fDE3NTIyMzM3MDV8MA&ixlib=rb-4.1.0&q=80&w=1080',
     imageHint: 'green clay',
     benefits: [{ name: 'Purifiante' }, { name: 'Détoxifiante' }, { name: 'Matifiante' }, { name: 'Resserrement des pores' }],
     certifications: ['Naturel', 'Non traité'],

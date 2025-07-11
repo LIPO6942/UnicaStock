@@ -31,7 +31,7 @@ const ingredients: Ingredient[] = [
     name: 'Eau de Fleur d\'Oranger',
     location: 'Nabeul, Cap Bon',
     description: 'Distillée selon des méthodes traditionnelles, notre eau de fleur d\'oranger apaise et parfume délicatement la peau, tout en respectant son équilibre naturel.',
-    imageUrl: 'https://placehold.co/500x600.png',
+    imageUrl: 'https://images.unsplash.com/photo-1647249239918-058feb10d233?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxGbGV1ciUyMGQlMjdPcmFuZ2VyfGVufDB8fHx8MTc1MjIzMjgyMXww&ixlib=rb-4.1.0&q=80&w=1080',
     imageHint: 'cosmetic bottles',
     benefits: [{ name: 'Apaisante' }, { name: 'Rafraîchissante' }, { name: 'Anti-inflammatoire' }, { name: 'Parfum naturel' }],
     certifications: ['Naturel', 'Artisanal'],

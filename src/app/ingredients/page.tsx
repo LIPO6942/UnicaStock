@@ -1,9 +1,9 @@
 
 import Image from 'next/image';
-import { CheckCircle2, Leaf, MapPin, Award, Orbit, Recycle } from 'lucide-react';
+import { CheckCircle2, Leaf, MapPin, Award, Orbit } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { Ingredient } from '@/lib/types';
-import { getIngredients } from '@/lib/ingredients-service';
+import { ingredientsData } from '@/lib/ingredients-data';
 
 const IngredientCard = ({ ingredient, reverse = false }: { ingredient: Ingredient; reverse?: boolean }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
@@ -59,8 +59,8 @@ const EngagementCard = ({ icon, title, description }: { icon: React.ReactNode, t
 )
 
 
-export default async function IngredientsPage() {
-  const ingredients = await getIngredients();
+export default function IngredientsPage() {
+  const ingredients = ingredientsData;
 
   return (
     <div className="bg-background">

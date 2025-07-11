@@ -23,6 +23,7 @@ import {
   LoaderCircle,
   Package,
   Home,
+  Leaf,
 } from 'lucide-react';
 import { Icons } from '@/components/icons';
 import Link from 'next/link';
@@ -64,6 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const sellerNav = [
     { href: '/dashboard/orders', label: 'Commandes', icon: ShoppingCart },
     { href: '/dashboard/products', label: 'Produits', icon: Package },
+    { href: '/dashboard/ingredients', label: 'Ingrédients Page', icon: Leaf },
     { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare, notificationCount: unreadMessagesCount },
   ];
 

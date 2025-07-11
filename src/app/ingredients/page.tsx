@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { CheckCircle2, Leaf, MapPin, Award, Orbit } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { Ingredient } from '@/lib/types';
-import { ingredientsData } from '@/lib/ingredients-data';
+import { getIngredients } from '@/lib/ingredients-service';
 
 const IngredientCard = ({ ingredient, reverse = false }: { ingredient: Ingredient; reverse?: boolean }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
@@ -59,8 +59,8 @@ const EngagementCard = ({ icon, title, description }: { icon: React.ReactNode, t
 )
 
 
-export default function IngredientsPage() {
-  const ingredients = ingredientsData;
+export default async function IngredientsPage() {
+  const ingredients = await getIngredients();
 
   return (
     <div className="bg-background">
@@ -83,7 +83,7 @@ export default function IngredientsPage() {
 
         <section className="space-y-16 md:space-y-24">
           {ingredients.map((ingredient, index) => (
-            <IngredientCard key={ingredient.name} ingredient={ingredient} reverse={index % 2 !== 0} />
+            <IngredientCard key={ingredient.id} ingredient={ingredient} reverse={index % 2 !== 0} />
           ))}
         </section>
         

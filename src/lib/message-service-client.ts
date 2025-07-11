@@ -61,7 +61,7 @@ export async function getMessagesForUser(user: UserProfile): Promise<Message[]> 
     });
 
     // Always sort messages on the client by creation date for consistent display
-    messages.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    messages.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
 
     return messages;
 }

@@ -1,4 +1,6 @@
 
+'use client';
+
 import { ProductCard } from '@/components/product-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,12 +9,43 @@ import { ArrowRight, Leaf, Search, ShieldCheck, Truck } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
+import type { Product, UserProfile } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 
-export default async function Home() {
-  const allProducts = await getProducts();
-  const featuredProducts = allProducts.slice(0, 4);
-  const recommendedProducts = [...allProducts].reverse().slice(0, 4);
-  const seller = await getSellerProfile();
+export default function Home() {
+  const router = useRouter();
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
+  const [seller, setSeller] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      const [allProducts, sellerProfile] = await Promise.all([
+        getProducts(),
+        getSellerProfile()
+      ]);
+      
+      setFeaturedProducts(allProducts.slice(0, 4));
+      setRecommendedProducts([...allProducts].reverse().slice(0, 4));
+      setSeller(sellerProfile);
+      setIsLoading(false);
+    }
+    fetchData();
+  }, []);
+  
+  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      router.push(`/products?q=${encodeURIComponent(searchTerm.trim())}`);
+    } else {
+      router.push('/products');
+    }
+  };
+
 
   const heroImageUrl = seller?.homepageImageUrl || "https://images.unsplash.com/photo-1598454449835-33454c134f59?q=80&w=2940";
   const heroImageOpacity = seller?.homepageImageOpacity !== undefined ? seller.homepageImageOpacity : 0.1;
@@ -40,12 +73,15 @@ export default async function Home() {
             Votre source fiable pour les ingrédients cosmétiques de qualité en Tunisie.
           </p>
           <div className="w-full max-w-2xl">
-            <form className="group relative">
+            <form className="group relative" onSubmit={handleSearchSubmit}>
                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
               <Input
                 type="search"
+                name="q"
                 placeholder="Rechercher par nom de produit, INCI..."
                 className="w-full rounded-full py-7 pl-12 pr-32 text-base shadow-lg"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
               <Button type="submit" size="lg" className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full py-6">
                 Rechercher

@@ -2,9 +2,9 @@
 
 'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Image from 'next/image';
-import { File, ChevronRight, LoaderCircle, MessageSquare } from "lucide-react";
+import { File, ChevronRight, LoaderCircle, MessageSquare, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, runTrans
 import type { Order, OrderStatus, Product } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
 
 
 const orderStatuses: OrderStatus[] = ['En attente', 'Confirmée', 'Préparation en cours', 'Expédiée', 'Livrée', 'Annulée'];
@@ -26,6 +27,7 @@ export default function DashboardOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -59,6 +61,21 @@ export default function DashboardOrdersPage() {
 
     return () => unsubscribe();
   }, [user]);
+
+  const filteredOrders = useMemo(() => {
+    if (!searchTerm) return orders;
+    const lowercasedTerm = searchTerm.toLowerCase();
+    return orders.filter(order => {
+      const buyerInfo = order.buyerInfo;
+      return (
+        order.orderNumber.toLowerCase().includes(lowercasedTerm) ||
+        order.userName.toLowerCase().includes(lowercasedTerm) ||
+        (buyerInfo?.email && buyerInfo.email.toLowerCase().includes(lowercasedTerm)) ||
+        order.items.some(item => item.productName.toLowerCase().includes(lowercasedTerm))
+      );
+    });
+  }, [orders, searchTerm]);
+
 
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     const orderRef = doc(db, 'orders', orderId);
@@ -238,26 +255,43 @@ export default function DashboardOrdersPage() {
   }
 
   return (
-    <>
+    <div className="space-y-6">
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <CardTitle>{cardTitle}</CardTitle>
           <CardDescription>{cardDescription}</CardDescription>
         </div>
-        {isSeller && (
-          <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleExport}>
-            <File className="h-3.5 w-3.5" />
-            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-              Exporter
-            </span>
-          </Button>
-        )}
+        <div className="flex items-center gap-2 w-full md:w-auto">
+             {isSeller && (
+              <div className="relative w-full md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                    placeholder="Rechercher (N°, client, email...)" 
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            )}
+            {isSeller && (
+              <Button size="sm" variant="outline" className="h-10 gap-1" onClick={handleExport}>
+                <File className="h-3.5 w-3.5" />
+                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                  Exporter
+                </span>
+              </Button>
+            )}
+        </div>
       </CardHeader>
       <CardContent>
-        {orders.length === 0 ? (
+        {filteredOrders.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
-            <p>Vous n'avez aucune commande pour le moment.</p>
+            <p>
+              {searchTerm 
+                ? `Aucune commande ne correspond à votre recherche "${searchTerm}".`
+                : "Vous n'avez aucune commande pour le moment."}
+            </p>
           </div>
         ) : (
           <Table>
@@ -272,7 +306,7 @@ export default function DashboardOrdersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {orders.map((order) => (
+              {filteredOrders.map((order) => (
                 <React.Fragment key={order.id}>
                   <TableRow onClick={() => toggleOrderDetails(order.id)} className="cursor-pointer">
                     <TableCell className="font-medium">
@@ -407,6 +441,6 @@ export default function DashboardOrdersPage() {
         )}
       </CardContent>
     </Card>
-    </>
+    </div>
   )
 }

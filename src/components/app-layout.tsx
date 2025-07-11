@@ -23,7 +23,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const navLinks = [
     { href: '/', label: 'Accueil' },
     { href: '/products', label: 'Produits' },
-    { href: '/ingredients', label: 'Nos Ingrédients' },
   ];
   
   const handleLinkClick = () => {

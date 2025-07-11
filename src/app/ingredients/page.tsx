@@ -22,7 +22,7 @@ const ingredients: Ingredient[] = [
     name: 'Huile d\'Argan',
     location: 'Sud de la Tunisie',
     description: 'Riche en vitamine E et acides gras essentiels, notre huile d\'argan tunisienne est reconnue pour ses propriétés régénérantes et anti-âge exceptionnelles.',
-    imageUrl: 'https://placehold.co/500x600.png',
+    imageUrl: 'https://images.unsplash.com/photo-1708146646005-30597857a7c9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxodWlsZSUyMGRlJTIwZmlndWV8ZW58MHx8fHwxNzUyMjMyNzE2fDA&ixlib=rb-4.1.0&q=80&w=1080',
     imageHint: 'argan oil',
     benefits: [{ name: 'Anti-âge' }, { name: 'Hydratation intense' }, { name: 'Régénération cellulaire' }, { name: 'Protection antioxydante' }],
     certifications: ['Bio', 'Commerce équitable'],

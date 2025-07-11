@@ -58,7 +58,7 @@ const ingredients: Ingredient[] = [
     name: 'Miel de Thym',
     location: 'Montagnes de Zaghouan',
     description: 'Récolté dans les montagnes tunisiennes, ce miel sauvage aux propriétés antibactériennes nourrit et régénère les peaux les plus exigeantes.',
-    imageUrl: 'https://placehold.co/500x600.png',
+    imageUrl: 'https://images.unsplash.com/photo-1587049352851-8d4e89133924?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMnx8dGh5bWUlMjBob25leXxlbnwwfHx8fDE3NTIyMzU0NTN8MA&ixlib=rb-4.1.0&q=80&w=1080',
     imageHint: 'honey thyme',
     benefits: [{ name: 'Nourrissant' }, { name: 'Antibactérien' }, { name: 'Cicatrisant' }, { name: 'Antioxydant' }],
     certifications: ['Sauvage', 'Non pasteurisé'],

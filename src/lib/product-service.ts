@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -9,16 +10,20 @@ import type { Product, Review, UserProfile } from '@/lib/types';
 const productsCollectionRef = collection(db, 'products');
 
 /**
- * Fetches all products from Firestore, ordered by name.
+ * Fetches all products from Firestore. Sorting is done manually to avoid complex query issues.
  * @returns A promise that resolves to an array of products.
  */
 export async function getProducts(): Promise<Product[]> {
-    const q = query(productsCollectionRef, orderBy("name"));
+    // Query without ordering to prevent permission issues with indexes.
+    const q = query(productsCollectionRef);
     const snapshot = await getDocs(q);
     if (snapshot.empty) {
         return [];
     }
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    // Sort manually after fetching
+    products.sort((a, b) => a.name.localeCompare(b.name));
+    return products;
 }
 
 /**

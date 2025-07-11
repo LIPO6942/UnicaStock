@@ -1,12 +1,15 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Icons } from '@/components/icons';
+import { useAuth } from '@/context/auth-context';
 
 export function MainNav() {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   return (
     <div className="mr-4 hidden md:flex">
@@ -24,6 +27,17 @@ export function MainNav() {
         >
           Produits
         </Link>
+        {user && (
+           <Link
+              href="/dashboard"
+              className={cn(
+                'transition-colors hover:text-foreground/80',
+                pathname.startsWith('/dashboard') ? 'text-foreground' : 'text-foreground/60'
+              )}
+            >
+              Dashboard
+            </Link>
+        )}
       </nav>
     </div>
   );

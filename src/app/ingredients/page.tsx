@@ -2,77 +2,8 @@
 import Image from 'next/image';
 import { CheckCircle2, Leaf, MapPin, Award, Orbit, Recycle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-
-type Benefit = {
-  name: string;
-};
-
-type Ingredient = {
-  name: string;
-  location: string;
-  description: string;
-  imageUrl: string;
-  imageHint: string;
-  benefits: Benefit[];
-  certifications: string[];
-};
-
-const ingredients: Ingredient[] = [
-  {
-    name: 'Huile d\'Argan',
-    location: 'Sud de la Tunisie',
-    description: 'Riche en vitamine E et acides gras essentiels, notre huile d\'argan tunisienne est reconnue pour ses propriétés régénérantes et anti-âge exceptionnelles.',
-    imageUrl: 'https://images.unsplash.com/photo-1708146646005-30597857a7c9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxodWlsZSUyMGRlJTIwZmlndWV8ZW58MHx8fHwxNzUyMjMyNzE2fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    imageHint: 'argan oil',
-    benefits: [{ name: 'Anti-âge' }, { name: 'Hydratation intense' }, { name: 'Régénération cellulaire' }, { name: 'Protection antioxydante' }],
-    certifications: ['Bio', 'Commerce équitable'],
-  },
-  {
-    name: 'Eau de Fleur d\'Oranger',
-    location: 'Nabeul, Cap Bon',
-    description: 'Distillée selon des méthodes traditionnelles, notre eau de fleur d\'oranger apaise et parfume délicatement la peau, tout en respectant son équilibre naturel.',
-    imageUrl: 'https://images.unsplash.com/photo-1647249239918-058feb10d233?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxGbGV1ciUyMGQlMjdPcmFuZ2VyfGVufDB8fHx8MTc1MjIzMjgyMXww&ixlib=rb-4.1.0&q=80&w=1080',
-    imageHint: 'cosmetic bottles',
-    benefits: [{ name: 'Apaisante' }, { name: 'Rafraîchissante' }, { name: 'Anti-inflammatoire' }, { name: 'Parfum naturel' }],
-    certifications: ['Naturel', 'Artisanal'],
-  },
-  {
-    name: 'Argile Verte',
-    location: 'Montagnes du Nord-Ouest',
-    description: 'Extraite des gisements naturels tunisiens, notre argile verte purifie en profondeur et régule l’excès de sébum pour une peau nette et matifiée.',
-    imageUrl: 'https://images.unsplash.com/photo-1626783416763-67a92e5e7266?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxncmVlbiUyMGNsYXklMjBjb3NtZXRpY3xlbnwwfHx8fDE3NTIyMzM3MDV8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    imageHint: 'green clay',
-    benefits: [{ name: 'Purifiante' }, { name: 'Détoxifiante' }, { name: 'Matifiante' }, { name: 'Resserrement des pores' }],
-    certifications: ['Naturel', 'Non traité'],
-  },
-    {
-    name: 'Huile de Figue de Barbarie',
-    location: 'Régions arides tunisiennes',
-    description: 'L\'or vert du désert tunisien, cette huile précieuse est l\'un des anti-âge naturels les plus puissants, riche en vitamine E et stérols.',
-    imageUrl: 'https://placehold.co/500x600.png',
-    imageHint: 'prickly pear',
-    benefits: [{ name: 'Anti-âge puissant' }, { name: 'Élasticité' }, { name: 'Éclat' }, { name: 'Réparation' }],
-    certifications: ['Bio', 'Pressage à froid'],
-  },
-  {
-    name: 'Miel de Thym',
-    location: 'Montagnes de Zaghouan',
-    description: 'Récolté dans les montagnes tunisiennes, ce miel sauvage aux propriétés antibactériennes nourrit et régénère les peaux les plus exigeantes.',
-    imageUrl: 'https://images.unsplash.com/photo-1587049352851-8d4e89133924?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMnx8dGh5bWUlMjBob25leXxlbnwwfHx8fDE3NTIyMzU0NTN8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    imageHint: 'honey thyme',
-    benefits: [{ name: 'Nourrissant' }, { name: 'Antibactérien' }, { name: 'Cicatrisant' }, { name: 'Antioxydant' }],
-    certifications: ['Sauvage', 'Non pasteurisé'],
-  },
-  {
-    name: 'Sable du Sahara',
-    location: 'Désert du Sahara Tunisien',
-    description: 'Finement tamisé et purifié, le sable ocre du Sahara offre une exfoliation douce et naturelle, révélant la douceur de votre peau.',
-    imageUrl: 'https://placehold.co/500x600.png',
-    imageHint: 'sahara sand',
-    benefits: [{ name: 'Exfoliation douce' }, { name: 'Circulation' }, { name: 'Douceur' }, { name: 'Renouvellement cellulaire' }],
-    certifications: ['Naturel', 'Purifié'],
-  },
-];
+import type { Ingredient } from '@/lib/types';
+import { getIngredients } from '@/lib/ingredients-service';
 
 const IngredientCard = ({ ingredient, reverse = false }: { ingredient: Ingredient; reverse?: boolean }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
@@ -128,7 +59,9 @@ const EngagementCard = ({ icon, title, description }: { icon: React.ReactNode, t
 )
 
 
-export default function IngredientsPage() {
+export default async function IngredientsPage() {
+  const ingredients = await getIngredients();
+
   return (
     <div className="bg-background">
       <header className="bg-primary text-primary-foreground py-20">

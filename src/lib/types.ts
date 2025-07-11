@@ -115,3 +115,18 @@ export type Banner = {
   linkUrl: string;
   buttonText: string;
 };
+
+export type Benefit = {
+  name: string;
+};
+
+export type Ingredient = {
+  id: string;
+  name: string;
+  location: string;
+  description: string;
+  imageUrl: string;
+  imageHint: string;
+  benefits: Benefit[];
+  certifications: string[];
+};

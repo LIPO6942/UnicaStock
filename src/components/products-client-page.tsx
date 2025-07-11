@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/select';
 import { useMemo, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 
 interface ProductsClientPageProps {
     products: Product[];
@@ -127,19 +126,18 @@ export function ProductsClientPage({ products, categories, seller }: ProductsCli
               </div>
 
               <div>
-                <Label className="text-base font-semibold">Catégorie</Label>
-                 <RadioGroup value={selectedCategory} onValueChange={setSelectedCategory} className="mt-2 space-y-2">
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="all" id="cat-all" />
-                        <Label htmlFor="cat-all" className="font-normal cursor-pointer">Toutes les catégories</Label>
-                    </div>
-                  {categories.map((category) => (
-                    <div key={category} className="flex items-center space-x-2">
-                       <RadioGroupItem value={category} id={`cat-${category}`} />
-                       <Label htmlFor={`cat-${category}`} className="font-normal cursor-pointer">{category}</Label>
-                    </div>
-                  ))}
-                </RadioGroup>
+                <Label htmlFor="category-select" className="text-base font-semibold">Catégorie</Label>
+                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger id="category-select" className="mt-2">
+                        <SelectValue placeholder="Toutes les catégories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Toutes les catégories</SelectItem>
+                        {categories.map((category) => (
+                            <SelectItem key={category} value={category}>{category}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
               </div>
             </div>
           </div>

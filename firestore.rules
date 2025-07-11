@@ -1,55 +1,50 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Allow public read access to ingredients
+  
+    // Allow public read-only access to ingredients and products
     match /ingredients/{ingredientId} {
       allow read: if true;
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller';
+      allow write: if false; // No one can write
     }
 
-    // Products and their reviews can be read by anyone.
-    // Only sellers can create, update, or delete products.
     match /products/{productId} {
       allow read: if true;
       allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller';
-
-      // Reviews can be created by authenticated buyers.
-      // No one can update/delete reviews for data integrity.
-      match /reviews/{reviewId} {
-        allow read: if true;
-        allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'buyer';
-        allow update, delete: if false;
-      }
     }
 
-    // Users can only manage their own documents and cart.
+    // Secure user data
     match /users/{userId} {
       allow read, update: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null;
-
+      allow delete: if request.auth != null && request.auth.uid == userId;
+      
+      // Cart is private to each user
       match /cart/{cartId} {
         allow read, write, delete: if request.auth != null && request.auth.uid == userId;
       }
     }
 
-    // Orders can be created by buyers.
-    // They can be read by the buyer who placed it, or any seller.
-    // They can only be updated by a seller.
+    // Secure orders
     match /orders/{orderId} {
-      allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'buyer';
-      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
-      allow update: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller';
-      allow delete: if false;
+        allow create: if request.auth != null; // Allow logged-in users to create orders
+        allow read: if request.auth != null && (request.auth.uid == resource.data.userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
+        allow update: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller';
+    }
+    
+    // Secure messages
+    match /messages/{messageId} {
+        allow create: if request.auth != null;
+        allow read, update: if request.auth != null && (request.auth.uid == resource.data.buyerId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
     }
 
-    // Messages can be created by anyone authenticated.
-    // They can only be read by the buyer involved or any seller.
-    match /messages/{messageId} {
-       allow create: if request.auth != null;
-       allow read, update: if request.auth != null && (resource.data.buyerId == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
-       allow delete: if false;
+    // Secure product reviews
+    match /products/{productId}/reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'buyer';
+      allow write: if false; // No updates/deletes for now
     }
   }
 }

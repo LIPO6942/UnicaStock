@@ -70,6 +70,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const cartUnsubscribe = onSnapshot(cartCollectionRef, (snapshot) => {
         const newCart = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CartItem));
         setCart(newCart);
+      }, (error) => {
+        console.error("Erreur de lecture du panier:", error);
       });
 
       // Unread messages listener
@@ -80,8 +82,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         q = query(messagesCollectionRef, where('buyerId', '==', user.uid), where('sender', '==', 'seller'), where('isRead', '==', false));
       }
+      
       const messagesUnsubscribe = onSnapshot(q, (snapshot) => {
         setUnreadMessagesCount(snapshot.size);
+      }, (error) => {
+        console.error("Erreur de lecture des messages non lus:", error);
+        // In case of permission error, we silently fail and set count to 0 to prevent crashes
+        setUnreadMessagesCount(0);
       });
 
       return () => {

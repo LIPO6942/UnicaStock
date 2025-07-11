@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nos Ingrédients - Unica Link</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: 'hsl(0 0% 100%)',
+                        foreground: 'hsl(222.2 47.4% 11.2%)',
+                        primary: {
+                            DEFAULT: 'hsl(26 83% 62%)',
+                            foreground: 'hsl(210 40% 98%)',
+                        },
+                        secondary: {
+                            DEFAULT: 'hsl(210 40% 96.1%)',
+                            foreground: 'hsl(222.2 47.4% 11.2%)',
+                        },
+                        muted: {
+                            DEFAULT: 'hsl(210 40% 96.1%)',
+                            foreground: 'hsl(215.4 16.3% 46.9%)',
+                        },
+                        accent: {
+                            DEFAULT: 'hsl(26 83% 96%)',
+                            foreground: 'hsl(26 83% 30%)',
+                        },
+                        border: 'hsl(214.3 31.8% 91.4%)'
+                    },
+                    fontFamily: {
+                       body: ['Inter', 'sans-serif'],
+                       headline: ['PT Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'PT Sans', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background text-foreground">
+    <header class="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur">
+        <div class="container mx-auto flex h-16 items-center justify-between px-4">
+            <a href="/" class="flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-primary-DEFAULT"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"></path></svg>
+                <span class="font-bold text-lg font-headline tracking-tight">Ùnica Cosmétiques</span>
+            </a>
+            <nav class="hidden md:flex items-center space-x-6 text-sm font-medium">
+                <a href="/products" class="transition-colors hover:text-foreground/80 text-foreground/60">Produits</a>
+                <a href="/ingredients.html" class="transition-colors hover:text-foreground/80 text-foreground">Nos Ingrédients</a>
+                 <a href="/dashboard" class="transition-colors hover:text-foreground/80 text-foreground/60">Dashboard</a>
+            </nav>
+            <div class="flex items-center space-x-2">
+                 <a href="/login" class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">Connexion</a>
+                <a href="/register" class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary-DEFAULT text-primary-foreground hover:bg-primary-DEFAULT/90 h-10 px-4 py-2">S'inscrire</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1">
+        <div class="container mx-auto py-12 px-4">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold font-headline tracking-tight sm:text-5xl">La richesse de la terre tunisienne</h1>
+                <p class="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">Découvrez la source de notre qualité : des ingrédients purs, cultivés avec passion et respect de la nature.</p>
+            </div>
+    
+            <div class="space-y-16">
+                <!-- Ingrédient 1 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16 items-center">
+                    <div>
+                        <img src="https://images.unsplash.com/photo-1555037015-1498966bcd74?q=80&w=2940" alt="Figue de Barbarie" class="rounded-xl shadow-lg w-full h-auto object-cover aspect-video">
+                    </div>
+                    <div>
+                        <span class="text-sm font-semibold uppercase tracking-wider text-primary-DEFAULT">Kasserine, Tunisie</span>
+                        <h2 class="text-3xl font-bold font-headline mt-2">Figue de Barbarie</h2>
+                        <p class="mt-4 text-muted-foreground leading-relaxed">Reconnue pour son huile précieuse, la figue de Barbarie de la région de Kasserine est un trésor anti-âge. Riche en vitamine E et en stérols, elle protège la peau contre les radicaux libres et stimule la régénération cellulaire.</p>
+                        <div class="mt-6">
+                            <h4 class="font-semibold text-foreground mb-2">Bienfaits principaux :</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="bg-secondary-DEFAULT text-secondary-foreground text-xs font-medium px-2.5 py-1 rounded-full">Anti-oxydant</span>
+                                <span class="bg-secondary-DEFAULT text-secondary-foreground text-xs font-medium px-2.5 py-1 rounded-full">Régénérant</span>
+                                <span class="bg-secondary-DEFAULT text-secondary-foreground text-xs font-medium px-2.5 py-1 rounded-full">Hydratant</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ingrédient 2 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16 items-center">
+                    <div class="md:order-2">
+                        <img src="https://images.unsplash.com/photo-1525994886773-437191120156?q=80&w=2874" alt="Huile d'Olive" class="rounded-xl shadow-lg w-full h-auto object-cover aspect-video">
+                    </div>
+                    <div class="md:order-1">
+                        <span class="text-sm font-semibold uppercase tracking-wider text-primary-DEFAULT">Sfax, Tunisie</span>
+                        <h2 class="text-3xl font-bold font-headline mt-2">Huile d'Olive</h2>
+                        <p class="mt-4 text-muted-foreground leading-relaxed">L'or liquide de Tunisie, notre huile d'olive extra-vierge de Sfax, est pressée à froid pour préserver ses polyphénols. Elle nourrit, adoucit et protège la peau, laissant un film protecteur non gras.</p>
+                         <div class="mt-6">
+                            <h4 class="font-semibold text-foreground mb-2">Bienfaits principaux :</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="bg-secondary-DEFAULT text-secondary-foreground text-xs font-medium px-2.5 py-1 rounded-full">Nourrissant</span>
+                                <span class="bg-secondary-DEFAULT text-secondary-foreground text-xs font-medium px-2.5 py-1 rounded-full">Protecteur</span>
+                                <span class="bg-secondary-DEFAULT text-secondary-foreground text-xs font-medium px-2.5 py-1 rounded-full">Adoucissant</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ingrédient 3 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16 items-center">
+                    <div>
+                        <img src="https://images.unsplash.com/photo-1627522142247-2114c8d9dec4?q=80&w=2940" alt="Fleur d'Oranger" class="rounded-xl shadow-lg w-full h-auto object-cover aspect-video">
+                    </div>
+                    <div>
+                        <span class="text-sm font-semibold uppercase tracking-wider text-primary-DEFAULT">Nabeul, Tunisie</span>
+                        <h2 class="text-3xl font-bold font-headline mt-2">Fleur d'Oranger (Néroli)</h2>
+                        <p class="mt-4 text-muted-foreground leading-relaxed">Distillée avec soin dans la région du Cap Bon, notre eau de fleur d'oranger, ou Néroli, est célèbre pour ses propriétés apaisantes et rééquilibrantes. Elle calme les peaux sensibles et illumine le teint.</p>
+                         <div class="mt-6">
+                            <h4 class="font-semibold text-foreground mb-2">Bienfaits principaux :</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="bg-secondary-DEFAULT text-secondary-foreground text-xs font-medium px-2.5 py-1 rounded-full">Apaisant</span>
+                                <span class="bg-secondary-DEFAULT text-secondary-foreground text-xs font-medium px-2.5 py-1 rounded-full">Tonifiant</span>
+                                <span class="bg-secondary-DEFAULT text-secondary-foreground text-xs font-medium px-2.5 py-1 rounded-full">Éclat du teint</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="py-6 md:px-8 md:py-0 bg-secondary-DEFAULT/50 mt-16">
+        <div class="container mx-auto flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row px-4">
+            <div class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-primary-DEFAULT"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"></path></svg>
+                <p class="text-center text-sm leading-loose text-muted-foreground md:text-left">
+                    Construit avec passion
+                </p>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="#" class="text-sm font-medium text-muted-foreground hover:text-foreground">Conditions d'utilisation</a>
+                <a href="#" class="text-sm font-medium text-muted-foreground hover:text-foreground">Politique de confidentialité</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

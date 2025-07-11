@@ -13,6 +13,7 @@ export function MainNav() {
 
   const navLinks = [
     { href: '/products', label: 'Produits' },
+    { href: '/ingredients.html', label: 'Nos Ingrédients' },
   ];
 
   return (

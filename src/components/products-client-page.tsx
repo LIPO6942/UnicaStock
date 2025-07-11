@@ -39,43 +39,49 @@ export function ProductsClientPage({ products, categories, seller }: ProductsCli
   }, [initialSearchTerm]);
 
   const filteredAndSortedProducts = useMemo(() => {
-    let filtered = products;
+    let filteredProducts = products;
 
-    // Filter by search term
+    // 1. Filter by category
+    if (selectedCategory !== 'all') {
+      filteredProducts = filteredProducts.filter(p => p.category === selectedCategory);
+    }
+
+    // 2. Filter by search term
     if (searchTerm) {
       const lowercasedTerm = searchTerm.toLowerCase();
-      filtered = filtered.filter(p => 
-        p.name.toLowerCase().includes(lowercasedTerm) || 
+      filteredProducts = filteredProducts.filter(p =>
+        p.name.toLowerCase().includes(lowercasedTerm) ||
         p.inci.toLowerCase().includes(lowercasedTerm)
       );
     }
 
-    // Filter by category
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(p => p.category === selectedCategory);
-    }
-
-    // Sort products
-    let sorted = [...filtered];
+    // 3. Sort the filtered products
+    const sortedProducts = [...filteredProducts];
     switch (sortOrder) {
       case 'price-asc':
-        sorted.sort((a, b) => (a.variants[0]?.price || Infinity) - (b.variants[0]?.price || Infinity));
+        sortedProducts.sort((a, b) => {
+            const priceA = a.variants?.[0]?.price ?? Infinity;
+            const priceB = b.variants?.[0]?.price ?? Infinity;
+            return priceA - priceB;
+        });
         break;
       case 'price-desc':
-        sorted.sort((a, b) => (b.variants[0]?.price || 0) - (a.variants[0]?.price || 0));
+        sortedProducts.sort((a, b) => {
+            const priceA = a.variants?.[0]?.price ?? 0;
+            const priceB = b.variants?.[0]?.price ?? 0;
+            return priceB - priceA;
+        });
         break;
       case 'rating':
-        sorted.sort((a, b) => b.rating - a.rating);
+        sortedProducts.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
       case 'popular':
       default:
-        // Assuming 'popular' is default and might be based on reviewCount or another metric.
-        // For now, let's sort by review count.
-        sorted.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0));
+        sortedProducts.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0));
         break;
     }
     
-    return sorted;
+    return sortedProducts;
   }, [products, searchTerm, selectedCategory, sortOrder]);
 
 

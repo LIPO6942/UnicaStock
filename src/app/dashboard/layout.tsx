@@ -42,29 +42,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, isLoading, unreadMessagesCount } = useAuth();
 
   useEffect(() => {
-    // This effect handles redirection ONLY if the auth state is fully resolved and there's no user.
     if (!isLoading && !user) {
       router.replace('/login');
     }
   }, [isLoading, user, router]);
 
   useEffect(() => {
-    // This effect handles the initial redirection for sellers from /dashboard to /dashboard/orders.
     if (!isLoading && user?.type === 'seller' && pathname === '/dashboard') {
       router.replace('/dashboard/orders');
     }
   }, [isLoading, user, pathname, router]);
 
 
-  // If the auth state is still loading, show a full-page loader.
-  // This prevents any child components from rendering prematurely.
-  if (isLoading) {
-    return <Loading />;
-  }
-
-  // If loading is finished and there is still no user, the useEffect above will handle redirection.
-  // In the meantime, we can render a loader to avoid a flash of content or an error.
-  if (!user) {
+  if (isLoading || !user) {
     return <Loading />;
   }
 
@@ -92,7 +82,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const siteNav = [
     { href: '/', label: 'Accueil' },
     { href: '/products', label: 'Produits' },
-    { href: '/ingredients.html', label: 'Nos Ingrédients' },
+    { href: '/ingredients', label: 'Nos Ingrédients' },
   ];
 
   const navItems = user.type === 'seller' ? sellerNav : buyerNav;

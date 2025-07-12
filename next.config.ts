@@ -1,15 +1,6 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  async redirects() {
-    return [
-      {
-        source: '/ingredients',
-        destination: '/ingredients.html',
-        permanent: true,
-      },
-    ]
-  },
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,

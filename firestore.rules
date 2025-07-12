@@ -1,65 +1,64 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users:
-    // - Authenticated users can read their own data.
-    // - Publicly readable for displaying seller info.
-    // - Account creation is allowed for anyone.
-    // - Users can only update their own profiles.
+    // USERS
+    // Users can read their own data. Seller info is public.
+    // Anyone can create an account. Users can only update/delete their own.
     match /users/{userId} {
-      allow read; // Make public to allow showing seller info
-      allow create;
+      allow read: if true;
+      allow create: if request.auth != null;
       allow update, delete: if request.auth.uid == userId;
 
-      // Cart:
+      // CART (Subcollection of users)
       // Users can only access their own cart.
       match /cart/{cartId} {
         allow read, write, delete: if request.auth.uid == userId;
       }
     }
 
-    // Products:
-    // - Publicly readable by anyone.
-    // - Only sellers can create, update, or delete products.
+    // PRODUCTS
+    // Publicly readable. Only sellers can write.
     match /products/{productId} {
-      allow read;
+      allow read: if true;
       allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller';
 
-      // Reviews:
-      // - Publicly readable.
-      // - Only authenticated buyers can create reviews.
+      // REVIEWS (Subcollection of products)
+      // Publicly readable. Only buyers can create.
       match /reviews/{reviewId} {
-        allow read;
+        allow read: if true;
         allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'buyer';
       }
     }
     
-    // Ingredients:
-    // - Publicly readable.
-    // - Only sellers can write.
+    // INGREDIENTS
+    // Publicly readable. Only sellers can write.
     match /ingredients/{ingredientId} {
-        allow read: if true;
-        allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller';
+      allow read: if true;
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller';
     }
 
-    // Orders:
-    // - Users can only create orders for themselves.
-    // - Users can read their own orders.
-    // - Sellers can read all orders and update their status.
+    // ORDERS
+    // Buyers can create and read their own orders.
+    // Sellers can read all orders and update them.
     match /orders/{orderId} {
       allow create: if request.auth.uid == request.resource.data.userId;
-      allow read: if request.auth.uid == resource.data.userId || (request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
+      allow read: if request.auth.uid == resource.data.userId || 
+                    (request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
       allow update: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller';
     }
 
-    // Messages:
-    // - Users can only access messages related to their orders.
-    // - Sellers can access all messages.
+    // MESSAGES
+    // Participants (buyer or seller) can read/write messages in a thread.
     match /messages/{messageId} {
-       allow read, create: if request.auth != null && (request.auth.uid == resource.data.buyerId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
-       allow update: if request.auth != null && (request.auth.uid == resource.data.buyerId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
+       allow read, create: if request.auth != null && 
+                             (request.auth.uid == request.resource.data.buyerId || 
+                              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
+       allow update: if request.auth != null && 
+                      (request.auth.uid == resource.data.buyerId || 
+                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
     }
   }
 }

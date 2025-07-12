@@ -34,6 +34,7 @@ import { useEffect } from 'react';
 import { HeaderActions } from '@/components/header-actions';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import Loading from './loading';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -41,25 +42,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, isLoading, unreadMessagesCount } = useAuth();
 
   useEffect(() => {
+    // This effect handles redirection ONLY if the auth state is fully resolved and there's no user.
     if (!isLoading && !user) {
-      router.push('/login');
+      router.replace('/login');
     }
   }, [isLoading, user, router]);
 
-  // Redirect seller from dashboard root to orders page
   useEffect(() => {
+    // This effect handles the initial redirection for sellers from /dashboard to /dashboard/orders.
     if (!isLoading && user?.type === 'seller' && pathname === '/dashboard') {
       router.replace('/dashboard/orders');
     }
   }, [isLoading, user, pathname, router]);
 
 
-  if (isLoading || !user) {
-    return (
-        <div className="flex h-screen items-center justify-center">
-            <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    )
+  // If the auth state is still loading, show a full-page loader.
+  // This prevents any child components from rendering prematurely.
+  if (isLoading) {
+    return <Loading />;
+  }
+
+  // If loading is finished and there is still no user, the useEffect above will handle redirection.
+  // In the meantime, we can render a loader to avoid a flash of content or an error.
+  if (!user) {
+    return <Loading />;
   }
 
   const isActive = (path: string) => pathname === path || (path === '/dashboard/messages' && pathname.startsWith('/dashboard/messages'));

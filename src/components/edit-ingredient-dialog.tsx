@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { FirebaseError } from 'firebase/app';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -12,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import type { Ingredient } from '@/lib/types';
-import * as IngredientsService from '@/lib/ingredients-service';
+import * as IngredientsServiceClient from '@/lib/ingredients-service-client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
 
@@ -89,13 +90,13 @@ export function EditIngredientDialog({ isOpen, setIsOpen, ingredient, onSave }: 
       };
       
       if (ingredient) {
-        await IngredientsService.updateIngredient(ingredient.id, ingredientData);
+        await IngredientsServiceClient.updateIngredient(ingredient.id, ingredientData);
         toast({
           title: 'Ingrédient mis à jour',
           description: 'Les informations ont été enregistrées.',
         });
       } else {
-        await IngredientsService.addIngredient(ingredientData);
+        await IngredientsServiceClient.addIngredient(ingredientData);
         toast({
           title: 'Ingrédient ajouté',
           description: 'Le nouvel ingrédient a été créé avec succès.',
@@ -104,9 +105,13 @@ export function EditIngredientDialog({ isOpen, setIsOpen, ingredient, onSave }: 
       onSave();
     } catch (error) {
       console.error("Erreur lors de l'enregistrement de l'ingrédient:", error);
+      let description = "L'action a échoué. Veuillez réessayer.";
+       if (error instanceof FirebaseError && error.code === 'permission-denied') {
+        description = "Permission Refusée par Firestore. Assurez-vous que les règles de sécurité sont à jour et que votre compte est bien de type 'seller'.";
+      }
       toast({
           title: "Erreur d'enregistrement",
-          description: "L'action a échoué. Vérifiez vos permissions Firestore.",
+          description: description,
           variant: 'destructive',
           duration: 10000,
       });

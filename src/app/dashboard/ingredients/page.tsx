@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 import type { Ingredient } from '@/lib/types';
 import * as IngredientsService from '@/lib/ingredients-service';
+import * as IngredientsServiceClient from '@/lib/ingredients-service-client';
 import { useToast } from '@/hooks/use-toast';
 import { EditIngredientDialog } from '@/components/edit-ingredient-dialog';
 import Loading from '../loading';
@@ -43,10 +44,15 @@ export default function SellerIngredientsPage() {
   };
 
   useEffect(() => {
-    if (user?.type === 'seller') {
-      fetchIngredients();
+    if (!isAuthLoading) {
+      if (user?.type === 'seller') {
+        fetchIngredients();
+      } else if (user) {
+        toast({ title: 'Accès non autorisé', description: 'Cette page est réservée aux vendeurs.', variant: 'destructive'});
+        router.replace('/dashboard');
+      }
     }
-  }, [user]);
+  }, [user, isAuthLoading, router, toast]);
 
   const handleAddIngredient = () => {
     setSelectedIngredient(null);
@@ -60,7 +66,7 @@ export default function SellerIngredientsPage() {
 
   const handleDeleteIngredient = async (ingredientId: string) => {
     try {
-      await IngredientsService.deleteIngredient(ingredientId);
+      await IngredientsServiceClient.deleteIngredient(ingredientId);
       toast({
         title: 'Ingrédient supprimé',
         description: "L'ingrédient a été supprimé avec succès.",

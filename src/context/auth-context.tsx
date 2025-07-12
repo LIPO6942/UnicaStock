@@ -42,16 +42,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (userAuth) {
         setFirebaseUser(userAuth);
         const userDocRef = doc(db, 'users', userAuth.uid);
-        // Use onSnapshot to listen for real-time updates to user profile
         const unsubUser = onSnapshot(userDocRef, (userDoc) => {
           if (userDoc.exists()) {
             setUser({ uid: userAuth.uid, ...userDoc.data() } as UserProfile);
           } else {
+            // This can happen if user record is deleted but auth record still exists.
             setUser(null);
           }
-          setIsLoading(false);
+          // Set loading to false only after we have the full user profile from Firestore.
+          setIsLoading(false); 
+        }, (error) => {
+            console.error("Error fetching user profile:", error);
+            setUser(null);
+            setIsLoading(false);
         });
-        return () => unsubUser(); // Cleanup user snapshot listener
+        return () => unsubUser();
       } else {
         setFirebaseUser(null);
         setUser(null);
@@ -60,7 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    return () => unsubscribe(); // Cleanup auth state listener
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -111,9 +116,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (userAuth) {
       const userDocRef = doc(db, 'users', userAuth.uid);
       await setDoc(userDocRef, {
-        name,
-        email,
-        type,
+        name: name,
+        email: email,
+        type: type,
+        uid: userAuth.uid,
       });
     }
     return userCredential;

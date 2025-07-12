@@ -1,44 +1,58 @@
-
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Publicly readable, seller-writable collections
-    match /products/{productId} {
-      allow read: if true;
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller';
-      
-      match /reviews/{reviewId} {
-        allow read: if true;
-        allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'buyer';
-      }
-    }
-    
-    match /ingredients/{ingredientId} {
-      allow read: if true;
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller';
+    // Function to check if the requesting user is a seller
+    function isSeller() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller';
     }
 
-    // User-specific data
+    // Products and their reviews are publicly readable
+    match /products/{productId} {
+      allow read: if true;
+      // Write access is restricted to authenticated sellers
+      allow write: if isSeller();
+
+      // Anyone can read reviews
+      match /reviews/{reviewId} {
+        allow read: if true;
+        // Only authenticated users can create reviews (buyers)
+        allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      }
+    }
+
+    // Ingredients are publicly readable, but only writable by sellers
+    match /ingredients/{ingredientId} {
+      allow read: if true;
+      // Create, update, delete are restricted to sellers.
+      // This is a simplified rule to ensure sellers have write access.
+      allow write: if isSeller();
+    }
+
+    // Users can only read/update their own document.
+    // Cart is a sub-collection of user, so it inherits this restriction.
     match /users/{userId} {
       allow read, update: if request.auth != null && request.auth.uid == userId;
 
-      match /cart/{cartId} {
+      // Cart items can only be managed by the document owner
+      match /cart/{cartItemId} {
         allow read, write, delete: if request.auth != null && request.auth.uid == userId;
       }
     }
 
-    // Orders
+    // Orders can be read by the buyer who placed it, or by any seller.
+    // Order creation is handled in a transaction, not directly by rules.
     match /orders/{orderId} {
-      allow read: if request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller' || resource.data.userId == request.auth.uid);
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller';
+      allow read, update: if (request.auth != null && request.auth.uid == resource.data.userId) || isSeller();
     }
 
-    // Messages
+    // Messages can be read by the buyer or a seller.
+    // They can only be created by an authenticated user.
     match /messages/{messageId} {
-      allow read, create: if request.auth != null && (resource.data.buyerId == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
-      allow update: if request.auth != null && (resource.data.buyerId == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
+      allow read: if (request.auth != null && request.auth.uid == resource.data.buyerId) || isSeller();
+      allow create: if request.auth != null;
+      allow update: if isSeller() || (request.auth != null && request.auth.uid == resource.data.buyerId);
     }
   }
 }

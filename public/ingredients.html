@@ -3,195 +3,228 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nos Ingrédients - Unica Link</title>
+    <title>Nos Ingrédients - Unica Cosmétiques</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'PT Sans', sans-serif;
-        }
-        :root {
-            --background: 240 10% 3.9%;
-            --foreground: 0 0% 98%;
-            --primary: 29.2, 82.8%, 52.4%;
-            --primary-foreground: 0 0% 98%;
-            --secondary: 240 3.7% 15.9%;
-            --secondary-foreground: 0 0% 98%;
-            --muted: 240 3.7% 15.9%;
-            --muted-foreground: 240 5% 64.9%;
-            --accent: 33 90% 55%;
-            --accent-foreground: 0 0% 98%;
-            --border: 240 3.7% 15.9%;
-        }
-        .bg-background { background-color: hsl(var(--background)); }
-        .text-foreground { color: hsl(var(--foreground)); }
-        .bg-primary { background-color: hsl(var(--primary)); }
-        .text-primary { color: hsl(var(--primary)); }
-        .text-primary-foreground { color: hsl(var(--primary-foreground)); }
-        .bg-secondary { background-color: hsl(var(--secondary)); }
-        .text-secondary-foreground { color: hsl(var(--secondary-foreground)); }
-        .text-muted-foreground { color: hsl(var(--muted-foreground)); }
-        .border-border { border-color: hsl(var(--border)); }
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            font-weight: 500;
-            transition: background-color 0.2s;
-        }
-        .btn-primary {
-            background-color: hsl(var(--primary));
-            color: hsl(var(--primary-foreground));
-        }
-        .btn-primary:hover {
-            background-color: hsl(29.2, 82.8%, 45%);
+            font-family: 'Inter', sans-serif;
+            background-color: hsl(0 0% 100%);
+            color: hsl(222.2 47.4% 11.2%);
         }
         .font-headline {
-             font-family: 'PT Sans', sans-serif;
-             font-weight: 700;
+            font-family: 'PT Sans', sans-serif;
+        }
+        .text-primary {
+            color: hsl(173 57% 35%);
+        }
+        .bg-primary {
+            background-color: hsl(173 57% 35%);
+        }
+        .bg-secondary-light {
+             background-color: hsl(210 40% 98%);
+        }
+        .bg-secondary-card {
+            background-color: hsl(210 40% 96.1%);
+        }
+        .text-muted-foreground {
+            color: hsl(215.4 16.3% 46.9%);
+        }
+        .border-primary-light {
+            border-color: hsl(173 57% 96%);
         }
     </style>
 </head>
-<body class="bg-background text-foreground">
+<body class="bg-white">
 
-    <header class="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur">
-        <div class="container mx-auto flex h-16 items-center justify-between px-4">
+    <header class="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-sm">
+        <div class="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
             <a href="/" class="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary))" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"/></svg>
-                <span class="font-bold text-lg font-headline tracking-tight">Ùnica Cosmétiques</span>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="hsl(173 57% 35%)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"></path>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"></path>
+                </svg>
+                <span class="font-bold text-lg font-headline tracking-tight text-gray-900">Ùnica Cosmétiques</span>
             </a>
             <nav class="hidden md:flex items-center space-x-6 text-sm font-medium">
-                <a href="/products" class="transition-colors text-foreground/60 hover:text-foreground/80">Produits</a>
-                <a href="/ingredients.html" class="transition-colors text-foreground">Nos Ingrédients</a>
+                <a href="/" class="text-gray-500 hover:text-gray-900">Accueil</a>
+                <a href="/products" class="text-gray-500 hover:text-gray-900">Produits</a>
+                <a href="/ingredients.html" class="text-gray-900">Nos Ingrédients</a>
             </nav>
-            <a href="/login" class="btn btn-primary">Connexion</a>
+            <div class="flex items-center gap-2">
+                 <a href="/login" class="text-sm font-medium text-gray-600 hover:text-gray-900">Connexion</a>
+                 <a href="/register" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium h-10 px-4 py-2 bg-primary text-white hover:bg-opacity-90">S'inscrire</a>
+            </div>
         </div>
     </header>
 
-    <main>
-        <section class="w-full py-12 md:py-20 lg:py-24 bg-secondary/40">
-            <div class="container mx-auto px-4 md:px-6">
-                <div class="flex flex-col items-center space-y-4 text-center">
-                    <h1 class="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl font-headline">Nos Ingrédients d'Exception</h1>
-                    <p class="max-w-[700px] text-muted-foreground md:text-xl">
-                        Découvrez la richesse de la nature tunisienne à travers notre sélection d'ingrédients naturels et authentiques,
-                        choisis pour leurs vertus et leur qualité.
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <section class="w-full py-12 md:py-16">
-            <div class="container mx-auto grid gap-12 px-4 md:px-6">
-
-                <!-- Figue de Barbarie -->
-                <div class="grid gap-8 md:grid-cols-2">
-                    <div class="flex items-center justify-center">
-                        <img src="https://i.postimg.cc/4y78TT9Y/AISelect-20250711-185144-Chrome.jpg" alt="Figue de Barbarie" width="600" height="400" class="rounded-xl object-cover shadow-lg">
-                    </div>
-                    <div class="flex flex-col justify-center space-y-4">
-                        <div class="p-6 rounded-lg bg-secondary/20">
-                            <span class="text-sm font-medium text-primary">Région de Kasserine</span>
-                            <h2 class="mt-2 text-3xl font-bold font-headline">Huile de Pépins de Figue de Barbarie</h2>
-                            <p class="mt-2 text-muted-foreground text-base">
-                                Surnommée "l'or du désert", cette huile précieuse est extraite à froid pour préserver ses propriétés anti-âge exceptionnelles. Riche en vitamine E et en stérols, elle est un allié puissant contre les radicaux libres.
-                            </p>
-                            <div class="mt-4">
-                                <h3 class="font-semibold text-lg mb-2">Bienfaits principaux :</h3>
-                                <ul class="space-y-2 text-muted-foreground">
-                                    <li class="flex items-start">
-                                        <svg class="h-5 w-5 mr-2 mt-0.5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                        <span>Anti-âge et régénérant cellulaire puissant.</span>
-                                    </li>
-                                    <li class="flex items-start">
-                                        <svg class="h-5 w-5 mr-2 mt-0.5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                        <span>Atténue les rides et ridules, et raffermit la peau.</span>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Huile d'Olive -->
-                <div class="grid gap-8 md:grid-cols-2">
-                    <div class="flex items-center justify-center md:order-2">
-                        <img src="https://placehold.co/600x400.png" alt="Huile d'Olive" width="600" height="400" class="rounded-xl object-cover shadow-lg" data-ai-hint="olive oil">
-                    </div>
-                    <div class="flex flex-col justify-center space-y-4 md:order-1">
-                         <div class="p-6 rounded-lg bg-secondary/20">
-                            <span class="text-sm font-medium text-primary">Collines de Sfax</span>
-                            <h2 class="mt-2 text-3xl font-bold font-headline">Huile d'Olive Extra Vierge</h2>
-                            <p class="mt-2 text-muted-foreground text-base">
-                                Issue d'olives Chemlali cueillies à la main, notre huile est un concentré d'antioxydants et d'acides gras essentiels. Elle nourrit, protège et adoucit la peau et les cheveux en profondeur.
-                            </p>
-                            <div class="mt-4">
-                                <h3 class="font-semibold text-lg mb-2">Bienfaits principaux :</h3>
-                                <ul class="space-y-2 text-muted-foreground">
-                                    <li class="flex items-start">
-                                        <svg class="h-5 w-5 mr-2 mt-0.5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                        <span>Hydratation intense et durable pour la peau.</span>
-                                    </li>
-                                    <li class="flex items-start">
-                                        <svg class="h-5 w-5 mr-2 mt-0.5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                        <span>Fortifie les cheveux et apporte de la brillance.</span>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Argile de Ghassoul -->
-                <div class="grid gap-8 md:grid-cols-2">
-                    <div class="flex items-center justify-center">
-                        <img src="https://placehold.co/600x400.png" alt="Argile de Ghassoul" width="600" height="400" class="rounded-xl object-cover shadow-lg" data-ai-hint="clay powder">
-                    </div>
-                    <div class="flex flex-col justify-center space-y-4">
-                        <div class="p-6 rounded-lg bg-secondary/20">
-                            <span class="text-sm font-medium text-primary">Montagnes de l'Atlas tunisien</span>
-                            <h2 class="mt-2 text-3xl font-bold font-headline">Argile de Ghassoul</h2>
-                            <p class="mt-2 text-muted-foreground text-base">
-                                Cette argile minérale saponifère est utilisée depuis des siècles pour ses propriétés nettoyantes et purifiantes. Elle absorbe les impuretés et l'excès de sébum sans agresser la peau ou le cuir chevelu.
-                            </p>
-                            <div class="mt-4">
-                                <h3 class="font-semibold text-lg mb-2">Bienfaits principaux :</h3>
-                                <ul class="space-y-2 text-muted-foreground">
-                                    <li class="flex items-start">
-                                        <svg class="h-5 w-5 mr-2 mt-0.5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                        <span>Nettoie en douceur et régule la production de sébum.</span>
-                                    </li>
-                                    <li class="flex items-start">
-                                        <svg class="h-5 w-5 mr-2 mt-0.5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                        <span>Apporte volume et brillance aux cheveux.</span>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-    </main>
-
-    <footer class="py-6 md:px-8 md:py-0 bg-secondary/50">
-        <div class="container mx-auto flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
-            <div class="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary))" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"/></svg>
-                <p class="text-center text-sm leading-loose text-muted-foreground md:text-left">
-                    Construit avec passion
+    <section class="w-full py-12 md:py-20 lg:py-24 bg-secondary-light">
+        <div class="container mx-auto px-4 md:px-6">
+            <div class="flex flex-col items-center space-y-4 text-center">
+                <h1 class="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl font-headline">Nos Ingrédients d'Exception</h1>
+                <p class="max-w-[700px] text-muted-foreground md:text-xl">
+                    Découvrez la richesse de la nature tunisienne à travers notre sélection d'ingrédients naturels et authentiques,
+                    choisis pour leurs vertus et leur qualité.
                 </p>
             </div>
-            <div class="flex items-center gap-4">
-                <a href="#" class="text-sm font-medium text-muted-foreground hover:text-foreground">Conditions d'utilisation</a>
-                <a href="#" class="text-sm font-medium text-muted-foreground hover:text-foreground">Politique de confidentialité</a>
-            </div>
         </div>
+    </section>
+
+    <main class="w-full py-12 md:py-16">
+        <div class="container mx-auto grid gap-12 px-4 md:px-6">
+            
+            <div class="grid gap-8 md:grid-cols-2">
+                <div class="flex items-center justify-center">
+                    <img src="https://i.postimg.cc/4y78TT9Y/AISelect-20250711-185144-Chrome.jpg" alt="Figue de Barbarie" width="600" height="400" class="rounded-xl object-cover shadow-lg">
+                </div>
+                <div class="flex flex-col justify-center space-y-4">
+                    <div class="rounded-lg border bg-white shadow-sm">
+                        <div class="p-6">
+                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary-card text-gray-800 w-fit mb-2">Région de Kasserine</span>
+                            <h2 class="text-3xl font-bold font-headline text-gray-900">Figue de Barbarie</h2>
+                            <p class="text-muted-foreground text-base mt-2">
+                                Une huile précieuse et rare, réputée pour être l'un des plus puissants anti-âge naturels au monde.
+                            </p>
+                        </div>
+                        <div class="p-6 pt-0 space-y-4">
+                            <div>
+                                <h3 class="font-semibold text-lg mb-2 text-gray-800">Bienfaits principaux :</h3>
+                                <ul class="space-y-2 text-muted-foreground">
+                                    <li class="flex items-start">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 mr-2 mt-0.5 text-primary shrink-0"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        <span>Régénération cellulaire et lutte contre les radicaux libres.</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 mr-2 mt-0.5 text-primary shrink-0"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        <span>Atténuation des rides et ridules, effet tenseur.</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 mr-2 mt-0.5 text-primary shrink-0"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        <span>Hydratation intense et élasticité de la peau.</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-lg mb-2 text-gray-800">Certifications :</h3>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-secondary-card text-gray-800">Bio</span>
+                                    <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-secondary-card text-gray-800">ECOCERT</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid gap-8 md:grid-cols-2">
+                <div class="flex items-center justify-center md:col-start-2">
+                    <img src="https://placehold.co/600x400.png" alt="Huile d'Argan" width="600" height="400" class="rounded-xl object-cover shadow-lg">
+                </div>
+                <div class="flex flex-col justify-center space-y-4 md:col-start-1 md:row-start-1">
+                    <div class="rounded-lg border bg-white shadow-sm">
+                        <div class="p-6">
+                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary-card text-gray-800 w-fit mb-2">Sud-Ouest Tunisien</span>
+                            <h2 class="text-3xl font-bold font-headline text-gray-900">Huile d'Argan</h2>
+                            <p class="text-muted-foreground text-base mt-2">
+                                L'or liquide du désert, utilisée depuis des siècles pour ses propriétés nourrissantes et réparatrices.
+                            </p>
+                        </div>
+                        <div class="p-6 pt-0 space-y-4">
+                            <div>
+                                <h3 class="font-semibold text-lg mb-2 text-gray-800">Bienfaits principaux :</h3>
+                                <ul class="space-y-2 text-muted-foreground">
+                                    <li class="flex items-start">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 mr-2 mt-0.5 text-primary shrink-0"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        <span>Nourrit en profondeur la peau et les cheveux.</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 mr-2 mt-0.5 text-primary shrink-0"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        <span>Protège contre le dessèchement et les agressions extérieures.</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 mr-2 mt-0.5 text-primary shrink-0"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        <span>Améliore la souplesse de la peau et la brillance des cheveux.</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-lg mb-2 text-gray-800">Certifications :</h3>
+                                <div class="flex flex-wrap gap-2">
+                                     <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-secondary-card text-gray-800">Bio</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid gap-8 md:grid-cols-2">
+                <div class="flex items-center justify-center">
+                    <img src="https://placehold.co/600x400.png" alt="Néroli de Nabeul" width="600" height="400" class="rounded-xl object-cover shadow-lg">
+                </div>
+                <div class="flex flex-col justify-center space-y-4">
+                    <div class="rounded-lg border bg-white shadow-sm">
+                        <div class="p-6">
+                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary-card text-gray-800 w-fit mb-2">Cap Bon, Nabeul</span>
+                            <h2 class="text-3xl font-bold font-headline text-gray-900">Néroli de Nabeul</h2>
+                            <p class="text-muted-foreground text-base mt-2">
+                                Huile essentielle de fleur d'oranger amer, au parfum envoûtant et aux propriétés apaisantes.
+                            </p>
+                        </div>
+                        <div class="p-6 pt-0 space-y-4">
+                            <div>
+                                <h3 class="font-semibold text-lg mb-2 text-gray-800">Bienfaits principaux :</h3>
+                                <ul class="space-y-2 text-muted-foreground">
+                                    <li class="flex items-start">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 mr-2 mt-0.5 text-primary shrink-0"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        <span>Calme les peaux sensibles et irritées.</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 mr-2 mt-0.5 text-primary shrink-0"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        <span>Régénère les peaux matures et redonne de l'éclat au teint.</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 mr-2 mt-0.5 text-primary shrink-0"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        <span>Propriétés relaxantes et anti-stress en aromathérapie.</span>
+                                    </li>
+                                </ul>
+                            </div>
+                             <div>
+                                <h3 class="font-semibold text-lg mb-2 text-gray-800">Certifications :</h3>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-secondary-card text-gray-800">100% Pure</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+    
+    <footer class="py-6 md:px-8 md:py-0 bg-secondary-light">
+      <div class="container mx-auto flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
+        <div class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="hsl(173 57% 35%)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"></path>
+            </svg>
+          <p class="text-center text-sm leading-loose text-muted-foreground md:text-left">
+            Construit avec passion
+          </p>
+        </div>
+        <div class="flex items-center gap-4">
+          <a href="#" class="text-sm font-medium text-muted-foreground hover:text-gray-900">
+            Conditions d'utilisation
+          </a>
+          <a href="#" class="text-sm font-medium text-muted-foreground hover:text-gray-900">
+            Politique de confidentialité
+          </a>
+        </div>
+      </div>
     </footer>
 
 </body>

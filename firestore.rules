@@ -1,62 +1,44 @@
 
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
     
-    function isSeller() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller';
-    }
-
-    // Publicly readable collections
+    // Publicly readable, seller-writable collections
     match /products/{productId} {
       allow read: if true;
-      allow write: if isSeller(); // Only sellers can create/update/delete products
-
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller';
+      
       match /reviews/{reviewId} {
         allow read: if true;
-        allow create: if isSignedIn(); // Any signed-in user can create a review
-        allow update, delete: if false; // Reviews are immutable
+        allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'buyer';
       }
     }
-
+    
     match /ingredients/{ingredientId} {
-        allow read: if true;
-        allow write: if isSeller(); // Only sellers can manage ingredients
+      allow read: if true;
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller';
     }
 
-    // User-specific collections
+    // User-specific data
     match /users/{userId} {
-      allow read, update: if isOwner(userId);
-      allow create: if isSignedIn();
-      
-      // Cart subcollection
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+
       match /cart/{cartId} {
-        allow read, write, delete: if isOwner(userId);
+        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
       }
     }
 
-    // Orders collection
+    // Orders
     match /orders/{orderId} {
-      allow create: if isSignedIn(); // Any signed in user can create an order
-      allow read: if isOwner(get(/databases/$(database)/documents/orders/$(orderId)).data.userId) || isSeller();
-      allow update: if isSeller(); // Only seller can update order status
-      allow delete: if false; // Orders should not be deleted
+      allow read: if request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller' || resource.data.userId == request.auth.uid);
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller';
     }
 
-    // Messages collection
+    // Messages
     match /messages/{messageId} {
-        allow read, create: if isSignedIn() && (isOwner(resource.data.buyerId) || isSeller());
-        allow update: if isSignedIn() && (isOwner(resource.data.buyerId) || isSeller());
+      allow read, create: if request.auth != null && (resource.data.buyerId == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
+      allow update: if request.auth != null && (resource.data.buyerId == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
     }
   }
 }

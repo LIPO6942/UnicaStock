@@ -1,173 +1,211 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
-import Image from 'next/image';
-import { MoreHorizontal, PlusCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { useToast } from '@/hooks/use-toast';
-import { EditIngredientDialog } from '@/components/edit-ingredient-dialog';
-import * as IngredientsService from '@/lib/ingredients-service';
-import type { Ingredient } from '@/lib/types';
-import Loading from '../loading';
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarTrigger,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarInset,
+  SidebarSeparator,
+} from '@/components/ui/sidebar';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  LayoutDashboard,
+  ShoppingCart,
+  Settings,
+  MessageSquare,
+  Heart,
+  LoaderCircle,
+  Package,
+  Home,
+  Leaf,
+  PenSquare,
+} from 'lucide-react';
+import { Icons } from '@/components/icons';
+import Link from 'next/link';
+import { useAuth } from '@/context/auth-context';
+import { useEffect } from 'react';
+import { HeaderActions } from '@/components/header-actions';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
-export default function SellerIngredientsPage() {
-  const { toast } = useToast();
-  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
-
-  const fetchIngredients = async () => {
-    setIsLoading(true);
-    try {
-      const fetchedIngredients = await IngredientsService.getIngredients();
-      setIngredients(fetchedIngredients);
-    } catch (err) {
-      console.error(err);
-      toast({ title: 'Erreur', description: 'Impossible de charger les ingrédients.', variant: 'destructive' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, isLoading, unreadMessagesCount } = useAuth();
 
   useEffect(() => {
-    fetchIngredients();
-  }, []);
-
-  const handleAddIngredient = () => {
-    setSelectedIngredient(null);
-    setIsEditDialogOpen(true);
-  };
-
-  const handleEditIngredient = (ingredient: Ingredient) => {
-    setSelectedIngredient(ingredient);
-    setIsEditDialogOpen(true);
-  };
-
-  const handleDeleteIngredient = async (ingredientId: string) => {
-    try {
-      await IngredientsService.deleteIngredient(ingredientId);
-      toast({ title: 'Ingrédient supprimé', description: "L'ingrédient a été supprimé avec succès." });
-      fetchIngredients(); // Refresh list
-    } catch (err) {
-      console.error(err);
-      toast({ title: 'Erreur', description: "Impossible de supprimer l'ingrédient.", variant: 'destructive' });
+    if (!isLoading && !user) {
+      router.push('/login');
     }
-  };
+  }, [isLoading, user, router]);
 
-  const handleDialogSave = () => {
-    setIsEditDialogOpen(false);
-    fetchIngredients();
-  };
+  // Redirect seller from dashboard root to orders page
+  useEffect(() => {
+    if (!isLoading && user?.type === 'seller' && pathname === '/dashboard') {
+      router.replace('/dashboard/orders');
+    }
+  }, [isLoading, user, pathname, router]);
 
-  if (isLoading) {
-    return <Loading />;
+
+  if (isLoading || !user) {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    )
   }
 
-  return (
-    <>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-3xl font-bold font-headline">Gestion de la Page "Nos Ingrédients"</h1>
-          <p className="text-muted-foreground">Modifiez le contenu qui apparaît sur la page publique.</p>
-        </div>
-        <Button onClick={handleAddIngredient}>
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Ajouter un ingrédient
-        </Button>
-      </div>
+  const isActive = (path: string) => pathname === path || (path === '/dashboard/messages' && pathname.startsWith('/dashboard/messages'));
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Contenu Actuel</CardTitle>
-          <CardDescription>Liste des ingrédients affichés sur la page "Nos Ingrédients".</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="hidden w-[100px] sm:table-cell">Image</TableHead>
-                <TableHead>Nom</TableHead>
-                <TableHead>Localisation</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {ingredients.length > 0 ? (
-                ingredients.map((ingredient) => (
-                  <TableRow key={ingredient.id}>
-                    <TableCell className="hidden sm:table-cell">
-                      <Image
-                        alt={ingredient.name}
-                        className="aspect-square rounded-md object-cover"
-                        height="64"
-                        src={ingredient.imageUrl || 'https://placehold.co/64x64.png'}
-                        width="64"
-                        data-ai-hint="ingredient natural"
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">{ingredient.name}</TableCell>
-                    <TableCell>{ingredient.location}</TableCell>
-                    <TableCell className="max-w-xs truncate">{ingredient.description}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button aria-haspopup="true" size="icon" variant="ghost">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleEditIngredient(ingredient)}>Modifier</DropdownMenuItem>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
-                                Supprimer
-                              </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-                                <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteIngredient(ingredient.id)}>Supprimer</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
-                    Aucun ingrédient trouvé. Commencez par en ajouter un.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-      
-      {isEditDialogOpen && (
-        <EditIngredientDialog
-          isOpen={isEditDialogOpen}
-          setIsOpen={setIsEditDialogOpen}
-          ingredient={selectedIngredient}
-          onSave={handleDialogSave}
-        />
-      )}
-    </>
+  const sellerNav = [
+    { href: '/dashboard/orders', label: 'Commandes', icon: ShoppingCart },
+    { href: '/dashboard/products', label: 'Produits', icon: Package },
+    { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare, notificationCount: unreadMessagesCount },
+  ];
+
+  const buyerNav = [
+    { href: '/dashboard/orders', label: 'Mes Commandes', icon: ShoppingCart },
+    { href: '/dashboard/favorites', label: 'Favoris', icon: Heart },
+    { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare, notificationCount: unreadMessagesCount },
+  ];
+
+  const commonNav = [
+    { href: '/dashboard/settings', label: 'Paramètres', icon: Settings },
+  ];
+
+  const sellerSiteManagementNav = [
+  ]
+
+  const siteNav = [
+    { href: '/', label: 'Accueil' },
+    { href: '/products', label: 'Produits' },
+    { href: '/ingredients.html', label: 'Nos Ingrédients' },
+  ];
+
+  const navItems = user.type === 'seller' ? sellerNav : buyerNav;
+
+  return (
+    <SidebarProvider defaultOpen>
+      <Sidebar>
+        <SidebarHeader>
+          <Link href="/" className="flex items-center gap-2">
+            <Icons.logo className="size-7 text-primary" />
+            <span className="text-lg font-semibold font-headline">Ùnica Cosmétiques</span>
+          </Link>
+        </SidebarHeader>
+        <SidebarContent>
+          {user.type === 'buyer' && (
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/dashboard')}
+                  tooltip={{ children: 'Dashboard' }}
+                >
+                  <Link href="/dashboard">
+                    <LayoutDashboard />
+                    <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          )}
+          <SidebarMenu>
+            {navItems.map((item) => (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive(item.href)}
+                  tooltip={{ children: item.label }}
+                >
+                  <Link href={item.href} className="relative">
+                    <item.icon />
+                    <span>{item.label}</span>
+                     {item.notificationCount && item.notificationCount > 0 && (
+                      <Badge className="absolute right-2 top-1/2 -translate-y-1/2 h-5 min-w-[1.25rem] justify-center p-1 text-xs">
+                        {item.notificationCount}
+                      </Badge>
+                    )}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+          
+          {user.type === 'seller' && sellerSiteManagementNav.length > 0 && (
+            <>
+              <SidebarSeparator />
+              <SidebarMenu>
+                 <span className="px-4 text-xs font-semibold uppercase text-muted-foreground/80">Gestion du site</span>
+                 {sellerSiteManagementNav.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.href)}
+                      tooltip={{ children: item.label }}
+                    >
+                      <Link href={item.href}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                 ))}
+              </SidebarMenu>
+            </>
+          )}
+
+          <SidebarSeparator />
+          <SidebarMenu>
+            {commonNav.map((item) => (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive(item.href)}
+                  tooltip={{ children: item.label }}
+                >
+                  <Link href={item.href}>
+                    <item.icon />
+                    <span>{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
+      <SidebarInset>
+        <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:h-[60px] lg:px-6">
+          <SidebarTrigger className="md:hidden" />
+          <div className="w-full flex-1">
+            {user.type === 'buyer' && (
+                <nav className="hidden items-center space-x-6 text-sm font-medium md:flex">
+                {siteNav.map((item) => (
+                    <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                        'transition-colors hover:text-foreground/80',
+                        pathname === item.href ? 'text-foreground' : 'text-foreground/60'
+                    )}
+                    >
+                    {item.label}
+                    </Link>
+                ))}
+                </nav>
+            )}
+          </div>
+          <HeaderActions />
+        </header>
+        <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-secondary/40">
+            {children}
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

@@ -1,157 +1,211 @@
-
 'use client';
 
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarTrigger,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarInset,
+  SidebarSeparator,
+} from '@/components/ui/sidebar';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  LayoutDashboard,
+  ShoppingCart,
+  Settings,
+  MessageSquare,
+  Heart,
+  LoaderCircle,
+  Package,
+  Home,
+  Leaf,
+  PenSquare,
+} from 'lucide-react';
+import { Icons } from '@/components/icons';
+import Link from 'next/link';
+import { useAuth } from '@/context/auth-context';
 import { useEffect } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import * as IngredientsService from '@/lib/ingredients-service';
-import type { Ingredient } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { HeaderActions } from '@/components/header-actions';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
-interface EditIngredientDialogProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-  ingredient: Ingredient | null;
-  onSave: () => void;
-}
-
-const benefitSchema = z.object({ name: z.string().min(3, 'Le bénéfice doit contenir au moins 3 caractères.') });
-
-const ingredientSchema = z.object({
-  name: z.string().min(3, 'Le nom doit contenir au moins 3 caractères.'),
-  location: z.string().min(3, 'La localisation est requise.'),
-  description: z.string().min(10, 'La description est requise (min 10 caractères).'),
-  imageUrl: z.string().url('Veuillez entrer une URL valide.').or(z.literal('')),
-  benefits: z.array(benefitSchema).min(1, 'Au moins un bénéfice est requis.'),
-  certifications: z.array(z.string()).optional(),
-});
-
-type IngredientFormData = z.infer<typeof ingredientSchema>;
-
-export function EditIngredientDialog({ isOpen, setIsOpen, ingredient, onSave }: EditIngredientDialogProps) {
-  const { toast } = useToast();
-  const form = useForm<IngredientFormData>({
-    resolver: zodResolver(ingredientSchema),
-    defaultValues: {
-      name: '',
-      location: '',
-      description: '',
-      imageUrl: '',
-      benefits: [],
-      certifications: [],
-    },
-  });
-
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: 'benefits',
-  });
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, isLoading, unreadMessagesCount } = useAuth();
 
   useEffect(() => {
-    if (ingredient) {
-      form.reset({
-        ...ingredient,
-        certifications: ingredient.certifications || [],
-      });
-    } else {
-      form.reset({
-        name: '',
-        location: '',
-        description: '',
-        imageUrl: 'https://placehold.co/600x400.png',
-        benefits: [{ name: '' }],
-        certifications: [],
-      });
+    if (!isLoading && !user) {
+      router.push('/login');
     }
-  }, [ingredient, form, isOpen]);
+  }, [isLoading, user, router]);
 
-  const onSubmit = async (values: IngredientFormData) => {
-    try {
-      if (ingredient) {
-        await IngredientsService.updateIngredient(ingredient.id, values);
-        toast({ title: 'Ingrédient mis à jour', description: 'Les informations ont été enregistrées.' });
-      } else {
-        await IngredientsService.addIngredient(values);
-        toast({ title: 'Ingrédient ajouté', description: 'Le nouvel ingrédient a été créé.' });
-      }
-      onSave();
-    } catch (error) {
-      console.error(error);
-      toast({ title: "Erreur d'enregistrement", description: "L'action a échoué. Vérifiez les règles de sécurité.", variant: 'destructive' });
+  // Redirect seller from dashboard root to orders page
+  useEffect(() => {
+    if (!isLoading && user?.type === 'seller' && pathname === '/dashboard') {
+      router.replace('/dashboard/orders');
     }
-  };
+  }, [isLoading, user, pathname, router]);
+
+
+  if (isLoading || !user) {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    )
+  }
+
+  const isActive = (path: string) => pathname === path || (path === '/dashboard/messages' && pathname.startsWith('/dashboard/messages'));
+
+  const sellerNav = [
+    { href: '/dashboard/orders', label: 'Commandes', icon: ShoppingCart },
+    { href: '/dashboard/products', label: 'Produits', icon: Package },
+    { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare, notificationCount: unreadMessagesCount },
+  ];
+
+  const buyerNav = [
+    { href: '/dashboard/orders', label: 'Mes Commandes', icon: ShoppingCart },
+    { href: '/dashboard/favorites', label: 'Favoris', icon: Heart },
+    { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare, notificationCount: unreadMessagesCount },
+  ];
+
+  const commonNav = [
+    { href: '/dashboard/settings', label: 'Paramètres', icon: Settings },
+  ];
+
+  const sellerSiteManagementNav = [
+  ]
+
+  const siteNav = [
+    { href: '/', label: 'Accueil' },
+    { href: '/products', label: 'Produits' },
+    { href: '/ingredients.html', label: 'Nos Ingrédients' },
+  ];
+
+  const navItems = user.type === 'seller' ? sellerNav : buyerNav;
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>{ingredient ? 'Modifier l\'ingrédient' : 'Ajouter un ingrédient'}</DialogTitle>
-          <DialogDescription>Remplissez les informations ci-dessous.</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-6 pl-2">
-            <FormField control={form.control} name="name" render={({ field }) => (
-              <FormItem><FormLabel>Nom</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={form.control} name="location" render={({ field }) => (
-              <FormItem><FormLabel>Localisation</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={form.control} name="description" render={({ field }) => (
-              <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={form.control} name="imageUrl" render={({ field }) => (
-              <FormItem><FormLabel>URL de l'image</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            
-            <div className="space-y-2">
-              <FormLabel>Bénéfices</FormLabel>
-              {fields.map((field, index) => (
-                <div key={field.id} className="flex items-center gap-2">
-                  <FormField control={form.control} name={`benefits.${index}.name`} render={({ field }) => (
-                    <FormItem className="flex-grow"><FormControl><Input {...field} placeholder={`Bénéfice ${index + 1}`} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              ))}
-              <Button type="button" variant="outline" size="sm" onClick={() => append({ name: '' })}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un bénéfice
-              </Button>
-            </div>
-            
-            <FormField control={form.control} name="certifications" render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Certifications (optionnel, séparées par des virgules)</FormLabel>
-                    <FormControl>
-                        <Input 
-                            {...field} 
-                            value={Array.isArray(field.value) ? field.value.join(', ') : ''} 
-                            onChange={e => field.onChange(e.target.value.split(',').map(s => s.trim()))}
-                            placeholder="BIO, Ecocert..."
-                        />
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-            )} />
+    <SidebarProvider defaultOpen>
+      <Sidebar>
+        <SidebarHeader>
+          <Link href="/" className="flex items-center gap-2">
+            <Icons.logo className="size-7 text-primary" />
+            <span className="text-lg font-semibold font-headline">Ùnica Cosmétiques</span>
+          </Link>
+        </SidebarHeader>
+        <SidebarContent>
+          {user.type === 'buyer' && (
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/dashboard')}
+                  tooltip={{ children: 'Dashboard' }}
+                >
+                  <Link href="/dashboard">
+                    <LayoutDashboard />
+                    <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          )}
+          <SidebarMenu>
+            {navItems.map((item) => (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive(item.href)}
+                  tooltip={{ children: item.label }}
+                >
+                  <Link href={item.href} className="relative">
+                    <item.icon />
+                    <span>{item.label}</span>
+                     {item.notificationCount && item.notificationCount > 0 && (
+                      <Badge className="absolute right-2 top-1/2 -translate-y-1/2 h-5 min-w-[1.25rem] justify-center p-1 text-xs">
+                        {item.notificationCount}
+                      </Badge>
+                    )}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+          
+          {user.type === 'seller' && sellerSiteManagementNav.length > 0 && (
+            <>
+              <SidebarSeparator />
+              <SidebarMenu>
+                 <span className="px-4 text-xs font-semibold uppercase text-muted-foreground/80">Gestion du site</span>
+                 {sellerSiteManagementNav.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.href)}
+                      tooltip={{ children: item.label }}
+                    >
+                      <Link href={item.href}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                 ))}
+              </SidebarMenu>
+            </>
+          )}
 
-            <DialogFooter className="sticky bottom-0 bg-background pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Annuler</Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Enregistrer
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          <SidebarSeparator />
+          <SidebarMenu>
+            {commonNav.map((item) => (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive(item.href)}
+                  tooltip={{ children: item.label }}
+                >
+                  <Link href={item.href}>
+                    <item.icon />
+                    <span>{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
+      <SidebarInset>
+        <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:h-[60px] lg:px-6">
+          <SidebarTrigger className="md:hidden" />
+          <div className="w-full flex-1">
+            {user.type === 'buyer' && (
+                <nav className="hidden items-center space-x-6 text-sm font-medium md:flex">
+                {siteNav.map((item) => (
+                    <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                        'transition-colors hover:text-foreground/80',
+                        pathname === item.href ? 'text-foreground' : 'text-foreground/60'
+                    )}
+                    >
+                    {item.label}
+                    </Link>
+                ))}
+                </nav>
+            )}
+          </div>
+          <HeaderActions />
+        </header>
+        <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-secondary/40">
+            {children}
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

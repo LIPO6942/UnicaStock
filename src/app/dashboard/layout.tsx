@@ -81,13 +81,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   ];
 
   const sellerSiteManagementNav = [
-     { href: '/dashboard/ingredients', label: 'Page Ingrédients', icon: PenSquare },
+     // { href: '/dashboard/ingredients', label: 'Page Ingrédients', icon: PenSquare },
   ]
 
   const siteNav = [
     { href: '/', label: 'Accueil' },
     { href: '/products', label: 'Produits' },
-    { href: '/ingredients', label: 'Nos Ingrédients' },
+    { href: '/ingredients.html', label: 'Nos Ingrédients' },
   ];
 
   const navItems = user.type === 'seller' ? sellerNav : buyerNav;
@@ -140,7 +140,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             ))}
           </SidebarMenu>
           
-          {user.type === 'seller' && (
+          {user.type === 'seller' && sellerSiteManagementNav.length > 0 && (
             <>
               <SidebarSeparator />
               <SidebarMenu>

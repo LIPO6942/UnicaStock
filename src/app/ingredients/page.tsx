@@ -3,51 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Check } from 'lucide-react';
+import { getIngredients } from '@/lib/ingredients-service';
 
-const ingredients = [
-    {
-      id: '1',
-      name: 'Figue de Barbarie',
-      location: 'Kasserine, Tunisie',
-      description: "L'huile de pépins de figue de Barbarie est un élixir précieux, réputé pour ses propriétés anti-âge exceptionnelles. Riche en vitamine E et en stérols, elle lutte contre les radicaux libres et stimule le renouvellement cellulaire.",
-      imageUrl: 'https://i.postimg.cc/4y78TT9Y/AISelect-20250711-185144-Chrome.jpg',
-      benefits: [
-        { name: 'Anti-âge puissant et régénérant' },
-        { name: 'Redonne fermeté et tonicité à la peau' },
-        { name: 'Action cicatrisante et réparatrice' },
-      ],
-      certifications: ['ECOCERT', 'BIO'],
-    },
-    {
-      id: '2',
-      name: "Huile d'Olive Extra Vierge",
-      location: 'Sfax, Tunisie',
-      description: "Trésor de la Méditerranée, notre huile d'olive est pressée à froid pour conserver toutes ses vertus. Naturellement riche en antioxydants, elle nourrit, protège et adoucit la peau et les cheveux.",
-      imageUrl: 'https://placehold.co/600x400.png',
-      benefits: [
-        { name: 'Hydratation intense pour peaux sèches' },
-        { name: 'Protège contre les agressions extérieures' },
-        { name: 'Apporte brillance et force aux cheveux' },
-      ],
-      certifications: ['AOP', 'BIO'],
-    },
-    {
-      id: '3',
-      name: 'Ghassoul (Argile Volcanique)',
-      location: 'Montagnes de l\'Atlas, Tunisie',
-      description: 'Utilisé depuis des siècles dans les rituels du hammam, le Ghassoul est une argile naturelle qui nettoie en douceur sans agresser le film hydrolipidique. Elle est idéale pour les masques visage et cheveux.',
-      imageUrl: 'https://placehold.co/600x400.png',
-      benefits: [
-        { name: 'Nettoyant et purifiant doux' },
-        { name: 'Régule l\'excès de sébum' },
-        { name: 'Gaine et fortifie la fibre capillaire' },
-      ],
-      certifications: [],
-    },
-];
+export default async function IngredientsPage() {
+  const ingredients = await getIngredients();
 
-
-export default function IngredientsPage() {
   return (
     <>
       <section className="w-full py-12 md:py-20 lg:py-24 bg-secondary text-secondary-foreground">

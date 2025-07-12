@@ -48,6 +48,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [isLoading, user, router]);
 
   useEffect(() => {
+    // Redirect buyer from empty dashboard to orders page for a better UX
+    if (!isLoading && user?.type === 'buyer' && pathname === '/dashboard') {
+      router.replace('/dashboard/orders');
+    }
+    // Redirect seller from empty dashboard to orders page as a default
     if (!isLoading && user?.type === 'seller' && pathname === '/dashboard') {
       router.replace('/dashboard/orders');
     }
@@ -63,6 +68,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const sellerNav = [
     { href: '/dashboard/orders', label: 'Commandes', icon: ShoppingCart },
     { href: '/dashboard/products', label: 'Produits', icon: Package },
+    { href: '/dashboard/ingredients', label: 'Ingrédients', icon: Leaf },
     { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare, notificationCount: unreadMessagesCount },
   ];
 

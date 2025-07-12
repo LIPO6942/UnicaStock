@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -24,6 +25,7 @@ import {
   Package,
   Home,
   Leaf,
+  PenSquare,
 } from 'lucide-react';
 import { Icons } from '@/components/icons';
 import Link from 'next/link';
@@ -78,9 +80,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/settings', label: 'Paramètres', icon: Settings },
   ];
 
+  const sellerSiteManagementNav = [
+     { href: '/dashboard/ingredients', label: 'Page Ingrédients', icon: PenSquare },
+  ]
+
   const siteNav = [
     { href: '/', label: 'Accueil' },
     { href: '/products', label: 'Produits' },
+    { href: '/ingredients', label: 'Nos Ingrédients' },
   ];
 
   const navItems = user.type === 'seller' ? sellerNav : buyerNav;
@@ -132,6 +139,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
+          
+          {user.type === 'seller' && (
+            <>
+              <SidebarSeparator />
+              <SidebarMenu>
+                 <span className="px-4 text-xs font-semibold uppercase text-muted-foreground/80">Gestion du site</span>
+                 {sellerSiteManagementNav.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.href)}
+                      tooltip={{ children: item.label }}
+                    >
+                      <Link href={item.href}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                 ))}
+              </SidebarMenu>
+            </>
+          )}
+
+          <SidebarSeparator />
           <SidebarMenu>
             {commonNav.map((item) => (
               <SidebarMenuItem key={item.href}>

@@ -23,17 +23,19 @@ interface EditIngredientDialogProps {
 }
 
 const benefitSchema = z.object({ name: z.string().min(1, 'Le nom du bienfait est requis.') });
-const certificationSchema = z.object({ name: z.string().min(1, 'Le nom de la certification est requis.') });
 
 const ingredientSchema = z.object({
   name: z.string().min(3, 'Le nom doit contenir au moins 3 caractères.'),
   location: z.string().min(3, 'La localisation est requise.'),
   description: z.string().min(10, 'La description est requise (min 10 caractères).'),
   imageUrl: z.string().url({ message: 'Veuillez entrer une URL d\'image valide.' }),
-  imageHint: z.string().min(2, 'Veuillez entrer au moins un mot-clé pour l\'image.'),
   benefits: z.array(benefitSchema).min(1, 'Au moins un bienfait est requis.'),
-  certifications: z.array(certificationSchema),
+  certifications: z.array(z.string()).optional(),
 });
+
+type FormData = Omit<Ingredient, 'id' | 'certifications'> & {
+  certifications: { value: string }[];
+};
 
 export function EditIngredientDialog({ isOpen, setIsOpen, ingredient, onSave }: EditIngredientDialogProps) {
   const { toast } = useToast();
@@ -45,7 +47,6 @@ export function EditIngredientDialog({ isOpen, setIsOpen, ingredient, onSave }: 
       location: '',
       description: '',
       imageUrl: '',
-      imageHint: '',
       benefits: [{ name: '' }],
       certifications: [],
     },
@@ -62,34 +63,42 @@ export function EditIngredientDialog({ isOpen, setIsOpen, ingredient, onSave }: 
   });
 
   useEffect(() => {
-    if (ingredient) {
-      form.reset(ingredient);
-    } else {
-      form.reset({
-        name: '',
-        location: '',
-        description: '',
-        imageUrl: 'https://placehold.co/800x800.png',
-        imageHint: 'nature cosmetic',
-        benefits: [{ name: '' }],
-        certifications: [],
-      });
+    if (isOpen) {
+      if (ingredient) {
+        form.reset({
+          ...ingredient,
+          certifications: ingredient.certifications.map(c => c)
+        });
+      } else {
+        form.reset({
+          name: '',
+          location: '',
+          description: '',
+          imageUrl: 'https://placehold.co/800x800.png',
+          benefits: [{ name: '' }],
+          certifications: [],
+        });
+      }
     }
-  }, [ingredient, form.reset]);
+  }, [ingredient, isOpen, form.reset]);
 
   const onSubmit = async (values: z.infer<typeof ingredientSchema>) => {
     try {
+      const dataToSave = {
+        ...values,
+      };
+
       if (ingredient) {
-        await IngredientsService.updateIngredient(ingredient.id, values);
+        await IngredientsService.updateIngredient(ingredient.id, dataToSave);
         toast({ title: 'Succès', description: 'Ingrédient mis à jour.' });
       } else {
-        await IngredientsService.addIngredient(values);
+        await IngredientsService.addIngredient(dataToSave);
         toast({ title: 'Succès', description: 'Ingrédient ajouté.' });
       }
       onSave();
     } catch (error) {
       console.error('Failed to save ingredient:', error);
-      toast({ title: 'Erreur', description: 'Impossible d\'enregistrer l\'ingrédient.', variant: 'destructive' });
+      toast({ title: 'Erreur', description: 'Impossible d\'enregistrer l\'ingrédient. Vérifiez vos permissions.', variant: 'destructive' });
     }
   };
 
@@ -144,24 +153,12 @@ export function EditIngredientDialog({ isOpen, setIsOpen, ingredient, onSave }: 
                 <FormItem>
                   <FormLabel>URL de l'image</FormLabel>
                   <FormControl><Input placeholder="https://..." {...field} /></FormControl>
-                   <FormDescription>Utilisez un service comme <a href="https://postimages.org/" target="_blank" rel="noopener noreferrer" className="underline">postimages.org</a> pour héberger vos images.</FormDescription>
+                   <FormDescription>Utilisez un service comme <a href="https://postimg.cc/" target="_blank" rel="noopener noreferrer" className="underline">postimg.cc</a> pour héberger vos images.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-             <FormField
-              control={form.control}
-              name="imageHint"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Indice pour l'image (IA)</FormLabel>
-                  <FormControl><Input placeholder="cactus fruit" {...field} /></FormControl>
-                   <FormDescription>Un ou deux mots-clés en anglais pour décrire l'image.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+           
             {/* Benefits */}
             <div className="space-y-2">
                 <FormLabel>Bienfaits</FormLabel>
@@ -194,7 +191,7 @@ export function EditIngredientDialog({ isOpen, setIsOpen, ingredient, onSave }: 
                     <div key={field.id} className="flex items-center gap-2">
                         <FormField
                             control={form.control}
-                            name={`certifications.${index}.name`}
+                            name={`certifications.${index}`}
                             render={({ field }) => (
                                 <FormItem className="flex-grow">
                                     <FormControl><Input {...field} placeholder={`Certification #${index + 1}`} /></FormControl>
@@ -207,7 +204,7 @@ export function EditIngredientDialog({ isOpen, setIsOpen, ingredient, onSave }: 
                         </Button>
                     </div>
                 ))}
-                 <Button type="button" size="sm" variant="outline" onClick={() => appendCert({ name: '' })}>
+                 <Button type="button" size="sm" variant="outline" onClick={() => appendCert('')}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Ajouter une certification
                 </Button>
             </div>

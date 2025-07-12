@@ -126,7 +126,6 @@ export type Ingredient = {
   location: string;
   description: string;
   imageUrl: string;
-  imageHint: string;
   benefits: Benefit[];
   certifications: string[];
 };

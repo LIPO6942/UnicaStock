@@ -34,7 +34,7 @@ export default async function IngredientsPage() {
                             alt={heroIngredient.name}
                             fill
                             className="object-cover"
-                            data-ai-hint={heroIngredient.imageHint}
+                            data-ai-hint="cosmetic ingredient"
                         />
                     </div>
                     <div>
@@ -76,7 +76,7 @@ export default async function IngredientsPage() {
                                    alt={ingredient.name}
                                    fill
                                    className="object-cover"
-                                   data-ai-hint={ingredient.imageHint}
+                                   data-ai-hint="cosmetic ingredient"
                                />
                            </div>
                            <CardContent className="p-6">

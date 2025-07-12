@@ -38,29 +38,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (userAuth) => {
-      setIsLoading(true);
+      // Don't set loading to false here. Wait for the full user profile.
       if (userAuth) {
         setFirebaseUser(userAuth);
         const userDocRef = doc(db, 'users', userAuth.uid);
-        const unsubUser = onSnapshot(userDocRef, (userDoc) => {
-          if (userDoc.exists()) {
-            setUser({ uid: userAuth.uid, ...userDoc.data() } as UserProfile);
-          } else {
-            // This can happen if user record is deleted but auth record still exists.
-            setUser(null);
-          }
-          // Set loading to false only after we have the full user profile from Firestore.
-          setIsLoading(false); 
-        }, (error) => {
-            console.error("Error fetching user profile:", error);
-            setUser(null);
-            setIsLoading(false);
-        });
-        return () => unsubUser();
+        
+        // Use getDoc for initial load to ensure we have user data before proceeding.
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const userData = { uid: userAuth.uid, ...userDoc.data() } as UserProfile;
+          setUser(userData);
+        } else {
+          // This can happen if user record is deleted but auth record still exists.
+          setUser(null);
+          // Also sign out the user from auth to clean up the state
+          await signOut(auth);
+        }
+        // Now that we have a definitive user state (or null), we can stop loading.
+        setIsLoading(false);
+
       } else {
         setFirebaseUser(null);
         setUser(null);
         setCart([]);
+        // No user, we can safely say we're done loading.
         setIsLoading(false);
       }
     });
@@ -69,10 +70,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    let cartUnsubscribe: () => void = () => {};
+    let messagesUnsubscribe: () => void = () => {};
+
     if (user?.uid) {
       // Cart listener
       const cartCollectionRef = collection(db, 'users', user.uid, 'cart');
-      const cartUnsubscribe = onSnapshot(cartCollectionRef, (snapshot) => {
+      cartUnsubscribe = onSnapshot(cartCollectionRef, (snapshot) => {
         const newCart = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CartItem));
         setCart(newCart);
       }, (error) => {
@@ -88,23 +92,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         q = query(messagesCollectionRef, where('buyerId', '==', user.uid), where('sender', '==', 'seller'), where('isRead', '==', false));
       }
       
-      const messagesUnsubscribe = onSnapshot(q, (snapshot) => {
+      messagesUnsubscribe = onSnapshot(q, (snapshot) => {
         setUnreadMessagesCount(snapshot.size);
       }, (error) => {
         console.error("Erreur de lecture des messages non lus:", error);
-        // In case of permission error, we silently fail and set count to 0 to prevent crashes
         setUnreadMessagesCount(0);
       });
-
-      return () => {
-        cartUnsubscribe();
-        messagesUnsubscribe();
-      };
     } else {
       setCart([]);
       setUnreadMessagesCount(0);
     }
-  }, [user]);
+
+    return () => {
+      cartUnsubscribe();
+      messagesUnsubscribe();
+    };
+}, [user]);
+
 
   const login = (email: string, pass: string) => {
     return signInWithEmailAndPassword(auth, email, pass);
@@ -134,7 +138,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw new Error("Utilisateur non authentifié.");
     }
     try {
-      // 1. Delete user's cart subcollection
       const cartCollectionRef = collection(db, 'users', firebaseUser.uid, 'cart');
       const cartSnapshot = await getDocs(cartCollectionRef);
       if (!cartSnapshot.empty) {
@@ -145,11 +148,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await batch.commit();
       }
 
-      // 2. Delete the user's document in Firestore
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       await deleteDoc(userDocRef);
 
-      // 3. Delete the user from Firebase Authentication
       await deleteUser(firebaseUser);
 
     } catch (error: any) {
@@ -163,7 +164,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: description,
         variant: 'destructive',
       });
-      throw error; // Re-throw to be caught by the UI
+      throw error;
     }
   };
   
@@ -179,11 +180,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const querySnapshot = await getDocs(q);
 
     if (!querySnapshot.empty) {
-      // Product variant exists, update quantity
       const existingDoc = querySnapshot.docs[0];
       await updateCartItemQuantity(existingDoc.id, existingDoc.data().quantity + quantity);
     } else {
-      // Product doesn't exist, add new item
       await addDoc(cartCollectionRef, {
         productId,
         productName,
@@ -233,12 +232,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const newOrderRef = doc(collection(db, 'orders'));
     
     try {
-      // The transaction now only creates the order and clears the cart.
-      // Stock management is moved to the seller's order confirmation step.
       await runTransaction(db, async (transaction) => {
         const total = cart.reduce((sum, item) => sum + item.variant.price * item.quantity, 0);
 
-        // Check stock availability before creating order
         for (const item of cart) {
           const productRef = doc(db, 'products', item.productId);
           const productDoc = await transaction.get(productRef);
@@ -268,7 +264,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
         transaction.set(newOrderRef, newOrderData);
 
-        // Clear the cart
         const cartCollectionRef = collection(db, 'users', user.uid, 'cart');
         for (const item of cart) {
           const cartItemRef = doc(cartCollectionRef, item.id);

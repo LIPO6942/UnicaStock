@@ -95,94 +95,94 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider defaultOpen>
-      <Sidebar>
-        <SidebarHeader>
-          <Link href="/" className="flex items-center gap-2">
-            <Icons.logo className="size-7 text-primary" />
-            <span className="text-lg font-semibold font-headline">Ùnica Cosmétiques</span>
-          </Link>
-        </SidebarHeader>
-        <SidebarContent>
-          {user.type === 'buyer' && (
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/dashboard')}
-                  tooltip={{ children: 'Dashboard' }}
-                >
-                  <Link href="/dashboard">
-                    <LayoutDashboard />
-                    <span>Dashboard</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          )}
-          <SidebarMenu>
-            {navItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive(item.href)}
-                  tooltip={{ children: item.label }}
-                >
-                  <Link href={item.href} className="relative">
-                    <item.icon />
-                    <span>{item.label}</span>
-                     {item.notificationCount && item.notificationCount > 0 && (
-                      <Badge className="absolute right-2 top-1/2 -translate-y-1/2 h-5 min-w-[1.25rem] justify-center p-1 text-xs">
-                        {item.notificationCount}
-                      </Badge>
-                    )}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-          
-          {user.type === 'seller' && sellerSiteManagementNav.length > 0 && (
-            <>
-              <SidebarSeparator />
-              <SidebarMenu>
-                 <span className="px-4 text-xs font-semibold uppercase text-muted-foreground/80">Gestion du site</span>
-                 {sellerSiteManagementNav.map((item) => (
-                  <SidebarMenuItem key={item.href}>
+        <Sidebar className="md:flex w-full">
+            <SidebarHeader>
+            <Link href="/" className="flex items-center gap-2">
+                <Icons.logo className="size-7 text-primary" />
+                <span className="text-lg font-semibold font-headline">Ùnica Cosmétiques</span>
+            </Link>
+            </SidebarHeader>
+            <SidebarContent>
+            {user.type === 'buyer' && (
+                <SidebarMenu>
+                <SidebarMenuItem>
                     <SidebarMenuButton
-                      asChild
-                      isActive={isActive(item.href)}
-                      tooltip={{ children: item.label }}
+                    asChild
+                    isActive={isActive('/dashboard')}
+                    tooltip={{ children: 'Dashboard' }}
                     >
-                      <Link href={item.href}>
+                    <Link href="/dashboard">
+                        <LayoutDashboard />
+                        <span>Dashboard</span>
+                    </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                </SidebarMenu>
+            )}
+            <SidebarMenu>
+                {navItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.href)}
+                    tooltip={{ children: item.label }}
+                    >
+                    <Link href={item.href} className="relative">
                         <item.icon />
                         <span>{item.label}</span>
-                      </Link>
+                        {item.notificationCount && item.notificationCount > 0 && (
+                        <Badge className="absolute right-2 top-1/2 -translate-y-1/2 h-5 min-w-[1.25rem] justify-center p-1 text-xs">
+                            {item.notificationCount}
+                        </Badge>
+                        )}
+                    </Link>
                     </SidebarMenuButton>
-                  </SidebarMenuItem>
-                 ))}
-              </SidebarMenu>
-            </>
-          )}
+                </SidebarMenuItem>
+                ))}
+            </SidebarMenu>
+            
+            {user.type === 'seller' && sellerSiteManagementNav.length > 0 && (
+                <>
+                <SidebarSeparator />
+                <SidebarMenu>
+                    <span className="px-4 text-xs font-semibold uppercase text-muted-foreground/80">Gestion du site</span>
+                    {sellerSiteManagementNav.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton
+                        asChild
+                        isActive={isActive(item.href)}
+                        tooltip={{ children: item.label }}
+                        >
+                        <Link href={item.href}>
+                            <item.icon />
+                            <span>{item.label}</span>
+                        </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    ))}
+                </SidebarMenu>
+                </>
+            )}
 
-          <SidebarSeparator />
-          <SidebarMenu>
-            {commonNav.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive(item.href)}
-                  tooltip={{ children: item.label }}
-                >
-                  <Link href={item.href}>
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarContent>
-      </Sidebar>
+            <SidebarSeparator />
+            <SidebarMenu>
+                {commonNav.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.href)}
+                    tooltip={{ children: item.label }}
+                    >
+                    <Link href={item.href}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                    </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                ))}
+            </SidebarMenu>
+            </SidebarContent>
+        </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:h-[60px] lg:px-6">
           <SidebarTrigger className="md:hidden" />

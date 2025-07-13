@@ -41,7 +41,6 @@ function MessagesPageComponent() {
   const [isSending, setIsSending] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   
-  // Use a ref to get initial params, preventing re-triggering effects on nav changes
   const initialParamsRef = useRef({
       orderId: searchParams.get('orderId'),
       orderNumber: searchParams.get('orderNumber'),
@@ -50,7 +49,7 @@ function MessagesPageComponent() {
 
   const selectedConversation = conversations.find(c => c.orderId === selectedOrderId) || null;
 
-  const loadConversationsAndMessages = useCallback(async (currentUser: any) => {
+  const loadConversations = useCallback(async (currentUser: any) => {
     if (!currentUser) return;
     setIsLoadingConversations(true);
 
@@ -108,11 +107,11 @@ function MessagesPageComponent() {
   
   useEffect(() => {
     if (!isAuthLoading && user) {
-        loadConversationsAndMessages(user);
+        loadConversations(user);
     } else if (!isAuthLoading && !user) {
         setIsLoadingConversations(false);
     }
-  }, [isAuthLoading, user, loadConversationsAndMessages]);
+  }, [isAuthLoading, user, loadConversations]);
 
 
   // Effect to load messages when a conversation is selected
@@ -136,7 +135,7 @@ function MessagesPageComponent() {
         
         if (unreadMessages.length > 0) {
           const unreadMessageIds = unreadMessages.map(m => m.id);
-          await markMessagesAsReadByIds(unreadMessageIds, currentConvoMessages);
+          await markMessagesAsReadByIds(unreadMessageIds);
           
           setConversations(prev => {
             const newConversations = prev.map(c => 
@@ -188,7 +187,6 @@ function MessagesPageComponent() {
             productPreview,
         };
         
-        // Optimistic UI update
         const tempId = `temp-${Date.now()}`;
         const newMessage: Message = {
             ...messageData,
@@ -200,9 +198,7 @@ function MessagesPageComponent() {
         setReplyText("");
         
         await sendMessage(messageData);
-
-        // Refresh conversations in background to update order and bubble to top
-        if(user) loadConversationsAndMessages(user);
+        if(user) loadConversations(user);
 
     } catch (error) {
         console.error("Failed to send reply:", error);
@@ -211,7 +207,7 @@ function MessagesPageComponent() {
           description: "Votre message n'a pas pu être envoyé. Vérifiez vos permissions Firestore.",
           variant: 'destructive',
         });
-        setMessages(prev => prev.filter(m => m.id.startsWith('temp-') === false));
+        setMessages(prev => prev.filter(m => m.id !== tempId));
     } finally {
         setIsSending(false);
     }
@@ -349,5 +345,3 @@ export default function MessagesPage() {
         </Suspense>
     )
 }
-
-    

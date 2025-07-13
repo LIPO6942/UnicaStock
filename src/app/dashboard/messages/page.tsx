@@ -39,7 +39,7 @@ function MessagesPageComponent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [replyText, setReplyText] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [isLoadingConversations, setIsLoadingConversations] = useState(true);
+  const [isLoadingComponent, setIsLoadingComponent] = useState(true);
   
   const initialParamsRef = useRef({
       orderId: searchParams.get('orderId'),
@@ -51,7 +51,6 @@ function MessagesPageComponent() {
 
   const loadConversations = useCallback(async (currentUser: any) => {
     if (!currentUser) return;
-    setIsLoadingConversations(true);
 
     try {
         const allMessages = await getMessagesForUser(currentUser);
@@ -99,17 +98,24 @@ function MessagesPageComponent() {
         setUnreadMessagesCount(totalUnread);
     } catch (error) {
         console.error("Error loading conversations", error);
-        toast({ title: 'Erreur', description: 'Impossible de charger les conversations.', variant: 'destructive'});
+        let description = 'Impossible de charger les conversations.';
+         if (error instanceof FirebaseError && error.code === 'permission-denied') {
+            description = `Permission Refusée par Firestore. Veuillez vérifier vos règles de sécurité.`;
+        }
+        toast({ title: 'Erreur', description, variant: 'destructive'});
     } finally {
-        setIsLoadingConversations(false);
+        setIsLoadingComponent(false);
     }
   }, [router, toast, setUnreadMessagesCount, searchParams]);
   
   useEffect(() => {
-    if (!isAuthLoading && user) {
+    if (isAuthLoading) {
+        return; // Wait until authentication is resolved
+    }
+    if (user) {
         loadConversations(user);
-    } else if (!isAuthLoading && !user) {
-        setIsLoadingConversations(false);
+    } else {
+        setIsLoadingComponent(false); // No user, stop loading
     }
   }, [isAuthLoading, user, loadConversations]);
 
@@ -170,7 +176,8 @@ function MessagesPageComponent() {
             ? messages[0].subject
             : `Question sur la commande ${selectedConversation.orderNumber}`;
 
-        const firstMessage = messages[0];
+        const firstMessage = messages.length > 0 ? messages[0] : null;
+        
         const buyerId = user.type === 'buyer' ? user.uid : (firstMessage?.buyerId || 'unknown_buyer_id');
         const buyerName = user.type === 'buyer' ? user.name : (firstMessage?.buyerName || 'Nouveau Client');
         const buyerEmail = user.type === 'buyer' ? user.email : (firstMessage?.buyerEmail || 'unknown_email');
@@ -221,7 +228,7 @@ function MessagesPageComponent() {
     return format(date, 'd MMM yyyy', {locale: fr})
   }
 
-  if (isAuthLoading || isLoadingConversations) {
+  if (isAuthLoading || isLoadingComponent) {
     return <Loading />;
   }
   

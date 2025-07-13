@@ -23,7 +23,7 @@ export async function sendMessage(messageData: Omit<Message, 'id' | 'isRead' | '
 }
 
 /**
- * Fetches all messages relevant to a user.
+ * Fetches all messages relevant to a user, respecting Firestore security rules.
  * For sellers, it fetches all messages. For buyers, it fetches only messages where they are the buyer.
  * @param user The current user profile.
  * @returns A promise that resolves to an array of messages.

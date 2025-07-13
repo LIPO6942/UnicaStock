@@ -87,9 +87,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const messagesCollectionRef = collection(db, 'messages');
       let q;
       if (user.type === 'seller') {
-        q = query(messagesCollectionRef, where('sender', '==', 'buyer'), where('isRead', '==', false));
+        q = query(messagesCollectionRef, where('isRead', '==', false));
       } else {
-        q = query(messagesCollectionRef, where('buyerId', '==', user.uid), where('sender', '==', 'seller'), where('isRead', '==', false));
+        q = query(messagesCollectionRef, where('buyerId', '==', user.uid), where('isRead', '==', false), where('sender', '==', 'seller'));
       }
       
       messagesUnsubscribe = onSnapshot(q, (snapshot) => {

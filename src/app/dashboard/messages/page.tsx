@@ -39,7 +39,7 @@ function MessagesPageComponent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [replyText, setReplyText] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   
   // Use a ref to get initial params, preventing re-triggering effects on nav changes
   const initialParamsRef = useRef({
@@ -50,12 +50,12 @@ function MessagesPageComponent() {
 
   const selectedConversation = conversations.find(c => c.orderId === selectedOrderId) || null;
 
-  const loadConversationsAndMessages = useCallback(async () => {
-    if (!user) return;
-    setIsLoading(true);
+  const loadConversationsAndMessages = useCallback(async (currentUser: any) => {
+    if (!currentUser) return;
+    setIsLoadingConversations(true);
 
     try {
-        const allMessages = await getMessagesForUser(user);
+        const allMessages = await getMessagesForUser(currentUser);
 
         const grouped = allMessages.reduce((acc, msg) => {
             (acc[msg.orderId] = acc[msg.orderId] || []).push(msg);
@@ -64,13 +64,13 @@ function MessagesPageComponent() {
 
         let finalConversations: Conversation[] = Object.values(grouped).map(msgs => {
             const lastMessage = msgs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0];
-            const unreadCount = msgs.filter(m => !m.isRead && m.sender !== user.type).length;
+            const unreadCount = msgs.filter(m => !m.isRead && m.sender !== currentUser.type).length;
             const messageWithPreview = msgs.find(m => m.productPreview);
 
             return {
                 orderId: lastMessage.orderId,
                 orderNumber: lastMessage.orderNumber,
-                otherPartyName: user.type === 'seller' ? lastMessage.buyerName : 'Ùnica Cosmétiques',
+                otherPartyName: currentUser.type === 'seller' ? lastMessage.buyerName : 'Ùnica Cosmétiques',
                 lastMessage,
                 unreadCount,
                 productPreview: messageWithPreview?.productPreview,
@@ -83,14 +83,13 @@ function MessagesPageComponent() {
                 const newVirtualConvo: Conversation = {
                     orderId: orderId,
                     orderNumber: orderNumber || 'N/A',
-                    otherPartyName: user.type === 'buyer' ? 'Ùnica Cosmétiques' : 'Nouveau Client',
+                    otherPartyName: currentUser.type === 'buyer' ? 'Ùnica Cosmétiques' : 'Nouveau Client',
                     unreadCount: 0,
                     productPreview: productPreview ? decodeURIComponent(productPreview) : undefined,
                 };
                 finalConversations.unshift(newVirtualConvo);
             }
             setSelectedOrderId(orderId);
-            // Clean URL after processing params, only if they existed
             if (searchParams.has('orderId')) {
               router.replace('/dashboard/messages', { scroll: false });
             }
@@ -103,17 +102,15 @@ function MessagesPageComponent() {
         console.error("Error loading conversations", error);
         toast({ title: 'Erreur', description: 'Impossible de charger les conversations.', variant: 'destructive'});
     } finally {
-        setIsLoading(false);
+        setIsLoadingConversations(false);
     }
-  }, [user, router, toast, setUnreadMessagesCount, searchParams]);
+  }, [router, toast, setUnreadMessagesCount, searchParams]);
   
-  // Effect for initial load - waits for authentication to finish.
   useEffect(() => {
     if (!isAuthLoading && user) {
-        loadConversationsAndMessages();
+        loadConversationsAndMessages(user);
     } else if (!isAuthLoading && !user) {
-        // Handle case where user is not logged in after auth check
-        setIsLoading(false);
+        setIsLoadingConversations(false);
     }
   }, [isAuthLoading, user, loadConversationsAndMessages]);
 
@@ -141,11 +138,14 @@ function MessagesPageComponent() {
           const unreadMessageIds = unreadMessages.map(m => m.id);
           await markMessagesAsReadByIds(unreadMessageIds, currentConvoMessages);
           
-          setConversations(prev => prev.map(c => 
-            c.orderId === selectedOrderId ? { ...c, unreadCount: 0 } : c
-          ));
-          const totalUnreadAfterMarking = conversations.reduce((sum, c) => c.orderId === selectedOrderId ? sum : sum + c.unreadCount, 0);
-          setUnreadMessagesCount(totalUnreadAfterMarking);
+          setConversations(prev => {
+            const newConversations = prev.map(c => 
+              c.orderId === selectedOrderId ? { ...c, unreadCount: 0 } : c
+            );
+            const totalUnreadAfterMarking = newConversations.reduce((sum, c) => sum + c.unreadCount, 0);
+            setUnreadMessagesCount(totalUnreadAfterMarking);
+            return newConversations;
+          });
         }
       } catch (error) {
         console.error("Erreur Firestore lors du chargement ou de la mise à jour des messages:", error);
@@ -199,11 +199,10 @@ function MessagesPageComponent() {
         setMessages(prev => [...prev, newMessage]);
         setReplyText("");
         
-        // Send to backend
         await sendMessage(messageData);
 
         // Refresh conversations in background to update order and bubble to top
-        loadConversationsAndMessages();
+        if(user) loadConversationsAndMessages(user);
 
     } catch (error) {
         console.error("Failed to send reply:", error);
@@ -212,7 +211,6 @@ function MessagesPageComponent() {
           description: "Votre message n'a pas pu être envoyé. Vérifiez vos permissions Firestore.",
           variant: 'destructive',
         });
-        // Revert optimistic update on failure
         setMessages(prev => prev.filter(m => m.id.startsWith('temp-') === false));
     } finally {
         setIsSending(false);
@@ -227,8 +225,17 @@ function MessagesPageComponent() {
     return format(date, 'd MMM yyyy', {locale: fr})
   }
 
-  if (isAuthLoading || isLoading) {
+  if (isAuthLoading || isLoadingConversations) {
     return <Loading />;
+  }
+  
+  if (!user) {
+    return (
+        <div className="flex flex-col items-center justify-center h-full text-center p-8">
+            <h3 className="mt-4 text-lg font-medium">Accès non autorisé</h3>
+            <p className="text-sm text-muted-foreground">Veuillez vous connecter pour accéder à la messagerie.</p>
+        </div>
+    )
   }
   
   return (
@@ -342,3 +349,5 @@ export default function MessagesPage() {
         </Suspense>
     )
 }
+
+    

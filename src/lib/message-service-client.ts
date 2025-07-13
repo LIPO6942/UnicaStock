@@ -32,10 +32,11 @@ export async function getMessagesForUser(user: UserProfile): Promise<Message[]> 
     let q;
 
     if (user.type === 'seller') {
-        q = query(messagesCollectionRef);
+        // Seller can read all messages (rules should allow this)
+        q = query(messagesCollectionRef, orderBy('createdAt', 'desc'));
     } else {
-        // Correct query for buyers. This is the main fix.
-        q = query(messagesCollectionRef, where('buyerId', '==', user.uid));
+        // Buyer can only read messages where they are the buyerId
+        q = query(messagesCollectionRef, where('buyerId', '==', user.uid), orderBy('createdAt', 'desc'));
     }
     
     const snapshot = await getDocs(q);
@@ -56,8 +57,7 @@ export async function getMessagesForUser(user: UserProfile): Promise<Message[]> 
         } as Message
     });
 
-    messages.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-
+    // The query already sorts by descending time, so we just return the messages.
     return messages;
 }
 

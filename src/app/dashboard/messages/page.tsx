@@ -162,8 +162,9 @@ function MessagesPageComponent() {
 
   const handleSendReply = async () => {
     if (!replyText.trim() || !selectedConversation || !user) return;
-
+    const tempId = `temp-${Date.now()}`;
     setIsSending(true);
+
     try {
         const subject = messages.length > 0 
             ? messages[0].subject
@@ -187,7 +188,6 @@ function MessagesPageComponent() {
             productPreview,
         };
         
-        const tempId = `temp-${Date.now()}`;
         const newMessage: Message = {
             ...messageData,
             id: tempId,
@@ -201,13 +201,13 @@ function MessagesPageComponent() {
         if(user) loadConversations(user);
 
     } catch (error) {
+        setMessages(prev => prev.filter(m => m.id !== tempId));
         console.error("Failed to send reply:", error);
         toast({
           title: "Erreur d'envoi",
           description: "Votre message n'a pas pu être envoyé. Vérifiez vos permissions Firestore.",
           variant: 'destructive',
         });
-        setMessages(prev => prev.filter(m => m.id !== tempId));
     } finally {
         setIsSending(false);
     }

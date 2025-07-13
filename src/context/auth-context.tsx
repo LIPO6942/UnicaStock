@@ -38,30 +38,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (userAuth) => {
-      // Don't set loading to false here. Wait for the full user profile.
       if (userAuth) {
         setFirebaseUser(userAuth);
         const userDocRef = doc(db, 'users', userAuth.uid);
         
-        // Use getDoc for initial load to ensure we have user data before proceeding.
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          const userData = { uid: userAuth.uid, ...userDoc.data() } as UserProfile;
-          setUser(userData);
-        } else {
-          // This can happen if user record is deleted but auth record still exists.
+        const unsub = onSnapshot(userDocRef, (userDoc) => {
+          if (userDoc.exists()) {
+             const userData = { uid: userAuth.uid, ...userDoc.data() } as UserProfile;
+             setUser(userData);
+          } else {
+             setUser(null);
+          }
+          setIsLoading(false);
+        }, (error) => {
+          console.error("Error fetching user profile:", error);
           setUser(null);
-          // Also sign out the user from auth to clean up the state
-          await signOut(auth);
-        }
-        // Now that we have a definitive user state (or null), we can stop loading.
-        setIsLoading(false);
+          setIsLoading(false);
+        });
+
+        return () => unsub();
 
       } else {
         setFirebaseUser(null);
         setUser(null);
         setCart([]);
-        // No user, we can safely say we're done loading.
         setIsLoading(false);
       }
     });
@@ -181,7 +181,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (!querySnapshot.empty) {
       const existingDoc = querySnapshot.docs[0];
-      await updateCartItemQuantity(existingDoc.id, existingDoc.data().quantity + quantity);
+      const newQuantity = (existingDoc.data().quantity || 0) + quantity;
+      await updateCartItemQuantity(existingDoc.id, newQuantity);
     } else {
       await addDoc(cartCollectionRef, {
         productId,
@@ -201,6 +202,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const updateCartItemQuantity = async (cartItemId: string, quantity: number) => {
     if (!user) throw new Error("Utilisateur non trouvé.");
+    if (isNaN(quantity)) return;
+
     const cartItemDocRef = doc(db, 'users', user.uid, 'cart', cartItemId);
 
     const cartItem = cart.find(item => item.id === cartItemId);

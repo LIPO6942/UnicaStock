@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -49,6 +50,16 @@ export default function CartPage() {
       setIsPlacingOrder(false);
     }
   };
+  
+  const handleQuantityChange = (itemId: string, value: string) => {
+    const newQuantity = parseInt(value, 10);
+    if (!isNaN(newQuantity)) {
+        updateCartItemQuantity(itemId, newQuantity);
+    } else if (value === '') {
+        // Handle case where input is cleared. We can decide to do nothing
+        // or set to a minimum like 1. For now, do nothing.
+    }
+  }
 
   if (cartCount === 0) {
     return (
@@ -107,7 +118,7 @@ export default function CartPage() {
                           min="1"
                           max={item.variant.stock}
                           value={item.quantity}
-                          onChange={(e) => updateCartItemQuantity(item.id, parseInt(e.target.value, 10))}
+                          onChange={(e) => handleQuantityChange(item.id, e.target.value)}
                           className="w-20"
                         />
                       </TableCell>

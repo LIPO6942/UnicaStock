@@ -38,7 +38,7 @@ export async function getMessagesForUser(user: UserProfile): Promise<Message[]> 
         // For sellers, query all messages and sort on the client to avoid indexing issues.
         q = query(messagesCollectionRef);
     } else {
-        // For buyers, we also query without sorting to avoid needing a composite index.
+        // For buyers, query where their ID is the buyerId. This is the fix.
         q = query(messagesCollectionRef, where('buyerId', '==', user.uid));
     }
     

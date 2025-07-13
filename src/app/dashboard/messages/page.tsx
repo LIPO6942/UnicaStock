@@ -246,59 +246,59 @@ function MessagesPageComponent() {
             </div>
         </ScrollArea>
 
-        <div className="md:col-span-2 xl:col-span-3 flex flex-col h-full bg-muted/20">
+        <div className="md:col-span-2 xl:col-span-3 flex flex-col bg-muted/20">
             {selectedConversation ? (
-                <>
-                <div className="p-4 border-b flex items-center gap-4 bg-background">
-                    <Avatar>
-                        <AvatarImage src={`https://placehold.co/40x40.png?text=${selectedConversation.otherPartyName.charAt(0)}`} data-ai-hint="person" />
-                        <AvatarFallback>{selectedConversation.otherPartyName.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <p className="font-semibold">{selectedConversation.otherPartyName}</p>
-                        <p className="text-sm text-muted-foreground">Commande {selectedConversation.orderNumber}</p>
-                    </div>
-                </div>
-                <ScrollArea className="flex-grow p-4 space-y-4">
-                    {messages.map((msg, index) => (
-                        <div key={index} className={cn("flex items-end gap-2", msg.sender === user?.type ? 'justify-end' : 'justify-start')}>
-                            {msg.sender !== user?.type && <Avatar className="h-8 w-8"><AvatarFallback>{msg.sender === 'buyer' ? msg.buyerName.charAt(0) : 'V'}</AvatarFallback></Avatar>}
-                            <div className={cn(
-                                "max-w-xs lg:max-w-md p-3 rounded-2xl",
-                                msg.sender === user?.type ? "bg-primary text-primary-foreground rounded-br-none" : "bg-background rounded-bl-none border"
-                            )}>
-                                <p className="text-sm">{msg.body}</p>
-                                <p className="text-xs opacity-70 mt-1 text-right">{formatMessageDate(msg.createdAt)}</p>
-                            </div>
+                <div className="flex flex-col h-full">
+                    <div className="p-4 border-b flex items-center gap-4 bg-background flex-shrink-0">
+                        <Avatar>
+                            <AvatarImage src={`https://placehold.co/40x40.png?text=${selectedConversation.otherPartyName.charAt(0)}`} data-ai-hint="person" />
+                            <AvatarFallback>{selectedConversation.otherPartyName.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <p className="font-semibold">{selectedConversation.otherPartyName}</p>
+                            <p className="text-sm text-muted-foreground">Commande {selectedConversation.orderNumber}</p>
                         </div>
-                    ))}
-                </ScrollArea>
-                <div className="p-4 border-t bg-background">
-                    <div className="relative">
-                        <Textarea 
-                            placeholder="Écrivez votre message..." 
-                            value={replyText}
-                            onChange={e => setReplyText(e.target.value)}
-                            onKeyDown={e => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSendReply();
-                                }
-                            }}
-                            className="pr-12"
-                            rows={1}
-                        />
-                        <Button 
-                            size="icon" 
-                            className="absolute right-2 bottom-2 h-8 w-8" 
-                            onClick={handleSendReply}
-                            disabled={isSending || !replyText.trim()}
-                        >
-                            <Send className="h-4 w-4"/>
-                        </Button>
+                    </div>
+                    <ScrollArea className="flex-grow p-4 space-y-4">
+                        {messages.map((msg, index) => (
+                            <div key={index} className={cn("flex items-end gap-2", msg.sender === user?.type ? 'justify-end' : 'justify-start')}>
+                                {msg.sender !== user?.type && <Avatar className="h-8 w-8"><AvatarFallback>{msg.sender === 'buyer' ? msg.buyerName.charAt(0) : 'V'}</AvatarFallback></Avatar>}
+                                <div className={cn(
+                                    "max-w-xs lg:max-w-md p-3 rounded-2xl",
+                                    msg.sender === user?.type ? "bg-primary text-primary-foreground rounded-br-none" : "bg-background rounded-bl-none border"
+                                )}>
+                                    <p className="text-sm">{msg.body}</p>
+                                    <p className="text-xs opacity-70 mt-1 text-right">{formatMessageDate(msg.createdAt)}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </ScrollArea>
+                    <div className="p-4 border-t bg-background flex-shrink-0">
+                        <div className="relative">
+                            <Textarea 
+                                placeholder="Écrivez votre message..." 
+                                value={replyText}
+                                onChange={e => setReplyText(e.target.value)}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSendReply();
+                                    }
+                                }}
+                                className="pr-12"
+                                rows={1}
+                            />
+                            <Button 
+                                size="icon" 
+                                className="absolute right-2 bottom-2 h-8 w-8" 
+                                onClick={handleSendReply}
+                                disabled={isSending || !replyText.trim()}
+                            >
+                                <Send className="h-4 w-4"/>
+                            </Button>
+                        </div>
                     </div>
                 </div>
-                </>
             ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center p-8">
                      <MessageSquare className="h-16 w-16 text-muted-foreground/50" />

@@ -95,10 +95,10 @@ function MessagesPageComponent() {
   }, [user, router]);
 
   useEffect(() => {
-    if (!isAuthLoading) {
+    if (!isAuthLoading && user) {
       loadConversations();
     }
-  }, [isAuthLoading, loadConversations]);
+  }, [isAuthLoading, user, loadConversations]);
 
 
   useEffect(() => {
@@ -108,7 +108,10 @@ function MessagesPageComponent() {
     }
 
     const convo = conversations.find(c => c.orderId === selectedOrderId);
-    if (!convo) return;
+    if (!convo) {
+        setMessages([]);
+        return;
+    }
     
     if (!convo.lastMessage) {
         setMessages([]);
@@ -145,7 +148,7 @@ function MessagesPageComponent() {
     };
 
     loadMessagesAndMarkAsRead();
-  }, [selectedOrderId, user, conversations, toast]);
+  }, [selectedOrderId, user, toast]);
 
 
   const handleSendReply = async () => {
@@ -179,6 +182,8 @@ function MessagesPageComponent() {
         setReplyText("");
         
         // After sending, reload conversations and messages for the current convo
+        // A more optimized way is to append the new message locally and update the conversation
+        // For simplicity and guaranteed consistency, we reload.
         await loadConversations();
         
         const allMessages = await getMessagesForUser(user);

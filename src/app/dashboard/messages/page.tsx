@@ -105,10 +105,13 @@ function MessagesPageComponent() {
     }
   }, [user, router, toast, setUnreadMessagesCount]);
   
-  // Effect for initial load
+  // Effect for initial load - waits for authentication to finish.
   useEffect(() => {
     if (!isAuthLoading && user) {
         loadConversationsAndMessages();
+    } else if (!isAuthLoading && !user) {
+        // Handle case where user is not logged in after auth check
+        setIsLoading(false);
     }
   }, [isAuthLoading, user, loadConversationsAndMessages]);
 
@@ -334,3 +337,5 @@ export default function MessagesPage() {
         </Suspense>
     )
 }
+
+    

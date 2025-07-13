@@ -1,3 +1,4 @@
+
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, doc, updateDoc, Timestamp, where, writeBatch } from 'firebase/firestore';
 import type { Message, UserProfile } from '@/lib/types';
@@ -32,11 +33,13 @@ export async function getMessagesForUser(user: UserProfile): Promise<Message[]> 
     let q;
 
     if (user.type === 'seller') {
-        // Seller can read all messages (rules should allow this)
+        // Seller can read all messages and sort them directly via query
         q = query(messagesCollectionRef, orderBy('createdAt', 'desc'));
     } else {
-        // Buyer can only read messages where they are the buyerId
-        q = query(messagesCollectionRef, where('buyerId', '==', user.uid), orderBy('createdAt', 'desc'));
+        // Buyer can only read messages where they are the buyerId.
+        // We remove orderBy to avoid needing a composite index, which is a common
+        // cause for permission errors if the rules are simple. Sorting will be done client-side.
+        q = query(messagesCollectionRef, where('buyerId', '==', user.uid));
     }
     
     const snapshot = await getDocs(q);
@@ -53,11 +56,13 @@ export async function getMessagesForUser(user: UserProfile): Promise<Message[]> 
             createdAt: createdAtTimestamp ? {
                 seconds: createdAtTimestamp.seconds,
                 nanoseconds: createdAtTimestamp.nanoseconds,
-            } : null,
+            } : { seconds: 0, nanoseconds: 0 }, // Provide a default if null
         } as Message
     });
 
-    // The query already sorts by descending time, so we just return the messages.
+    // Sort client-side for consistency, especially for the buyer.
+    messages.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
     return messages;
 }
 

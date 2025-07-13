@@ -29,7 +29,7 @@ type Conversation = {
 };
 
 function MessagesPageComponent() {
-  const { user, isLoading: isAuthLoading, unreadMessagesCount, setUnreadMessagesCount } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -178,6 +178,7 @@ function MessagesPageComponent() {
         await sendMessage(messageData);
         setReplyText("");
         
+        // After sending, reload conversations and messages for the current convo
         await loadConversations();
         
         const allMessages = await getMessagesForUser(user);

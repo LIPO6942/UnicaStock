@@ -42,6 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, isLoading, unreadMessagesCount } = useAuth();
 
   useEffect(() => {
+    // This effect now correctly handles redirection only after loading is complete
     if (!isLoading && !user) {
       router.replace('/login');
     }
@@ -59,9 +60,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [isLoading, user, pathname, router]);
 
 
-  if (isLoading || !user) {
+  if (isLoading) {
     return <Loading />;
   }
+  
+  // If loading is finished and there's still no user, we render nothing,
+  // letting the useEffect above handle the redirection. This prevents rendering
+  // the layout for a split second before redirecting.
+  if (!user) {
+    return null;
+  }
+
 
   const isActive = (path: string) => pathname === path || (path === '/dashboard/messages' && pathname.startsWith('/dashboard/messages'));
 
@@ -95,7 +104,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider defaultOpen>
-        <Sidebar className="md:flex w-full">
+        <Sidebar>
             <SidebarHeader>
             <Link href="/" className="flex items-center gap-2">
                 <Icons.logo className="size-7 text-primary" />

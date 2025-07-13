@@ -29,7 +29,7 @@ type Conversation = {
 };
 
 function MessagesPageComponent() {
-  const { user, isLoading: isAuthLoading } = useAuth();
+  const { user, isLoading: isAuthLoading, setUnreadMessagesCount } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -40,80 +40,82 @@ function MessagesPageComponent() {
   const [replyText, setReplyText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const searchParamsRef = useRef(searchParams);
-
+  
+  // Use a ref to get initial params, preventing re-triggering effects on nav changes
+  const initialParamsRef = useRef({
+      orderId: searchParams.get('orderId'),
+      orderNumber: searchParams.get('orderNumber'),
+      productPreview: searchParams.get('productPreview'),
+  });
 
   const selectedConversation = conversations.find(c => c.orderId === selectedOrderId) || null;
 
-  const loadConversations = useCallback(async () => {
+  const loadConversationsAndMessages = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
 
-    const allMessages = await getMessagesForUser(user);
+    try {
+        const allMessages = await getMessagesForUser(user);
 
-    const grouped = allMessages.reduce((acc, msg) => {
-      (acc[msg.orderId] = acc[msg.orderId] || []).push(msg);
-      return acc;
-    }, {} as Record<string, Message[]>);
+        const grouped = allMessages.reduce((acc, msg) => {
+            (acc[msg.orderId] = acc[msg.orderId] || []).push(msg);
+            return acc;
+        }, {} as Record<string, Message[]>);
 
-    let finalConversations: Conversation[] = Object.values(grouped).map(msgs => {
-      const lastMessage = msgs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0];
-      const unreadCount = msgs.filter(m => !m.isRead && m.sender !== user.type).length;
-      const messageWithPreview = msgs.find(m => m.productPreview);
+        let finalConversations: Conversation[] = Object.values(grouped).map(msgs => {
+            const lastMessage = msgs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0];
+            const unreadCount = msgs.filter(m => !m.isRead && m.sender !== user.type).length;
+            const messageWithPreview = msgs.find(m => m.productPreview);
 
-      return {
-        orderId: lastMessage.orderId,
-        orderNumber: lastMessage.orderNumber,
-        otherPartyName: user.type === 'seller' ? lastMessage.buyerName : 'Ùnica Cosmétiques',
-        lastMessage,
-        unreadCount,
-        productPreview: messageWithPreview?.productPreview,
-      };
-    }).sort((a, b) => (b.lastMessage?.createdAt?.seconds || 0) - (a.lastMessage?.createdAt?.seconds || 0));
+            return {
+                orderId: lastMessage.orderId,
+                orderNumber: lastMessage.orderNumber,
+                otherPartyName: user.type === 'seller' ? lastMessage.buyerName : 'Ùnica Cosmétiques',
+                lastMessage,
+                unreadCount,
+                productPreview: messageWithPreview?.productPreview,
+            };
+        }).sort((a, b) => (b.lastMessage?.createdAt?.seconds || 0) - (a.lastMessage?.createdAt?.seconds || 0));
 
-    const initialOrderId = searchParamsRef.current.get('orderId');
-    if (initialOrderId) {
-      if (!finalConversations.some(c => c.orderId === initialOrderId)) {
-        const initialOrderNumber = searchParamsRef.current.get('orderNumber');
-        const productPreview = searchParamsRef.current.get('productPreview');
-        const newVirtualConvo: Conversation = {
-          orderId: initialOrderId,
-          orderNumber: initialOrderNumber || 'N/A',
-          otherPartyName: user.type === 'buyer' ? 'Ùnica Cosmétiques' : 'Nouveau Client',
-          unreadCount: 0,
-          productPreview: productPreview ? decodeURIComponent(productPreview) : undefined,
-        };
-        finalConversations.unshift(newVirtualConvo);
-      }
-      setSelectedOrderId(initialOrderId);
-      // Clean URL after processing params
-      router.replace('/dashboard/messages', { scroll: false });
+        const { orderId, orderNumber, productPreview } = initialParamsRef.current;
+        if (orderId) {
+            if (!finalConversations.some(c => c.orderId === orderId)) {
+                const newVirtualConvo: Conversation = {
+                    orderId: orderId,
+                    orderNumber: orderNumber || 'N/A',
+                    otherPartyName: user.type === 'buyer' ? 'Ùnica Cosmétiques' : 'Nouveau Client',
+                    unreadCount: 0,
+                    productPreview: productPreview ? decodeURIComponent(productPreview) : undefined,
+                };
+                finalConversations.unshift(newVirtualConvo);
+            }
+            setSelectedOrderId(orderId);
+            // Clean URL after processing params, only if they existed
+            router.replace('/dashboard/messages', { scroll: false });
+        }
+        
+        setConversations(finalConversations);
+        const totalUnread = finalConversations.reduce((sum, convo) => sum + convo.unreadCount, 0);
+        setUnreadMessagesCount(totalUnread);
+    } catch (error) {
+        console.error("Error loading conversations", error);
+        toast({ title: 'Erreur', description: 'Impossible de charger les conversations.', variant: 'destructive'});
+    } finally {
+        setIsLoading(false);
     }
-    
-    setConversations(finalConversations);
-    setIsLoading(false);
-  }, [user, router]);
-
+  }, [user, router, toast, setUnreadMessagesCount]);
+  
+  // Effect for initial load
   useEffect(() => {
     if (!isAuthLoading && user) {
-      loadConversations();
+        loadConversationsAndMessages();
     }
-  }, [isAuthLoading, user, loadConversations]);
+  }, [isAuthLoading, user, loadConversationsAndMessages]);
 
 
+  // Effect to load messages when a conversation is selected
   useEffect(() => {
     if (!selectedOrderId || !user) {
-        setMessages([]);
-        return;
-    }
-
-    const convo = conversations.find(c => c.orderId === selectedOrderId);
-    if (!convo) {
-        setMessages([]);
-        return;
-    }
-    
-    if (!convo.lastMessage) {
         setMessages([]);
         return;
     }
@@ -133,9 +135,12 @@ function MessagesPageComponent() {
         if (unreadMessages.length > 0) {
           const unreadMessageIds = unreadMessages.map(m => m.id);
           await markMessagesAsReadByIds(unreadMessageIds, currentConvoMessages);
+          
           setConversations(prev => prev.map(c => 
             c.orderId === selectedOrderId ? { ...c, unreadCount: 0 } : c
           ));
+          const totalUnreadAfterMarking = conversations.reduce((sum, c) => c.orderId === selectedOrderId ? sum : sum + c.unreadCount, 0);
+          setUnreadMessagesCount(totalUnreadAfterMarking);
         }
       } catch (error) {
         console.error("Erreur Firestore lors du chargement ou de la mise à jour des messages:", error);
@@ -148,7 +153,7 @@ function MessagesPageComponent() {
     };
 
     loadMessagesAndMarkAsRead();
-  }, [selectedOrderId, user, toast]);
+  }, [selectedOrderId, user, toast, conversations, setUnreadMessagesCount]);
 
 
   const handleSendReply = async () => {
@@ -160,9 +165,9 @@ function MessagesPageComponent() {
             ? messages[0].subject.startsWith('Re: ') ? messages[0].subject : `Re: ${messages[0].subject}`
             : `Question sur la commande ${selectedConversation.orderNumber}`;
 
-        const buyerId = user.type === 'buyer' ? user.uid : selectedConversation.lastMessage!.buyerId;
-        const buyerName = user.type === 'buyer' ? user.name : selectedConversation.lastMessage!.buyerName;
-        const buyerEmail = user.type === 'buyer' ? user.email : selectedConversation.lastMessage!.buyerEmail;
+        const buyerId = user.type === 'buyer' ? user.uid : selectedConversation.lastMessage?.buyerId || (messages.length > 0 ? messages[0].buyerId : 'unknown_buyer_id');
+        const buyerName = user.type === 'buyer' ? user.name : selectedConversation.lastMessage?.buyerName || (messages.length > 0 ? messages[0].buyerName : 'unknown_buyer');
+        const buyerEmail = user.type === 'buyer' ? user.email : selectedConversation.lastMessage?.buyerEmail || (messages.length > 0 ? messages[0].buyerEmail : 'unknown_email');
 
         const productPreview = selectedConversation.productPreview || (messages.length > 0 ? messages.find(m => m.productPreview)?.productPreview : undefined);
 
@@ -181,14 +186,18 @@ function MessagesPageComponent() {
         await sendMessage(messageData);
         setReplyText("");
         
-        // After sending, reload conversations and messages for the current convo
-        // A more optimized way is to append the new message locally and update the conversation
-        // For simplicity and guaranteed consistency, we reload.
-        await loadConversations();
+        // After sending, optimistically update UI instead of full reload
+        const newMessage: Message = {
+            ...messageData,
+            id: `temp-${Date.now()}`,
+            isRead: true,
+            createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
+        };
         
-        const allMessages = await getMessagesForUser(user);
-        const convoMessages = allMessages.filter(m => m.orderId === selectedConversation.orderId).sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-        setMessages(convoMessages);
+        setMessages(prev => [...prev, newMessage]);
+
+        // Refresh conversations in background to update order
+        loadConversationsAndMessages();
 
     } catch (error) {
         console.error("Failed to send reply:", error);
@@ -267,7 +276,7 @@ function MessagesPageComponent() {
                     </div>
                     <ScrollArea className="flex-grow p-4 space-y-4">
                         {messages.map((msg, index) => (
-                            <div key={index} className={cn("flex items-end gap-2", msg.sender === user?.type ? 'justify-end' : 'justify-start')}>
+                            <div key={msg.id || index} className={cn("flex items-end gap-2", msg.sender === user?.type ? 'justify-end' : 'justify-start')}>
                                 {msg.sender !== user?.type && <Avatar className="h-8 w-8"><AvatarFallback>{msg.sender === 'buyer' ? msg.buyerName.charAt(0) : 'V'}</AvatarFallback></Avatar>}
                                 <div className={cn(
                                     "max-w-xs lg:max-w-md p-3 rounded-2xl",

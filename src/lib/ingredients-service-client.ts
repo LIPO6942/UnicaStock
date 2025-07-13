@@ -1,6 +1,6 @@
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, deleteDoc, getDocs, query, orderBy } from 'firebase/firestore';
 import type { Ingredient } from '@/lib/types';
 
 // This service manages ingredient mutations from the CLIENT-SIDE.
@@ -8,6 +8,25 @@ import type { Ingredient } from '@/lib/types';
 // to authorize the write operations.
 
 const ingredientsCollectionRef = collection(db, 'ingredients');
+
+
+/**
+ * Fetches all ingredients from Firestore. This function is intended to be called
+ * from the client-side after an operation (like add/delete) to refresh the data.
+ * @returns A promise that resolves to an array of ingredients.
+ */
+export async function getIngredientsClient(): Promise<Ingredient[]> {
+  try {
+    const q = query(ingredientsCollectionRef, orderBy('name'));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return [];
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ingredient));
+  } catch (error) {
+    console.error("Firebase Client Error: Could not fetch ingredients.", error);
+    // Propagate the error so it can be caught by the caller and displayed in a toast.
+    throw error;
+  }
+}
 
 /**
  * Adds a new ingredient to Firestore. This must be called from the client.

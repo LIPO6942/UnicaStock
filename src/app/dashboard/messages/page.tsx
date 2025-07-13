@@ -91,7 +91,9 @@ function MessagesPageComponent() {
             }
             setSelectedOrderId(orderId);
             // Clean URL after processing params, only if they existed
-            router.replace('/dashboard/messages', { scroll: false });
+            if (searchParams.has('orderId')) {
+              router.replace('/dashboard/messages', { scroll: false });
+            }
         }
         
         setConversations(finalConversations);
@@ -103,7 +105,7 @@ function MessagesPageComponent() {
     } finally {
         setIsLoading(false);
     }
-  }, [user, router, toast, setUnreadMessagesCount]);
+  }, [user, router, toast, setUnreadMessagesCount, searchParams]);
   
   // Effect for initial load - waits for authentication to finish.
   useEffect(() => {
@@ -147,7 +149,7 @@ function MessagesPageComponent() {
         }
       } catch (error) {
         console.error("Erreur Firestore lors du chargement ou de la mise à jour des messages:", error);
-        let description = "Une erreur est survenue lors de la récupération des messages. Vos règles de sécurité Firestore peuvent être incorrectes.";
+        let description = "Une erreur est survenue lors de la récupération des messages.";
         if (error instanceof FirebaseError && error.code === 'permission-denied') {
             description = `Permission Refusée par Firestore. Veuillez mettre à jour vos règles de sécurité dans la console Firebase. Assurez-vous aussi d'être connecté avec un compte du bon type (acheteur/vendeur).`;
         }
@@ -156,7 +158,7 @@ function MessagesPageComponent() {
     };
 
     loadMessagesAndMarkAsRead();
-  }, [selectedOrderId, user, toast, conversations, setUnreadMessagesCount]);
+  }, [selectedOrderId, user, toast, setUnreadMessagesCount]);
 
 
   const handleSendReply = async () => {
@@ -164,15 +166,15 @@ function MessagesPageComponent() {
 
     setIsSending(true);
     try {
-        const subject = messages.length > 0 && messages[0].subject 
-            ? messages[0].subject.startsWith('Re: ') ? messages[0].subject : `Re: ${messages[0].subject}`
+        const subject = messages.length > 0 
+            ? messages[0].subject
             : `Question sur la commande ${selectedConversation.orderNumber}`;
 
-        const buyerId = user.type === 'buyer' ? user.uid : selectedConversation.lastMessage?.buyerId || (messages.length > 0 ? messages[0].buyerId : 'unknown_buyer_id');
-        const buyerName = user.type === 'buyer' ? user.name : selectedConversation.lastMessage?.buyerName || (messages.length > 0 ? messages[0].buyerName : 'unknown_buyer');
-        const buyerEmail = user.type === 'buyer' ? user.email : selectedConversation.lastMessage?.buyerEmail || (messages.length > 0 ? messages[0].buyerEmail : 'unknown_email');
-
-        const productPreview = selectedConversation.productPreview || (messages.length > 0 ? messages.find(m => m.productPreview)?.productPreview : undefined);
+        const firstMessage = messages[0];
+        const buyerId = user.type === 'buyer' ? user.uid : (firstMessage?.buyerId || 'unknown_buyer_id');
+        const buyerName = user.type === 'buyer' ? user.name : (firstMessage?.buyerName || 'Nouveau Client');
+        const buyerEmail = user.type === 'buyer' ? user.email : (firstMessage?.buyerEmail || 'unknown_email');
+        const productPreview = selectedConversation.productPreview || (firstMessage?.productPreview);
 
         const messageData: Omit<Message, 'id' | 'isRead' | 'createdAt'> = {
             orderId: selectedConversation.orderId,
@@ -186,20 +188,21 @@ function MessagesPageComponent() {
             productPreview,
         };
         
-        await sendMessage(messageData);
-        setReplyText("");
-        
-        // After sending, optimistically update UI instead of full reload
+        // Optimistic UI update
+        const tempId = `temp-${Date.now()}`;
         const newMessage: Message = {
             ...messageData,
-            id: `temp-${Date.now()}`,
+            id: tempId,
             isRead: true,
             createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
         };
-        
         setMessages(prev => [...prev, newMessage]);
+        setReplyText("");
+        
+        // Send to backend
+        await sendMessage(messageData);
 
-        // Refresh conversations in background to update order
+        // Refresh conversations in background to update order and bubble to top
         loadConversationsAndMessages();
 
     } catch (error) {
@@ -209,6 +212,8 @@ function MessagesPageComponent() {
           description: "Votre message n'a pas pu être envoyé. Vérifiez vos permissions Firestore.",
           variant: 'destructive',
         });
+        // Revert optimistic update on failure
+        setMessages(prev => prev.filter(m => m.id.startsWith('temp-') === false));
     } finally {
         setIsSending(false);
     }
@@ -337,5 +342,3 @@ export default function MessagesPage() {
         </Suspense>
     )
 }
-
-    

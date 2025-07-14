@@ -1,5 +1,4 @@
 
-
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/context/auth-context";
-import { useEffect, useState, useCallback, Suspense, useRef } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getMessagesForOrder, getAllConversationsForUser, sendMessage } from "@/lib/message-service-client";
 import type { Message } from "@/lib/types";
@@ -42,7 +41,6 @@ function MessagesPageComponent() {
   const [isSending, setIsSending] = useState(false);
   const [isLoadingComponent, setIsLoadingComponent] = useState(true);
 
-  // Load all conversations once on mount
   const loadConversations = useCallback(async () => {
       if (!user) return;
       setIsLoadingComponent(true);
@@ -64,6 +62,7 @@ function MessagesPageComponent() {
   }, [user, toast, setUnreadMessagesCount]);
   
   useEffect(() => {
+    // This is the key change: only run effects when auth is no longer loading AND we have a user.
     if (!isAuthLoading && user) {
         loadConversations();
         const orderIdFromParams = searchParams.get('orderId');
@@ -90,8 +89,6 @@ function MessagesPageComponent() {
         // Update unread count visually after loading
         const convo = conversations.find(c => c.orderId === selectedOrderId);
         if (convo && convo.unreadCount > 0) {
-            // This is a client-side update for immediate feedback
-            // The actual read status is updated on the server when messages are fetched by context
             const updatedConversations = conversations.map(c => 
                 c.orderId === selectedOrderId ? {...c, unreadCount: 0} : c
             );
@@ -117,7 +114,6 @@ function MessagesPageComponent() {
 
     setIsSending(true);
     const tempId = `temp-${Date.now()}`;
-    // Find the first message to reliably get buyer/seller info
     const originalMessage = messages[0];
     if (!originalMessage) {
        toast({ title: "Erreur", description: "Impossible de trouver la conversation d'origine.", variant: "destructive"});
@@ -137,7 +133,6 @@ function MessagesPageComponent() {
         productPreview: selectedConversation.productPreview,
     };
     
-    // Optimistic UI update
     const tempMessage: Message = {
         ...messageData,
         id: tempId,
@@ -149,11 +144,10 @@ function MessagesPageComponent() {
         
     try {
         await sendMessage(messageData);
-        // Refresh conversations in the background to get latest state
         await loadConversations();
         
     } catch (error) {
-        setMessages(prev => prev.filter(m => m.id !== tempId)); // Revert optimistic update on error
+        setMessages(prev => prev.filter(m => m.id !== tempId));
         console.error("Failed to send reply:", error);
         toast({
           title: "Erreur d'envoi",
@@ -175,10 +169,12 @@ function MessagesPageComponent() {
   
   const selectedConversation = conversations.find(c => c.orderId === selectedOrderId);
 
+  // CRITICAL: Display loading state while auth is resolving.
   if (isAuthLoading) {
     return <Loading />;
   }
   
+  // CRITICAL: Handle the case where auth is done but there is no user.
   if (!user) {
     return (
         <div className="flex flex-col items-center justify-center h-full text-center p-8">
@@ -300,5 +296,3 @@ export default function MessagesPage() {
         </Suspense>
     )
 }
-
-    

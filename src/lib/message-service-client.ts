@@ -1,5 +1,4 @@
 
-
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, doc, updateDoc, Timestamp, where, writeBatch } from 'firebase/firestore';
 import type { Message, UserProfile } from '@/lib/types';
@@ -51,7 +50,6 @@ export async function getMessagesForOrder(orderId: string): Promise<Message[]> {
         } as Message;
     });
 
-    // Mark messages as read
     const batch = writeBatch(db);
     snapshot.docs.forEach(doc => {
         if (!doc.data().isRead) {
@@ -78,8 +76,8 @@ export async function getAllConversationsForUser(user: UserProfile): Promise<any
         // Seller can read all messages and order them.
         q = query(messagesCollectionRef, orderBy('createdAt', 'desc'));
     } else {
-        // Buyer can only read messages where they are the buyer.
-        // We MUST remove orderBy to avoid needing a composite index.
+        // KEY CHANGE: Buyer can only read messages where they are the buyer.
+        // We MUST remove orderBy to avoid needing a composite index and to comply with security rules.
         // Sorting will be done client-side. The `where` clause is critical for the security rule.
         q = query(messagesCollectionRef, where('buyerId', '==', user.uid));
     }
@@ -108,7 +106,6 @@ export async function getAllConversationsForUser(user: UserProfile): Promise<any
         if (!msg.isRead && msg.sender !== user.type) {
             acc[msg.orderId].unreadCount += 1;
         }
-        // Ensure the productPreview is from the latest message that has one
         if (msg.productPreview) {
              acc[msg.orderId].productPreview = msg.productPreview
         }

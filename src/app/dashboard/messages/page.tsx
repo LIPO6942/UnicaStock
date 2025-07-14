@@ -10,7 +10,7 @@ import { useAuth } from "@/context/auth-context";
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getMessagesForOrder, getAllConversationsForUser, sendMessage } from "@/lib/message-service-client";
-import type { Message } from "@/lib/types";
+import type { Message, Conversation } from "@/lib/types";
 import Loading from "../loading";
 import { format, isToday, isYesterday } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -18,15 +18,6 @@ import { Send, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { FirebaseError } from "firebase/app";
-
-type Conversation = {
-  orderId: string;
-  orderNumber: string;
-  otherPartyName: string;
-  lastMessage?: Message;
-  unreadCount: number;
-  productPreview?: string;
-};
 
 function MessagesPageComponent() {
   const { user, isLoading: isAuthLoading, setUnreadMessagesCount } = useAuth();
@@ -49,6 +40,15 @@ function MessagesPageComponent() {
           setConversations(convos);
           const totalUnread = convos.reduce((sum, c) => sum + c.unreadCount, 0);
           setUnreadMessagesCount(totalUnread);
+
+          // If an orderId is in the URL, select it. Otherwise, select the first conversation.
+          const orderIdFromParams = searchParams.get('orderId');
+          if (orderIdFromParams) {
+              setSelectedOrderId(orderIdFromParams);
+          } else if (convos.length > 0) {
+              setSelectedOrderId(convos[0].orderId);
+          }
+
       } catch (error) {
           console.error("Failed to load conversations", error);
           if (error instanceof FirebaseError && error.code === 'permission-denied') {
@@ -59,18 +59,14 @@ function MessagesPageComponent() {
       } finally {
           setIsLoadingComponent(false);
       }
-  }, [user, toast, setUnreadMessagesCount]);
+  }, [user, toast, setUnreadMessagesCount, searchParams]);
   
+  // Effect to load initial conversations when user is authenticated
   useEffect(() => {
-    // This is the key change: only run effects when auth is no longer loading AND we have a user.
     if (!isAuthLoading && user) {
         loadConversations();
-        const orderIdFromParams = searchParams.get('orderId');
-        if (orderIdFromParams) {
-            setSelectedOrderId(orderIdFromParams);
-        }
     }
-  }, [user, isAuthLoading, loadConversations, searchParams]);
+  }, [user, isAuthLoading, loadConversations]);
 
 
   // Effect to load messages when a conversation is selected
@@ -83,7 +79,8 @@ function MessagesPageComponent() {
 
       setIsLoadingComponent(true);
       try {
-        const messagesForOrder = await getMessagesForOrder(selectedOrderId);
+        // This function now also handles marking messages as read
+        const messagesForOrder = await getMessagesForOrder(selectedOrderId, user.type);
         setMessages(messagesForOrder);
 
         // Update unread count visually after loading
@@ -105,7 +102,9 @@ function MessagesPageComponent() {
       }
     };
 
-    loadMessages();
+    if (selectedOrderId) {
+        loadMessages();
+    }
   }, [selectedOrderId, user, toast, setUnreadMessagesCount, conversations]);
 
   const handleSendReply = async () => {
@@ -113,8 +112,10 @@ function MessagesPageComponent() {
     if (!replyText.trim() || !selectedConversation || !user) return;
 
     setIsSending(true);
-    const tempId = `temp-${Date.now()}`;
-    const originalMessage = messages[0];
+    
+    // We need the original message to get buyer details if seller is replying
+    const originalMessage = messages[0] ?? conversations.find(c => c.orderId === selectedOrderId)?.lastMessage;
+
     if (!originalMessage) {
        toast({ title: "Erreur", description: "Impossible de trouver la conversation d'origine.", variant: "destructive"});
        setIsSending(false);
@@ -133,21 +134,23 @@ function MessagesPageComponent() {
         productPreview: selectedConversation.productPreview,
     };
     
-    const tempMessage: Message = {
-        ...messageData,
-        id: tempId,
-        isRead: true,
-        createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
-    };
-    setMessages(prev => [...prev, tempMessage]);
     setReplyText("");
         
     try {
         await sendMessage(messageData);
+        // Optimistically add the message to the UI
+        const tempMessage: Message = {
+            ...messageData,
+            id: `temp-${Date.now()}`,
+            isRead: true,
+            createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
+        };
+        setMessages(prev => [...prev, tempMessage]);
+        
+        // Refresh conversations to get the latest state
         await loadConversations();
         
     } catch (error) {
-        setMessages(prev => prev.filter(m => m.id !== tempId));
         console.error("Failed to send reply:", error);
         toast({
           title: "Erreur d'envoi",
@@ -169,12 +172,10 @@ function MessagesPageComponent() {
   
   const selectedConversation = conversations.find(c => c.orderId === selectedOrderId);
 
-  // CRITICAL: Display loading state while auth is resolving.
   if (isAuthLoading) {
     return <Loading />;
   }
   
-  // CRITICAL: Handle the case where auth is done but there is no user.
   if (!user) {
     return (
         <div className="flex flex-col items-center justify-center h-full text-center p-8">
@@ -219,6 +220,7 @@ function MessagesPageComponent() {
                     </button>
                 ))
             )}
+            {isLoadingComponent && conversations.length === 0 && <div className="p-4 text-center text-sm text-muted-foreground">Chargement...</div>}
             </div>
         </ScrollArea>
 

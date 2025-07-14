@@ -107,6 +107,16 @@ export type Message = {
   productPreview?: string;
 };
 
+export type Conversation = {
+  orderId: string;
+  orderNumber: string;
+  otherPartyName: string;
+  lastMessage: Message;
+  unreadCount: number;
+  productPreview?: string;
+};
+
+
 export type Banner = {
   id:string;
   title: string;

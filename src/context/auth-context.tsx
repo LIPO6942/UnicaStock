@@ -6,7 +6,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { onAuthStateChanged, User as FirebaseUser, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, collection, addDoc, serverTimestamp, query, where, getDocs, writeBatch, deleteDoc, runTransaction, DocumentReference, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import type { UserProfile, Product, CartItem, Order, ProductVariant } from '@/lib/types';
+import type { UserProfile, CartItem, Order, ProductVariant, Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
@@ -99,6 +99,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUnreadMessagesCount(snapshot.size);
       }, (error) => {
         console.error("Erreur de lecture des messages non lus:", error);
+        // This might fire a permission denied error for buyers if rules are not perfect,
+        // so we gracefully handle it by setting count to 0.
         setUnreadMessagesCount(0);
       });
     } else {

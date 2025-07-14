@@ -1,41 +1,38 @@
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, doc, updateDoc, Timestamp, where, writeBatch } from 'firebase/firestore';
-import type { Message, UserProfile } from '@/lib/types';
+import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, Timestamp, where, writeBatch } from 'firebase/firestore';
+import type { Message, UserProfile, Conversation } from '@/lib/types';
+
+const messagesCollectionRef = collection(db, 'messages');
 
 /**
- * Sends a message. It cleans up undefined fields before sending to Firestore.
- * @param messageData The message data to send.
+ * Sends a new message to Firestore.
+ * @param messageData The message data to be sent.
  */
-export async function sendMessage(messageData: Omit<Message, 'id' | 'isRead' | 'createdAt'>) {
+export async function sendMessage(messageData: Omit<Message, 'id' | 'isRead' | 'createdAt'>): Promise<void> {
     const dataToSend: { [key: string]: any } = {
         ...messageData,
         isRead: false,
         createdAt: serverTimestamp()
     };
-
+    // Ensure optional fields are not sent as 'undefined'
     if (dataToSend.productPreview === undefined) {
         delete dataToSend.productPreview;
     }
-
-    const messagesCollectionRef = collection(db, 'messages');
     await addDoc(messagesCollectionRef, dataToSend);
 }
 
 /**
- * Fetches all messages for a specific order and marks them as read.
- * This function is safe for both buyers and sellers due to Firestore rules.
+ * Fetches all messages for a specific order and marks them as read by the current user.
  * @param orderId The ID of the order to fetch messages for.
- * @returns A promise that resolves to an array of messages for the specified order.
+ * @param currentUserType The type of the current user ('buyer' or 'seller').
+ * @returns A promise that resolves to an array of messages.
  */
-export async function getMessagesForOrder(orderId: string): Promise<Message[]> {
-    const messagesCollectionRef = collection(db, 'messages');
+export async function getMessagesForOrder(orderId: string, currentUserType: 'buyer' | 'seller'): Promise<Message[]> {
     const q = query(messagesCollectionRef, where('orderId', '==', orderId), orderBy('createdAt', 'asc'));
     
     const snapshot = await getDocs(q);
-    if (snapshot.empty) {
-        return [];
-    }
+    if (snapshot.empty) return [];
 
     const messages = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -50,9 +47,12 @@ export async function getMessagesForOrder(orderId: string): Promise<Message[]> {
         } as Message;
     });
 
+    // Mark messages as read in a batch
     const batch = writeBatch(db);
     snapshot.docs.forEach(doc => {
-        if (!doc.data().isRead) {
+        const message = doc.data() as Message;
+        // Mark as read only if the message was not sent by the current user and is unread
+        if (!message.isRead && message.sender !== currentUserType) {
             batch.update(doc.ref, { isRead: true });
         }
     });
@@ -61,24 +61,19 @@ export async function getMessagesForOrder(orderId: string): Promise<Message[]> {
     return messages;
 }
 
-
 /**
- * Fetches all unique conversations for a user.
- * The query is adapted based on user type to comply with Firestore rules.
+ * Fetches all unique conversations for a user, respecting Firestore security rules.
  * @param user The current user profile.
  * @returns A promise that resolves to an array of conversation summaries.
  */
-export async function getAllConversationsForUser(user: UserProfile): Promise<any[]> {
-    const messagesCollectionRef = collection(db, 'messages');
+export async function getAllConversationsForUser(user: UserProfile): Promise<Conversation[]> {
     let q;
-
     if (user.type === 'seller') {
-        // Seller can read all messages and order them.
+        // Seller can read all messages and order them by date.
         q = query(messagesCollectionRef, orderBy('createdAt', 'desc'));
     } else {
-        // KEY CHANGE: Buyer can only read messages where they are the buyer.
-        // We MUST remove orderBy to avoid needing a composite index and to comply with security rules.
-        // Sorting will be done client-side. The `where` clause is critical for the security rule.
+        // Buyer can ONLY read messages where they are the buyer. No additional sorting is applied
+        // in the query to comply with basic security rules without composite indexes.
         q = query(messagesCollectionRef, where('buyerId', '==', user.uid));
     }
     
@@ -87,12 +82,12 @@ export async function getAllConversationsForUser(user: UserProfile): Promise<any
 
     let messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
 
-    // Sort client-side for buyers as we can't do it in the query.
+    // For buyers, sort messages client-side since we couldn't do it in the query.
     if(user.type === 'buyer') {
         messages.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
     }
 
-    const grouped = messages.reduce((acc, msg) => {
+    const groupedConversations = messages.reduce((acc, msg) => {
         if (!acc[msg.orderId]) {
             acc[msg.orderId] = {
                 orderId: msg.orderId,
@@ -106,12 +101,16 @@ export async function getAllConversationsForUser(user: UserProfile): Promise<any
         if (!msg.isRead && msg.sender !== user.type) {
             acc[msg.orderId].unreadCount += 1;
         }
+        // Ensure the latest message is always stored
+        if ((msg.createdAt?.seconds || 0) > (acc[msg.orderId].lastMessage.createdAt?.seconds || 0)) {
+            acc[msg.orderId].lastMessage = msg;
+        }
         if (msg.productPreview) {
              acc[msg.orderId].productPreview = msg.productPreview
         }
 
         return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, Conversation>);
 
-    return Object.values(grouped).sort((a,b) => (b.lastMessage.createdAt?.seconds || 0) - (a.lastMessage.createdAt?.seconds || 0));
+    return Object.values(groupedConversations).sort((a,b) => (b.lastMessage.createdAt?.seconds || 0) - (a.lastMessage.createdAt?.seconds || 0));
 }

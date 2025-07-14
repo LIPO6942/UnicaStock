@@ -72,8 +72,8 @@ export async function getAllConversationsForUser(user: UserProfile): Promise<Con
         // Seller can read all messages and order them by date.
         q = query(messagesCollectionRef, orderBy('createdAt', 'desc'));
     } else {
-        // Buyer can ONLY read messages where they are the buyer. No additional sorting is applied
-        // in the query to comply with basic security rules without composite indexes.
+        // Buyer can ONLY list messages where they are the buyer.
+        // We do NOT add orderBy to comply with simple security rules without composite indexes.
         q = query(messagesCollectionRef, where('buyerId', '==', user.uid));
     }
     

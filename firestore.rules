@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -51,20 +50,21 @@ service cloud.firestore {
     }
 
     // MESSAGES
-    // Separating get/list for fine-grained control.
+    // Sellers can read/write all messages.
+    // Buyers can read/write messages where they are the buyerId.
+    // This single read rule covers both get and list operations.
     match /messages/{messageId} {
-      // Allow reading a single document if the user is the buyer or a seller.
-      allow get, update: if request.auth != null && (request.auth.uid == resource.data.buyerId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
+      allow read: if request.auth != null &&
+                    (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller' ||
+                     request.auth.uid == resource.data.buyerId);
       
-      // Allow creating a document if the user is the buyer or a seller.
-      allow create: if request.auth != null && (request.auth.uid == request.resource.data.buyerId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
-      
-      // Allow listing documents if the query is filtered by buyerId (for buyers) or if the user is a seller.
-      // This is the key rule that solves the "permission denied" on the conversation list.
-      allow list: if request.auth != null && (
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'buyer' && request.query.filters.buyerId == request.auth.uid) ||
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller')
-      );
+      allow create: if request.auth != null &&
+                       (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller' ||
+                        request.auth.uid == request.resource.data.buyerId);
+                        
+      allow update: if request.auth != null &&
+                       (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller' ||
+                        request.auth.uid == resource.data.buyerId);
     }
   }
 }

@@ -87,8 +87,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const messagesCollectionRef = collection(db, 'messages');
       let q;
       if (user.type === 'seller') {
-        q = query(messagesCollectionRef, where('isRead', '==', false));
+        // Seller gets all messages that are unread from a buyer
+        q = query(messagesCollectionRef, where('isRead', '==', false), where('sender', '==', 'buyer'));
       } else {
+        // Buyer gets messages sent to them that are unread from a seller
         q = query(messagesCollectionRef, where('buyerId', '==', user.uid), where('isRead', '==', false), where('sender', '==', 'seller'));
       }
       

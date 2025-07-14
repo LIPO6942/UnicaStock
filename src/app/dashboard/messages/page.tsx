@@ -51,6 +51,7 @@ function MessagesPageComponent() {
 
   const loadConversations = useCallback(async (currentUser: any) => {
     if (!currentUser) return;
+    setIsLoadingComponent(true);
 
     try {
         const allMessages = await getMessagesForUser(currentUser);
@@ -88,6 +89,7 @@ function MessagesPageComponent() {
                 finalConversations.unshift(newVirtualConvo);
             }
             setSelectedOrderId(orderId);
+            // Clean up URL params after using them
             if (searchParams.has('orderId')) {
               router.replace('/dashboard/messages', { scroll: false });
             }
@@ -122,15 +124,16 @@ function MessagesPageComponent() {
 
   // Effect to load messages when a conversation is selected
   useEffect(() => {
-    if (!selectedOrderId || !user) {
+    const loadMessagesAndMarkAsRead = async () => {
+      if (!selectedOrderId || !user) {
         setMessages([]);
         return;
-    }
+      }
 
-    const loadMessagesAndMarkAsRead = async () => {
       try {
-        const allUserMessages = await getMessagesForUser(user);
-        const currentConvoMessages = allUserMessages
+        // Since we already fetched all messages for the user, we can just filter them locally
+        const allMessages = await getMessagesForUser(user);
+        const currentConvoMessages = allMessages
           .filter(m => m.orderId === selectedOrderId)
           .sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
         
@@ -143,6 +146,7 @@ function MessagesPageComponent() {
           const unreadMessageIds = unreadMessages.map(m => m.id);
           await markMessagesAsReadByIds(unreadMessageIds);
           
+          // Update conversation state locally to avoid re-fetching everything
           setConversations(prev => {
             const newConversations = prev.map(c => 
               c.orderId === selectedOrderId ? { ...c, unreadCount: 0 } : c

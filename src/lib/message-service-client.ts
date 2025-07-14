@@ -33,12 +33,12 @@ export async function getMessagesForUser(user: UserProfile): Promise<Message[]> 
     let q;
 
     if (user.type === 'seller') {
-        // Seller can read all messages and sort them directly via query
+        // Seller can read all messages and sort them directly via query.
         q = query(messagesCollectionRef, orderBy('createdAt', 'desc'));
     } else {
-        // Buyer can only read messages where they are the buyerId.
-        // We remove orderBy to avoid needing a composite index, which is a common
-        // cause for permission errors if the rules are simple. Sorting will be done client-side.
+        // Buyer can only list messages where their UID matches the buyerId field.
+        // We REMOVE orderBy to ensure the query is simple and doesn't require a composite index,
+        // which is a common cause of permission errors with basic security rules.
         q = query(messagesCollectionRef, where('buyerId', '==', user.uid));
     }
     
@@ -60,7 +60,7 @@ export async function getMessagesForUser(user: UserProfile): Promise<Message[]> 
         } as Message
     });
 
-    // Sort client-side for consistency, especially for the buyer.
+    // Sort client-side for consistency, especially for the buyer query which has no server-side ordering.
     messages.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
     return messages;

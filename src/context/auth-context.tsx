@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -83,14 +84,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("Erreur de lecture du panier:", error);
       });
 
-      // Unread messages listener
+      // Unread messages listener, now compliant with security rules
       const messagesCollectionRef = collection(db, 'messages');
       let q;
       if (user.type === 'seller') {
-        // Seller gets all messages that are unread from a buyer
+        // Seller gets all unread messages from buyers
         q = query(messagesCollectionRef, where('isRead', '==', false), where('sender', '==', 'buyer'));
       } else {
-        // Buyer gets messages sent to them that are unread from a seller
+        // Buyer gets unread messages sent to them by the seller
         q = query(messagesCollectionRef, where('buyerId', '==', user.uid), where('isRead', '==', false), where('sender', '==', 'seller'));
       }
       

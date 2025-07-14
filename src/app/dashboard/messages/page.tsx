@@ -1,4 +1,5 @@
 
+
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -42,33 +43,35 @@ function MessagesPageComponent() {
   const [isLoadingComponent, setIsLoadingComponent] = useState(true);
 
   // Load all conversations once on mount
+  const loadConversations = useCallback(async () => {
+      if (!user) return;
+      setIsLoadingComponent(true);
+      try {
+          const convos = await getAllConversationsForUser(user);
+          setConversations(convos);
+          const totalUnread = convos.reduce((sum, c) => sum + c.unreadCount, 0);
+          setUnreadMessagesCount(totalUnread);
+      } catch (error) {
+          console.error("Failed to load conversations", error);
+          if (error instanceof FirebaseError && error.code === 'permission-denied') {
+             toast({ title: 'Permission Refusée', description: 'Vérifiez vos règles de sécurité Firestore.', variant: 'destructive'});
+          } else {
+             toast({ title: 'Erreur de chargement', description: 'Impossible de charger les conversations.', variant: 'destructive'});
+          }
+      } finally {
+          setIsLoadingComponent(false);
+      }
+  }, [user, toast, setUnreadMessagesCount]);
+  
   useEffect(() => {
-    if (isAuthLoading || !user) {
-        return;
-    }
-
-    const loadConversations = async () => {
-        setIsLoadingComponent(true);
-        try {
-            const convos = await getAllConversationsForUser(user);
-            setConversations(convos);
-            const totalUnread = convos.reduce((sum, c) => sum + c.unreadCount, 0);
-            setUnreadMessagesCount(totalUnread);
-        } catch (error) {
-            console.error("Failed to load conversations", error);
-            toast({ title: 'Erreur de chargement', description: 'Impossible de charger les conversations.', variant: 'destructive'});
-        } finally {
-            setIsLoadingComponent(false);
+    if (!isAuthLoading && user) {
+        loadConversations();
+        const orderIdFromParams = searchParams.get('orderId');
+        if (orderIdFromParams) {
+            setSelectedOrderId(orderIdFromParams);
         }
-    };
-    loadConversations();
-    
-    // Select conversation from URL param if it exists
-    const orderIdFromParams = searchParams.get('orderId');
-    if (orderIdFromParams) {
-        setSelectedOrderId(orderIdFromParams);
     }
-  }, [user, isAuthLoading, toast, setUnreadMessagesCount, searchParams]);
+  }, [user, isAuthLoading, loadConversations, searchParams]);
 
 
   // Effect to load messages when a conversation is selected
@@ -114,40 +117,47 @@ function MessagesPageComponent() {
 
     setIsSending(true);
     const tempId = `temp-${Date.now()}`;
-    const firstMessage = messages[0];
+    // Find the first message to reliably get buyer/seller info
+    const originalMessage = messages[0];
+    if (!originalMessage) {
+       toast({ title: "Erreur", description: "Impossible de trouver la conversation d'origine.", variant: "destructive"});
+       setIsSending(false);
+       return;
+    }
 
-    try {
-        const messageData: Omit<Message, 'id' | 'isRead' | 'createdAt'> = {
-            orderId: selectedConversation.orderId,
-            orderNumber: selectedConversation.orderNumber,
-            buyerId: firstMessage?.buyerId || (user.type === 'buyer' ? user.uid : 'unknown'),
-            buyerName: firstMessage?.buyerName || (user.type === 'buyer' ? user.name : 'Unknown Buyer'),
-            buyerEmail: firstMessage?.buyerEmail || (user.type === 'buyer' ? user.email : 'unknown'),
-            subject: firstMessage?.subject || `Re: Commande ${selectedConversation.orderNumber}`,
-            body: replyText,
-            sender: user.type,
-            productPreview: selectedConversation.productPreview,
-        };
-
-        const tempMessage: Message = {
-            ...messageData,
-            id: tempId,
-            isRead: true,
-            createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
-        };
-        setMessages(prev => [...prev, tempMessage]);
-        setReplyText("");
+    const messageData: Omit<Message, 'id' | 'isRead' | 'createdAt'> = {
+        orderId: selectedConversation.orderId,
+        orderNumber: selectedConversation.orderNumber,
+        buyerId: originalMessage.buyerId,
+        buyerName: originalMessage.buyerName,
+        buyerEmail: originalMessage.buyerEmail,
+        subject: `Re: Commande ${selectedConversation.orderNumber}`,
+        body: replyText,
+        sender: user.type,
+        productPreview: selectedConversation.productPreview,
+    };
+    
+    // Optimistic UI update
+    const tempMessage: Message = {
+        ...messageData,
+        id: tempId,
+        isRead: true,
+        createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
+    };
+    setMessages(prev => [...prev, tempMessage]);
+    setReplyText("");
         
+    try {
         await sendMessage(messageData);
-        // Optimistically update last message in conversation list
-        setConversations(prevConvos => prevConvos.map(c => c.orderId === selectedOrderId ? { ...c, lastMessage: tempMessage } : c));
+        // Refresh conversations in the background to get latest state
+        await loadConversations();
         
     } catch (error) {
-        setMessages(prev => prev.filter(m => m.id !== tempId));
+        setMessages(prev => prev.filter(m => m.id !== tempId)); // Revert optimistic update on error
         console.error("Failed to send reply:", error);
         toast({
           title: "Erreur d'envoi",
-          description: "Votre message n'a pas pu être envoyé. Vérifiez vos permissions Firestore.",
+          description: "Votre message n'a pas pu être envoyé.",
           variant: 'destructive',
         });
     } finally {

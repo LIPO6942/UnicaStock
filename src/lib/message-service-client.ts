@@ -67,6 +67,7 @@ export async function getMessagesForOrder(orderId: string): Promise<Message[]> {
 /**
  * Fetches all unique conversations for a user.
  * This is now more efficient as it fetches all messages and groups them client-side.
+ * The query is adapted based on user type to comply with Firestore rules.
  * @param user The current user profile.
  * @returns A promise that resolves to an array of conversation summaries.
  */
@@ -75,15 +76,24 @@ export async function getAllConversationsForUser(user: UserProfile): Promise<any
     let q;
 
     if (user.type === 'seller') {
+        // Seller can read all messages and order them.
         q = query(messagesCollectionRef, orderBy('createdAt', 'desc'));
     } else {
-        q = query(messagesCollectionRef, where('buyerId', '==', user.uid), orderBy('createdAt', 'desc'));
+        // Buyer can only read messages where they are the buyer.
+        // We MUST remove orderBy to avoid needing a composite index which would violate security rules for this query type.
+        // Sorting will be done client-side.
+        q = query(messagesCollectionRef, where('buyerId', '==', user.uid));
     }
     
     const snapshot = await getDocs(q);
     if (snapshot.empty) return [];
 
-    const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
+    let messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
+
+    // Sort client-side for buyers as we can't do it in the query.
+    if(user.type === 'buyer') {
+        messages.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    }
 
     const grouped = messages.reduce((acc, msg) => {
         if (!acc[msg.orderId]) {
@@ -107,7 +117,5 @@ export async function getAllConversationsForUser(user: UserProfile): Promise<any
         return acc;
     }, {} as Record<string, any>);
 
-    return Object.values(grouped);
+    return Object.values(grouped).sort((a,b) => (b.lastMessage.createdAt?.seconds || 0) - (a.lastMessage.createdAt?.seconds || 0));
 }
-
-    

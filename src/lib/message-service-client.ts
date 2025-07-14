@@ -66,7 +66,6 @@ export async function getMessagesForOrder(orderId: string): Promise<Message[]> {
 
 /**
  * Fetches all unique conversations for a user.
- * This is now more efficient as it fetches all messages and groups them client-side.
  * The query is adapted based on user type to comply with Firestore rules.
  * @param user The current user profile.
  * @returns A promise that resolves to an array of conversation summaries.
@@ -80,8 +79,8 @@ export async function getAllConversationsForUser(user: UserProfile): Promise<any
         q = query(messagesCollectionRef, orderBy('createdAt', 'desc'));
     } else {
         // Buyer can only read messages where they are the buyer.
-        // We MUST remove orderBy to avoid needing a composite index which would violate security rules for this query type.
-        // Sorting will be done client-side.
+        // We MUST remove orderBy to avoid needing a composite index.
+        // Sorting will be done client-side. The `where` clause is critical for the security rule.
         q = query(messagesCollectionRef, where('buyerId', '==', user.uid));
     }
     

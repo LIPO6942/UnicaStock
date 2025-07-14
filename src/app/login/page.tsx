@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { FirebaseError } from 'firebase/app';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -33,11 +34,25 @@ export default function LoginPage() {
         description: 'Bienvenue !',
       });
       router.push('/');
-    } catch (err: any) {
-      const errorCode = err.code;
+    } catch (err: unknown) {
       let errorMessage = "Une erreur inattendue est survenue. Veuillez réessayer.";
-      if (errorCode === 'auth/invalid-credential') {
-        errorMessage = "Les identifiants fournis sont incorrects. Veuillez vérifier l'email et le mot de passe.";
+      if (err instanceof FirebaseError) {
+        switch (err.code) {
+          case 'auth/invalid-credential':
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+            errorMessage = "L'adresse e-mail ou le mot de passe est incorrect.";
+            break;
+          case 'auth/invalid-email':
+            errorMessage = "L'adresse e-mail n'est pas valide.";
+            break;
+          case 'auth/too-many-requests':
+             errorMessage = "L'accès à ce compte a été temporairement désactivé en raison de nombreuses tentatives de connexion infructueuses. Vous pouvez le restaurer immédiatement en réinitialisant votre mot de passe ou vous pouvez réessayer plus tard.";
+             break;
+          default:
+            errorMessage = "Une erreur est survenue lors de la connexion.";
+            break;
+        }
       }
       setError(errorMessage);
       console.error("Login failed:", err);

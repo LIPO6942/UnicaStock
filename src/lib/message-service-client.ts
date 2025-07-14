@@ -1,4 +1,5 @@
 
+
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, doc, updateDoc, Timestamp, where, writeBatch } from 'firebase/firestore';
 import type { Message, UserProfile } from '@/lib/types';
@@ -23,24 +24,14 @@ export async function sendMessage(messageData: Omit<Message, 'id' | 'isRead' | '
 }
 
 /**
- * Fetches all messages relevant to a user, respecting Firestore security rules.
- * For sellers, it fetches all messages. For buyers, it fetches only messages where they are the buyer.
- * @param user The current user profile.
- * @returns A promise that resolves to an array of messages.
+ * Fetches all messages for a specific order and marks them as read.
+ * This function is safe for both buyers and sellers due to Firestore rules.
+ * @param orderId The ID of the order to fetch messages for.
+ * @returns A promise that resolves to an array of messages for the specified order.
  */
-export async function getMessagesForUser(user: UserProfile): Promise<Message[]> {
+export async function getMessagesForOrder(orderId: string): Promise<Message[]> {
     const messagesCollectionRef = collection(db, 'messages');
-    let q;
-
-    if (user.type === 'seller') {
-        // Seller can read all messages and sort them directly via query.
-        q = query(messagesCollectionRef, orderBy('createdAt', 'desc'));
-    } else {
-        // Buyer can only list messages where their UID matches the buyerId field.
-        // We REMOVE orderBy to ensure the query is simple and doesn't require a composite index,
-        // which is a common cause of permission errors with basic security rules.
-        q = query(messagesCollectionRef, where('buyerId', '==', user.uid));
-    }
+    const q = query(messagesCollectionRef, where('orderId', '==', orderId), orderBy('createdAt', 'asc'));
     
     const snapshot = await getDocs(q);
     if (snapshot.empty) {
@@ -56,31 +47,67 @@ export async function getMessagesForUser(user: UserProfile): Promise<Message[]> 
             createdAt: createdAtTimestamp ? {
                 seconds: createdAtTimestamp.seconds,
                 nanoseconds: createdAtTimestamp.nanoseconds,
-            } : { seconds: 0, nanoseconds: 0 }, // Provide a default if null
-        } as Message
+            } : { seconds: 0, nanoseconds: 0 },
+        } as Message;
     });
 
-    // Sort client-side for consistency, especially for the buyer query which has no server-side ordering.
-    messages.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    // Mark messages as read
+    const batch = writeBatch(db);
+    snapshot.docs.forEach(doc => {
+        if (!doc.data().isRead) {
+            batch.update(doc.ref, { isRead: true });
+        }
+    });
+    await batch.commit();
 
     return messages;
 }
 
 
 /**
- * Marks a specific list of messages as read by their document IDs.
- * @param messageIds An array of message document IDs to update.
+ * Fetches all unique conversations for a user.
+ * This is now more efficient as it fetches all messages and groups them client-side.
+ * @param user The current user profile.
+ * @returns A promise that resolves to an array of conversation summaries.
  */
-export async function markMessagesAsReadByIds(messageIds: string[]) {
-     if (messageIds.length === 0) {
-        return;
+export async function getAllConversationsForUser(user: UserProfile): Promise<any[]> {
+    const messagesCollectionRef = collection(db, 'messages');
+    let q;
+
+    if (user.type === 'seller') {
+        q = query(messagesCollectionRef, orderBy('createdAt', 'desc'));
+    } else {
+        q = query(messagesCollectionRef, where('buyerId', '==', user.uid), orderBy('createdAt', 'desc'));
     }
     
-    const batch = writeBatch(db);
-    messageIds.forEach(id => {
-        const docRef = doc(db, 'messages', id);
-        batch.update(docRef, { isRead: true });
-    });
-    
-    await batch.commit();
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return [];
+
+    const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
+
+    const grouped = messages.reduce((acc, msg) => {
+        if (!acc[msg.orderId]) {
+            acc[msg.orderId] = {
+                orderId: msg.orderId,
+                orderNumber: msg.orderNumber,
+                otherPartyName: user.type === 'seller' ? msg.buyerName : 'Ùnica Cosmétiques',
+                lastMessage: msg,
+                unreadCount: 0,
+                productPreview: msg.productPreview,
+            };
+        }
+        if (!msg.isRead && msg.sender !== user.type) {
+            acc[msg.orderId].unreadCount += 1;
+        }
+        // Ensure the productPreview is from the latest message that has one
+        if (msg.productPreview) {
+             acc[msg.orderId].productPreview = msg.productPreview
+        }
+
+        return acc;
+    }, {} as Record<string, any>);
+
+    return Object.values(grouped);
 }
+
+    

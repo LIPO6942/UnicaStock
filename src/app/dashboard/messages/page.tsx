@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/context/auth-context";
 import { useEffect, useState, useCallback, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getMessagesForUser, markMessagesAsReadByIds, sendMessage } from "@/lib/message-service-client";
+import { getMessagesForOrder, getAllConversationsForUser, sendMessage } from "@/lib/message-service-client";
 import type { Message } from "@/lib/types";
 import Loading from "../loading";
 import { format, isToday, isYesterday } from 'date-fns';
@@ -40,177 +40,108 @@ function MessagesPageComponent() {
   const [replyText, setReplyText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isLoadingComponent, setIsLoadingComponent] = useState(true);
-  
-  const initialParamsRef = useRef({
-      orderId: searchParams.get('orderId'),
-      orderNumber: searchParams.get('orderNumber'),
-      productPreview: searchParams.get('productPreview'),
-  });
 
-  const selectedConversation = conversations.find(c => c.orderId === selectedOrderId) || null;
-
-  const loadConversations = useCallback(async (currentUser: any) => {
-    if (!currentUser) return;
-    setIsLoadingComponent(true);
-
-    try {
-        const allMessages = await getMessagesForUser(currentUser);
-
-        const grouped = allMessages.reduce((acc, msg) => {
-            (acc[msg.orderId] = acc[msg.orderId] || []).push(msg);
-            return acc;
-        }, {} as Record<string, Message[]>);
-
-        let finalConversations: Conversation[] = Object.values(grouped).map(msgs => {
-            const lastMessage = msgs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0];
-            const unreadCount = msgs.filter(m => !m.isRead && m.sender !== currentUser.type).length;
-            const messageWithPreview = msgs.find(m => m.productPreview);
-
-            return {
-                orderId: lastMessage.orderId,
-                orderNumber: lastMessage.orderNumber,
-                otherPartyName: currentUser.type === 'seller' ? lastMessage.buyerName : 'Ùnica Cosmétiques',
-                lastMessage,
-                unreadCount,
-                productPreview: messageWithPreview?.productPreview,
-            };
-        }).sort((a, b) => (b.lastMessage?.createdAt?.seconds || 0) - (a.lastMessage?.createdAt?.seconds || 0));
-
-        const { orderId, orderNumber, productPreview } = initialParamsRef.current;
-        if (orderId) {
-            if (!finalConversations.some(c => c.orderId === orderId)) {
-                const newVirtualConvo: Conversation = {
-                    orderId: orderId,
-                    orderNumber: orderNumber || 'N/A',
-                    otherPartyName: currentUser.type === 'buyer' ? 'Ùnica Cosmétiques' : 'Nouveau Client',
-                    unreadCount: 0,
-                    productPreview: productPreview ? decodeURIComponent(productPreview) : undefined,
-                };
-                finalConversations.unshift(newVirtualConvo);
-            }
-            setSelectedOrderId(orderId);
-            // Clean up URL params after using them
-            if (searchParams.has('orderId')) {
-              router.replace('/dashboard/messages', { scroll: false });
-            }
-        }
-        
-        setConversations(finalConversations);
-        const totalUnread = finalConversations.reduce((sum, convo) => sum + convo.unreadCount, 0);
-        setUnreadMessagesCount(totalUnread);
-    } catch (error) {
-        console.error("Error loading conversations", error);
-        let description = 'Impossible de charger les conversations.';
-         if (error instanceof FirebaseError && error.code === 'permission-denied') {
-            description = `Permission Refusée par Firestore. Veuillez vérifier vos règles de sécurité.`;
-        }
-        toast({ title: 'Erreur', description, variant: 'destructive'});
-    } finally {
-        setIsLoadingComponent(false);
-    }
-  }, [router, toast, setUnreadMessagesCount, searchParams]);
-  
+  // Load all conversations once on mount
   useEffect(() => {
-    if (isAuthLoading) {
-        return; // Wait until authentication is resolved
+    if (isAuthLoading || !user) {
+        return;
     }
-    if (user) {
-        loadConversations(user);
-    } else {
-        setIsLoadingComponent(false); // No user, stop loading
+
+    const loadConversations = async () => {
+        setIsLoadingComponent(true);
+        try {
+            const convos = await getAllConversationsForUser(user);
+            setConversations(convos);
+            const totalUnread = convos.reduce((sum, c) => sum + c.unreadCount, 0);
+            setUnreadMessagesCount(totalUnread);
+        } catch (error) {
+            console.error("Failed to load conversations", error);
+            toast({ title: 'Erreur de chargement', description: 'Impossible de charger les conversations.', variant: 'destructive'});
+        } finally {
+            setIsLoadingComponent(false);
+        }
+    };
+    loadConversations();
+    
+    // Select conversation from URL param if it exists
+    const orderIdFromParams = searchParams.get('orderId');
+    if (orderIdFromParams) {
+        setSelectedOrderId(orderIdFromParams);
     }
-  }, [isAuthLoading, user, loadConversations]);
+  }, [user, isAuthLoading, toast, setUnreadMessagesCount, searchParams]);
 
 
   // Effect to load messages when a conversation is selected
   useEffect(() => {
-    const loadMessagesAndMarkAsRead = async () => {
+    const loadMessages = async () => {
       if (!selectedOrderId || !user) {
         setMessages([]);
         return;
       }
 
+      setIsLoadingComponent(true);
       try {
-        // Since we already fetched all messages for the user, we can just filter them locally
-        const allMessages = await getMessagesForUser(user);
-        const currentConvoMessages = allMessages
-          .filter(m => m.orderId === selectedOrderId)
-          .sort((a,b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-        
-        setMessages(currentConvoMessages);
+        const messagesForOrder = await getMessagesForOrder(selectedOrderId);
+        setMessages(messagesForOrder);
 
-        const unreadMessages = currentConvoMessages
-          .filter(m => !m.isRead && m.sender !== user.type);
-        
-        if (unreadMessages.length > 0) {
-          const unreadMessageIds = unreadMessages.map(m => m.id);
-          await markMessagesAsReadByIds(unreadMessageIds);
-          
-          // Update conversation state locally to avoid re-fetching everything
-          setConversations(prev => {
-            const newConversations = prev.map(c => 
-              c.orderId === selectedOrderId ? { ...c, unreadCount: 0 } : c
+        // Update unread count visually after loading
+        const convo = conversations.find(c => c.orderId === selectedOrderId);
+        if (convo && convo.unreadCount > 0) {
+            // This is a client-side update for immediate feedback
+            // The actual read status is updated on the server when messages are fetched by context
+            const updatedConversations = conversations.map(c => 
+                c.orderId === selectedOrderId ? {...c, unreadCount: 0} : c
             );
-            const totalUnreadAfterMarking = newConversations.reduce((sum, c) => sum + c.unreadCount, 0);
-            setUnreadMessagesCount(totalUnreadAfterMarking);
-            return newConversations;
-          });
+            setConversations(updatedConversations);
+            const totalUnread = updatedConversations.reduce((sum, c) => sum + c.unreadCount, 0);
+            setUnreadMessagesCount(totalUnread);
         }
+
       } catch (error) {
-        console.error("Erreur Firestore lors du chargement ou de la mise à jour des messages:", error);
-        let description = "Une erreur est survenue lors de la récupération des messages.";
-        if (error instanceof FirebaseError && error.code === 'permission-denied') {
-            description = `Permission Refusée par Firestore. Veuillez mettre à jour vos règles de sécurité dans la console Firebase. Assurez-vous aussi d'être connecté avec un compte du bon type (acheteur/vendeur).`;
-        }
-        toast({ title: 'Erreur Firestore', description, variant: 'destructive', duration: 15000 });
+        console.error("Error loading messages:", error);
+        toast({ title: 'Erreur', description: 'Impossible de charger les messages pour cette conversation.', variant: 'destructive'});
+      } finally {
+        setIsLoadingComponent(false);
       }
     };
 
-    loadMessagesAndMarkAsRead();
-  }, [selectedOrderId, user, toast, setUnreadMessagesCount]);
-
+    loadMessages();
+  }, [selectedOrderId, user, toast, setUnreadMessagesCount, conversations]);
 
   const handleSendReply = async () => {
+    const selectedConversation = conversations.find(c => c.orderId === selectedOrderId);
     if (!replyText.trim() || !selectedConversation || !user) return;
-    const tempId = `temp-${Date.now()}`;
+
     setIsSending(true);
+    const tempId = `temp-${Date.now()}`;
+    const firstMessage = messages[0];
 
     try {
-        const subject = messages.length > 0 
-            ? messages[0].subject
-            : `Question sur la commande ${selectedConversation.orderNumber}`;
-
-        const firstMessage = messages.length > 0 ? messages[0] : null;
-        
-        const buyerId = user.type === 'buyer' ? user.uid : (firstMessage?.buyerId || 'unknown_buyer_id');
-        const buyerName = user.type === 'buyer' ? user.name : (firstMessage?.buyerName || 'Nouveau Client');
-        const buyerEmail = user.type === 'buyer' ? user.email : (firstMessage?.buyerEmail || 'unknown_email');
-        const productPreview = selectedConversation.productPreview || (firstMessage?.productPreview);
-
         const messageData: Omit<Message, 'id' | 'isRead' | 'createdAt'> = {
             orderId: selectedConversation.orderId,
             orderNumber: selectedConversation.orderNumber,
-            buyerId,
-            buyerName,
-            buyerEmail,
-            subject,
+            buyerId: firstMessage?.buyerId || (user.type === 'buyer' ? user.uid : 'unknown'),
+            buyerName: firstMessage?.buyerName || (user.type === 'buyer' ? user.name : 'Unknown Buyer'),
+            buyerEmail: firstMessage?.buyerEmail || (user.type === 'buyer' ? user.email : 'unknown'),
+            subject: firstMessage?.subject || `Re: Commande ${selectedConversation.orderNumber}`,
             body: replyText,
             sender: user.type,
-            productPreview,
+            productPreview: selectedConversation.productPreview,
         };
-        
-        const newMessage: Message = {
+
+        const tempMessage: Message = {
             ...messageData,
             id: tempId,
             isRead: true,
             createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
         };
-        setMessages(prev => [...prev, newMessage]);
+        setMessages(prev => [...prev, tempMessage]);
         setReplyText("");
         
         await sendMessage(messageData);
-        if(user) loadConversations(user);
-
+        // Optimistically update last message in conversation list
+        setConversations(prevConvos => prevConvos.map(c => c.orderId === selectedOrderId ? { ...c, lastMessage: tempMessage } : c));
+        
     } catch (error) {
         setMessages(prev => prev.filter(m => m.id !== tempId));
         console.error("Failed to send reply:", error);
@@ -231,8 +162,10 @@ function MessagesPageComponent() {
     if(isYesterday(date)) return 'Hier';
     return format(date, 'd MMM yyyy', {locale: fr})
   }
+  
+  const selectedConversation = conversations.find(c => c.orderId === selectedOrderId);
 
-  if (isAuthLoading || isLoadingComponent) {
+  if (isAuthLoading) {
     return <Loading />;
   }
   
@@ -254,7 +187,7 @@ function MessagesPageComponent() {
       <div className="flex-grow grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 border-t overflow-hidden">
         <ScrollArea className="md:col-span-1 xl:col-span-1 border-r h-full">
             <div className="p-2 space-y-1">
-            {conversations.length === 0 ? (
+            {conversations.length === 0 && !isLoadingComponent ? (
                 <div className="p-4 text-center text-sm text-muted-foreground">Aucune conversation.</div>
             ) : (
                 conversations.map(convo => (
@@ -263,7 +196,7 @@ function MessagesPageComponent() {
                         onClick={() => setSelectedOrderId(convo.orderId)}
                         className={cn(
                             "w-full text-left p-3 rounded-lg transition-colors flex flex-col gap-1",
-                            selectedConversation?.orderId === convo.orderId ? 'bg-muted' : 'hover:bg-muted/50',
+                            selectedOrderId === convo.orderId ? 'bg-muted' : 'hover:bg-muted/50',
                         )}
                     >
                         <div className="flex justify-between items-center">
@@ -297,7 +230,8 @@ function MessagesPageComponent() {
                         </div>
                     </div>
                     <ScrollArea className="flex-grow p-4 space-y-4">
-                        {messages.map((msg, index) => (
+                        {isLoadingComponent && <div className="flex justify-center items-center h-full"><Loading /></div>}
+                        {!isLoadingComponent && messages.map((msg, index) => (
                             <div key={msg.id || index} className={cn("flex items-end gap-2", msg.sender === user?.type ? 'justify-end' : 'justify-start')}>
                                 {msg.sender !== user?.type && <Avatar className="h-8 w-8"><AvatarFallback>{msg.sender === 'buyer' ? msg.buyerName.charAt(0) : 'V'}</AvatarFallback></Avatar>}
                                 <div className={cn(
@@ -356,3 +290,5 @@ export default function MessagesPage() {
         </Suspense>
     )
 }
+
+    

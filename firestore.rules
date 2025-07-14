@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -51,14 +50,17 @@ service cloud.firestore {
     }
 
     // MESSAGES
-    // Participants (buyer or seller) can read/write messages in a thread.
+    // Participants (buyer or seller) can interact with messages.
     match /messages/{messageId} {
-       allow read, create: if request.auth != null && 
-                             (request.auth.uid == request.resource.data.buyerId || 
+       // Allow getting a single document if the user is the buyer or a seller.
+       allow get, update, create: if request.auth != null && 
+                             (request.auth.uid == resource.data.buyerId || 
                               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
-       allow update: if request.auth != null && 
-                      (request.auth.uid == resource.data.buyerId || 
-                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
+                              
+       // Allow listing documents. A buyer can only list if they filter by their own buyerId. A seller can list all.
+       allow list: if request.auth != null &&
+                     (request.query.filters.size() > 0 && request.query.filters.buyerId == request.auth.uid ||
+                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.type == 'seller');
     }
   }
 }

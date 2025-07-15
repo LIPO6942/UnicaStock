@@ -15,7 +15,7 @@ const productsCollectionRef = collection(db, 'products');
 export async function addProduct(productData: Omit<Product, 'id' | 'rating' | 'reviewCount' | 'seller'>): Promise<string> {
     const newProduct: Omit<Product, 'id'> = {
         ...productData,
-        seller: 'Ùnica Cosmétiques', // Centralized seller
+        seller: 'Única Stock', // Centralized seller
         rating: 0,
         reviewCount: 0,
     };

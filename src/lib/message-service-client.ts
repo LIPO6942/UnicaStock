@@ -100,7 +100,7 @@ export async function getAllConversationsForUser(user: UserProfile): Promise<Con
             acc[msg.orderId] = {
                 orderId: msg.orderId,
                 orderNumber: msg.orderNumber,
-                otherPartyName: user.type === 'seller' ? msg.buyerName : 'Ùnica Cosmétiques',
+                otherPartyName: user.type === 'seller' ? msg.buyerName : 'Única Stock',
                 lastMessage: msg,
                 unreadCount: 0,
                 productPreview: msg.productPreview,

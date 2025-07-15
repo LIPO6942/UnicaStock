@@ -117,7 +117,7 @@ export default function Home() {
       <section id="why-us" className="py-16 md:py-24 bg-background">
         <div className="container">
           <div className="flex flex-col items-center text-center gap-4 mb-12">
-            <h2 className="text-3xl font-bold tracking-tight font-headline">Pourquoi Choisir Ùnica Cosmétiques?</h2>
+            <h2 className="text-3xl font-bold tracking-tight font-headline">Pourquoi Choisir Única Stock?</h2>
             <p className="max-w-3xl text-muted-foreground">
               Nous connectons les meilleurs fournisseurs tunisiens avec les créateurs de cosmétiques pour un
               approvisionnement simple, rapide et sécurisé.

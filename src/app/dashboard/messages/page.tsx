@@ -32,11 +32,11 @@ function MessagesPageComponent() {
   const [isSending, setIsSending] = useState(false);
   const [isLoadingComponent, setIsLoadingComponent] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    if (scrollAreaRef.current) {
-        scrollAreaRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }
 
@@ -264,23 +264,23 @@ function MessagesPageComponent() {
                             <p className="text-sm text-muted-foreground">Commande {selectedConversation.orderNumber}</p>
                         </div>
                     </div>
-                    <ScrollArea className="flex-grow p-4 space-y-4">
-                        <div className="flex-grow p-4 space-y-4">
-                            {isLoadingMessages && <div className="flex justify-center items-center h-full"><Loading /></div>}
-                            {!isLoadingMessages && messages.map((msg, index) => (
-                                <div key={msg.id || index} className={cn("flex items-end gap-2", msg.sender === user?.type ? 'justify-end' : 'justify-start')}>
-                                    {msg.sender !== user?.type && <Avatar className="h-8 w-8"><AvatarFallback>{msg.sender === 'buyer' ? msg.buyerName.charAt(0) : 'V'}</AvatarFallback></Avatar>}
-                                    <div className={cn(
-                                        "max-w-xs lg:max-w-md p-3 rounded-2xl",
-                                        msg.sender === user?.type ? "bg-primary text-primary-foreground rounded-br-none" : "bg-background rounded-bl-none border"
-                                    )}>
-                                        <p className="text-sm">{msg.body}</p>
-                                        <p className="text-xs opacity-70 mt-1 text-right">{formatMessageDate(msg.createdAt)}</p>
-                                    </div>
+                    <ScrollArea className="flex-grow p-4">
+                       <div className="space-y-4">
+                        {isLoadingMessages && <div className="flex justify-center items-center h-full"><Loading /></div>}
+                        {!isLoadingMessages && messages.map((msg, index) => (
+                            <div key={msg.id || index} className={cn("flex items-end gap-2", msg.sender === user?.type ? 'justify-end' : 'justify-start')}>
+                                {msg.sender !== user?.type && <Avatar className="h-8 w-8"><AvatarFallback>{msg.sender === 'buyer' ? msg.buyerName.charAt(0) : 'V'}</AvatarFallback></Avatar>}
+                                <div className={cn(
+                                    "max-w-xs lg:max-w-md p-3 rounded-2xl",
+                                    msg.sender === user?.type ? "bg-primary text-primary-foreground rounded-br-none" : "bg-background rounded-bl-none border"
+                                )}>
+                                    <p className="text-sm">{msg.body}</p>
+                                    <p className="text-xs opacity-70 mt-1 text-right">{formatMessageDate(msg.createdAt)}</p>
                                 </div>
-                            ))}
-                             <div ref={scrollAreaRef} />
-                        </div>
+                            </div>
+                        ))}
+                        <div ref={messagesEndRef} />
+                       </div>
                     </ScrollArea>
                     <div className="p-4 border-t bg-background flex-shrink-0">
                         <div className="relative">
@@ -336,3 +336,5 @@ export default function MessagesPage() {
         </Suspense>
     )
 }
+
+    

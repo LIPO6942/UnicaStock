@@ -203,7 +203,7 @@ function MessagesPageComponent() {
         <CardTitle>Messagerie</CardTitle>
         <CardDescription>Consultez et répondez aux messages concernant vos commandes.</CardDescription>
       </CardHeader>
-      <div className="flex-grow grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 border-t overflow-hidden">
+      <CardContent className="flex-grow grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 border-t overflow-hidden p-0">
         <ScrollArea className="md:col-span-1 xl:col-span-1 border-r h-full">
             <div className="p-2 space-y-1">
             {conversations.length === 0 ? (
@@ -305,7 +305,7 @@ function MessagesPageComponent() {
                 )
             )}
         </div>
-      </div>
+      </CardContent>
     </Card>
   )
 }
@@ -317,5 +317,3 @@ export default function MessagesPage() {
         </Suspense>
     )
 }
-
-    

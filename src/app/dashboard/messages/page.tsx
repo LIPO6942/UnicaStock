@@ -31,6 +31,7 @@ function MessagesPageComponent() {
   const [replyText, setReplyText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isLoadingComponent, setIsLoadingComponent] = useState(true);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
   const loadConversations = useCallback(async () => {
       if (!user) return;
@@ -41,11 +42,10 @@ function MessagesPageComponent() {
           const totalUnread = convos.reduce((sum, c) => sum + c.unreadCount, 0);
           setUnreadMessagesCount(totalUnread);
 
-          // If an orderId is in the URL, select it. Otherwise, select the first conversation.
           const orderIdFromParams = searchParams.get('orderId');
-          if (orderIdFromParams) {
+          if (orderIdFromParams && convos.some(c => c.orderId === orderIdFromParams)) {
               setSelectedOrderId(orderIdFromParams);
-          } else if (convos.length > 0) {
+          } else if (convos.length > 0 && !selectedOrderId) {
               setSelectedOrderId(convos[0].orderId);
           }
 
@@ -59,9 +59,8 @@ function MessagesPageComponent() {
       } finally {
           setIsLoadingComponent(false);
       }
-  }, [user, toast, setUnreadMessagesCount, searchParams]);
+  }, [user, toast, setUnreadMessagesCount, searchParams, selectedOrderId]);
   
-  // Effect to load initial conversations when user is authenticated
   useEffect(() => {
     if (!isAuthLoading && user) {
         loadConversations();
@@ -69,7 +68,6 @@ function MessagesPageComponent() {
   }, [user, isAuthLoading, loadConversations]);
 
 
-  // Effect to load messages when a conversation is selected
   useEffect(() => {
     const loadMessages = async () => {
       if (!selectedOrderId || !user) {
@@ -77,13 +75,11 @@ function MessagesPageComponent() {
         return;
       }
 
-      setIsLoadingComponent(true);
+      setIsLoadingMessages(true);
       try {
-        // This function now also handles marking messages as read
         const messagesForOrder = await getMessagesForOrder(selectedOrderId, user.type);
         setMessages(messagesForOrder);
 
-        // Update unread count visually after loading
         const convo = conversations.find(c => c.orderId === selectedOrderId);
         if (convo && convo.unreadCount > 0) {
             const updatedConversations = conversations.map(c => 
@@ -98,14 +94,15 @@ function MessagesPageComponent() {
         console.error("Error loading messages:", error);
         toast({ title: 'Erreur', description: 'Impossible de charger les messages pour cette conversation.', variant: 'destructive'});
       } finally {
-        setIsLoadingComponent(false);
+        setIsLoadingMessages(false);
       }
     };
 
     if (selectedOrderId) {
         loadMessages();
     }
-  }, [selectedOrderId, user, toast, setUnreadMessagesCount, conversations]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedOrderId, user, toast, setUnreadMessagesCount]);
 
   const handleSendReply = async () => {
     const selectedConversation = conversations.find(c => c.orderId === selectedOrderId);
@@ -113,7 +110,6 @@ function MessagesPageComponent() {
 
     setIsSending(true);
     
-    // We need the original message to get buyer details if seller is replying
     const originalMessage = messages[0] ?? conversations.find(c => c.orderId === selectedOrderId)?.lastMessage;
 
     if (!originalMessage) {
@@ -134,23 +130,36 @@ function MessagesPageComponent() {
         productPreview: selectedConversation.productPreview,
     };
     
+    const textToSend = replyText;
     setReplyText("");
         
     try {
-        // Optimistically add the message to the UI
         const tempMessage: Message = {
             ...messageData,
             id: `temp-${Date.now()}`,
+            body: textToSend,
             isRead: true,
             createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
-            sender: user.type, // Explicitly set sender for optimistic update
+            sender: user.type,
         };
         setMessages(prev => [...prev, tempMessage]);
         
         await sendMessage(messageData);
-        // Refresh conversations to get the latest state, which will also re-fetch messages with real data
-        await loadConversations();
-        
+        // Do not reload all conversations, just update the last message display
+        setConversations(prevConvos => prevConvos.map(c => {
+          if (c.orderId === selectedOrderId) {
+            return {
+              ...c,
+              lastMessage: {
+                ...c.lastMessage,
+                body: textToSend,
+                createdAt: tempMessage.createdAt,
+              }
+            }
+          }
+          return c;
+        }).sort((a,b) => (b.lastMessage.createdAt?.seconds || 0) - (a.lastMessage.createdAt?.seconds || 0)))
+
     } catch (error) {
         console.error("Failed to send reply:", error);
         toast({
@@ -158,8 +167,8 @@ function MessagesPageComponent() {
           description: "Votre message n'a pas pu être envoyé.",
           variant: 'destructive',
         });
-        // If sending failed, remove the optimistic message
-        setMessages(prev => prev.filter(m => !m.id.startsWith('temp-')));
+        setMessages(prev => prev.filter(m => m.id !== tempMessage.id));
+        setReplyText(textToSend); // Restore text on failure
     } finally {
         setIsSending(false);
     }
@@ -175,7 +184,7 @@ function MessagesPageComponent() {
   
   const selectedConversation = conversations.find(c => c.orderId === selectedOrderId);
 
-  if (isAuthLoading) {
+  if (isAuthLoading || isLoadingComponent) {
     return <Loading />;
   }
   
@@ -197,7 +206,7 @@ function MessagesPageComponent() {
       <div className="flex-grow grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 border-t overflow-hidden">
         <ScrollArea className="md:col-span-1 xl:col-span-1 border-r h-full">
             <div className="p-2 space-y-1">
-            {conversations.length === 0 && !isLoadingComponent ? (
+            {conversations.length === 0 ? (
                 <div className="p-4 text-center text-sm text-muted-foreground">Aucune conversation.</div>
             ) : (
                 conversations.map(convo => (
@@ -223,7 +232,6 @@ function MessagesPageComponent() {
                     </button>
                 ))
             )}
-            {isLoadingComponent && conversations.length === 0 && <div className="p-4 text-center text-sm text-muted-foreground">Chargement...</div>}
             </div>
         </ScrollArea>
 
@@ -241,8 +249,8 @@ function MessagesPageComponent() {
                         </div>
                     </div>
                     <ScrollArea className="flex-grow p-4 space-y-4">
-                        {isLoadingComponent && <div className="flex justify-center items-center h-full"><Loading /></div>}
-                        {!isLoadingComponent && messages.map((msg, index) => (
+                        {isLoadingMessages && <div className="flex justify-center items-center h-full"><Loading /></div>}
+                        {!isLoadingMessages && messages.map((msg, index) => (
                             <div key={msg.id || index} className={cn("flex items-end gap-2", msg.sender === user?.type ? 'justify-end' : 'justify-start')}>
                                 {msg.sender !== user?.type && <Avatar className="h-8 w-8"><AvatarFallback>{msg.sender === 'buyer' ? msg.buyerName.charAt(0) : 'V'}</AvatarFallback></Avatar>}
                                 <div className={cn(
@@ -282,11 +290,19 @@ function MessagesPageComponent() {
                     </div>
                 </div>
             ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                     <MessageSquare className="h-16 w-16 text-muted-foreground/50" />
-                     <h3 className="mt-4 text-lg font-medium">Sélectionnez une conversation</h3>
-                     <p className="text-sm text-muted-foreground">Choisissez une conversation dans la liste de gauche pour afficher les messages.</p>
-                </div>
+                 !isLoadingComponent && conversations.length > 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                        <MessageSquare className="h-16 w-16 text-muted-foreground/50" />
+                        <h3 className="mt-4 text-lg font-medium">Sélectionnez une conversation</h3>
+                        <p className="text-sm text-muted-foreground">Choisissez une conversation dans la liste de gauche pour afficher les messages.</p>
+                    </div>
+                ) : !isLoadingComponent && (
+                     <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                        <MessageSquare className="h-16 w-16 text-muted-foreground/50" />
+                        <h3 className="mt-4 text-lg font-medium">Aucun message</h3>
+                        <p className="text-sm text-muted-foreground">Vous n'avez pas encore de conversation.</p>
+                    </div>
+                )
             )}
         </div>
       </div>

@@ -34,32 +34,35 @@ export async function getMessagesForOrder(orderId: string, currentUserType: 'buy
     const snapshot = await getDocs(q);
     if (snapshot.empty) return [];
 
-    const messages = snapshot.docs.map(doc => {
+    const messages: Message[] = [];
+    const batch = writeBatch(db);
+
+    snapshot.docs.forEach(doc => {
         const data = doc.data();
         const createdAtTimestamp = data.createdAt as Timestamp | null;
-        return {
+        
+        const message: Message = {
             id: doc.id,
             ...data,
             createdAt: createdAtTimestamp ? {
                 seconds: createdAtTimestamp.seconds,
                 nanoseconds: createdAtTimestamp.nanoseconds,
-            } : { seconds: 0, nanoseconds: 0 },
+            } : { seconds: Date.now() / 1000, nanoseconds: 0 }, // Fallback for optimistic updates
         } as Message;
-    });
+        
+        messages.push(message);
 
-    // Mark messages as read in a batch
-    const batch = writeBatch(db);
-    snapshot.docs.forEach(doc => {
-        const message = doc.data() as Message;
         // Mark as read only if the message was not sent by the current user and is unread
         if (!message.isRead && message.sender !== currentUserType) {
             batch.update(doc.ref, { isRead: true });
         }
     });
+    
     await batch.commit();
 
     return messages;
 }
+
 
 /**
  * Fetches all unique conversations for a user, respecting Firestore security rules.
@@ -68,8 +71,9 @@ export async function getMessagesForOrder(orderId: string, currentUserType: 'buy
  */
 export async function getAllConversationsForUser(user: UserProfile): Promise<Conversation[]> {
     let q;
+    // The query must align with firestore.rules
     if (user.type === 'seller') {
-        // Seller can read all messages and order them by date.
+        // Seller can read all messages. We order them by date to group them later.
         q = query(messagesCollectionRef, orderBy('createdAt', 'desc'));
     } else {
         // Buyer can ONLY list messages where they are the buyer.

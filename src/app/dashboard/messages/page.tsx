@@ -108,7 +108,6 @@ function MessagesPageComponent() {
 
       } catch (error) {
         console.error("Error loading messages:", error);
-        toast({ title: 'Erreur', description: 'Impossible de charger les messages pour cette conversation.', variant: 'destructive'});
       } finally {
         setIsLoadingMessages(false);
       }
@@ -251,9 +250,9 @@ function MessagesPageComponent() {
             </div>
         </ScrollArea>
 
-        <div className="md:col-span-2 xl:col-span-3 flex flex-col bg-muted/20">
+        <div className="md:col-span-2 xl:col-span-3 flex flex-col bg-muted/20 h-full">
             {selectedConversation ? (
-                <div className="flex flex-col h-full">
+                <>
                     <div className="p-4 border-b flex items-center gap-4 bg-background flex-shrink-0">
                         <Avatar>
                             <AvatarImage src={`https://placehold.co/40x40.png?text=${selectedConversation.otherPartyName.charAt(0)}`} data-ai-hint="person" />
@@ -264,9 +263,8 @@ function MessagesPageComponent() {
                             <p className="text-sm text-muted-foreground">Commande {selectedConversation.orderNumber}</p>
                         </div>
                     </div>
-                    <ScrollArea className="flex-grow p-4">
-                       <div className="space-y-4">
-                        {isLoadingMessages && <div className="flex justify-center items-center h-full"><Loading /></div>}
+                    <div className="flex-grow p-4 space-y-4 overflow-y-auto">
+                       {isLoadingMessages && <div className="flex justify-center items-center h-full"><Loading /></div>}
                         {!isLoadingMessages && messages.map((msg, index) => (
                             <div key={msg.id || index} className={cn("flex items-end gap-2", msg.sender === user?.type ? 'justify-end' : 'justify-start')}>
                                 {msg.sender !== user?.type && <Avatar className="h-8 w-8"><AvatarFallback>{msg.sender === 'buyer' ? msg.buyerName.charAt(0) : 'V'}</AvatarFallback></Avatar>}
@@ -280,8 +278,7 @@ function MessagesPageComponent() {
                             </div>
                         ))}
                         <div ref={messagesEndRef} />
-                       </div>
-                    </ScrollArea>
+                    </div>
                     <div className="p-4 border-t bg-background flex-shrink-0">
                         <div className="relative">
                             <Textarea 
@@ -294,7 +291,7 @@ function MessagesPageComponent() {
                                         handleSendReply();
                                     }
                                 }}
-                                className="pr-12"
+                                className="pr-12 resize-none"
                                 rows={1}
                             />
                             <Button 
@@ -307,7 +304,7 @@ function MessagesPageComponent() {
                             </Button>
                         </div>
                     </div>
-                </div>
+                </>
             ) : (
                  !isLoadingComponent && conversations.length > 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center p-8">

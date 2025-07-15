@@ -29,7 +29,8 @@ export async function sendMessage(messageData: Omit<Message, 'id' | 'isRead' | '
  * @returns A promise that resolves to an array of messages.
  */
 export async function getMessagesForOrder(orderId: string, currentUserType: 'buyer' | 'seller'): Promise<Message[]> {
-    const q = query(messagesCollectionRef, where('orderId', '==', orderId), orderBy('createdAt', 'asc'));
+    // Query without orderBy to avoid needing a composite index.
+    const q = query(messagesCollectionRef, where('orderId', '==', orderId));
     
     const snapshot = await getDocs(q);
     if (snapshot.empty) return [];
@@ -60,6 +61,9 @@ export async function getMessagesForOrder(orderId: string, currentUserType: 'buy
     
     await batch.commit();
 
+    // Sort messages by date on the client-side
+    messages.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+
     return messages;
 }
 
@@ -78,7 +82,7 @@ export async function getAllConversationsForUser(user: UserProfile): Promise<Con
     } else {
         // Buyer can ONLY list messages where they are the buyer.
         // We do NOT add orderBy to comply with simple security rules without composite indexes.
-        q = query(messagesCollectionRef, where('buyerId', '==', user.uid));
+        q = query(messagesCollection_ref, where('buyerId', '==', user.uid));
     }
     
     const snapshot = await getDocs(q);

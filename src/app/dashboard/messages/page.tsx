@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/context/auth-context";
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getMessagesForOrder, getAllConversationsForUser, sendMessage } from "@/lib/message-service-client";
 import type { Message, Conversation } from "@/lib/types";
@@ -32,6 +32,18 @@ function MessagesPageComponent() {
   const [isSending, setIsSending] = useState(false);
   const [isLoadingComponent, setIsLoadingComponent] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    if (scrollAreaRef.current) {
+        scrollAreaRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
 
   const loadConversations = useCallback(async () => {
       if (!user) return;
@@ -65,10 +77,11 @@ function MessagesPageComponent() {
     if (!isAuthLoading && user) {
         loadConversations();
     }
-    if (!isAuthLoading && !user) {
+     if (!isAuthLoading && !user) {
         setIsLoadingComponent(false);
     }
-  }, [user, isAuthLoading, loadConversations]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isAuthLoading]);
 
 
   useEffect(() => {
@@ -252,19 +265,22 @@ function MessagesPageComponent() {
                         </div>
                     </div>
                     <ScrollArea className="flex-grow p-4 space-y-4">
-                        {isLoadingMessages && <div className="flex justify-center items-center h-full"><Loading /></div>}
-                        {!isLoadingMessages && messages.map((msg, index) => (
-                            <div key={msg.id || index} className={cn("flex items-end gap-2", msg.sender === user?.type ? 'justify-end' : 'justify-start')}>
-                                {msg.sender !== user?.type && <Avatar className="h-8 w-8"><AvatarFallback>{msg.sender === 'buyer' ? msg.buyerName.charAt(0) : 'V'}</AvatarFallback></Avatar>}
-                                <div className={cn(
-                                    "max-w-xs lg:max-w-md p-3 rounded-2xl",
-                                    msg.sender === user?.type ? "bg-primary text-primary-foreground rounded-br-none" : "bg-background rounded-bl-none border"
-                                )}>
-                                    <p className="text-sm">{msg.body}</p>
-                                    <p className="text-xs opacity-70 mt-1 text-right">{formatMessageDate(msg.createdAt)}</p>
+                        <div className="flex-grow p-4 space-y-4">
+                            {isLoadingMessages && <div className="flex justify-center items-center h-full"><Loading /></div>}
+                            {!isLoadingMessages && messages.map((msg, index) => (
+                                <div key={msg.id || index} className={cn("flex items-end gap-2", msg.sender === user?.type ? 'justify-end' : 'justify-start')}>
+                                    {msg.sender !== user?.type && <Avatar className="h-8 w-8"><AvatarFallback>{msg.sender === 'buyer' ? msg.buyerName.charAt(0) : 'V'}</AvatarFallback></Avatar>}
+                                    <div className={cn(
+                                        "max-w-xs lg:max-w-md p-3 rounded-2xl",
+                                        msg.sender === user?.type ? "bg-primary text-primary-foreground rounded-br-none" : "bg-background rounded-bl-none border"
+                                    )}>
+                                        <p className="text-sm">{msg.body}</p>
+                                        <p className="text-xs opacity-70 mt-1 text-right">{formatMessageDate(msg.createdAt)}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                             <div ref={scrollAreaRef} />
+                        </div>
                     </ScrollArea>
                     <div className="p-4 border-t bg-background flex-shrink-0">
                         <div className="relative">
@@ -320,5 +336,3 @@ export default function MessagesPage() {
         </Suspense>
     )
 }
-
-    

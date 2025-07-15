@@ -62,12 +62,10 @@ function MessagesPageComponent() {
   }, [user, toast, setUnreadMessagesCount, searchParams, selectedOrderId]);
   
   useEffect(() => {
-    // This is the critical change: wait for auth loading to finish AND user to be present.
     if (!isAuthLoading && user) {
         loadConversations();
     }
     if (!isAuthLoading && !user) {
-        // If auth is done and there's no user, stop the loading indicator.
         setIsLoadingComponent(false);
     }
   }, [user, isAuthLoading, loadConversations]);
@@ -322,3 +320,5 @@ export default function MessagesPage() {
         </Suspense>
     )
 }
+
+    

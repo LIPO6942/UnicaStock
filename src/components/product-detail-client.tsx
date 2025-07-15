@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -188,7 +189,7 @@ export function ProductDetailClient({ product, relatedProducts, reviews }: { pro
           <div className="flex flex-col gap-2">
             <Badge variant="secondary" className="w-fit">{product.category}</Badge>
             <h1 className="text-3xl lg:text-4xl font-bold font-headline">{product.name}</h1>
-            <p className="text-muted-foreground text-lg">Vendu par <span className="text-foreground font-semibold">{product.seller}</span></p>
+            <p className="text-muted-foreground text-lg">Vendu par <span className="text-foreground font-semibold">Única Cométiques</span></p>
             <div className="flex items-center gap-2">
               <div className="flex items-center">
                 {[...Array(5)].map((_, i) => (

@@ -93,11 +93,13 @@ function DashboardNav() {
               <Link href={item.href} className="relative flex items-center gap-3">
                   <item.icon />
                   {open && <span>{item.label}</span>}
-                  {item.notificationCount && item.notificationCount > 0 && (
-                    <Badge className={cn(
-                        "h-5 min-w-[1.25rem] justify-center p-1 text-xs",
-                        open ? "static" : "absolute top-1 right-1"
-                    )}>
+                  {open && item.notificationCount && item.notificationCount > 0 && (
+                    <Badge className="h-5 min-w-[1.25rem] justify-center p-1 text-xs">
+                        {item.notificationCount}
+                    </Badge>
+                  )}
+                  {!open && item.notificationCount && item.notificationCount > 0 && (
+                     <Badge className="absolute top-1 right-1 h-5 min-w-[1.25rem] justify-center p-1 text-xs">
                         {item.notificationCount}
                     </Badge>
                   )}

@@ -137,17 +137,18 @@ function MessagesPageComponent() {
     setReplyText("");
         
     try {
-        await sendMessage(messageData);
         // Optimistically add the message to the UI
         const tempMessage: Message = {
             ...messageData,
             id: `temp-${Date.now()}`,
             isRead: true,
             createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
+            sender: user.type, // Explicitly set sender for optimistic update
         };
         setMessages(prev => [...prev, tempMessage]);
         
-        // Refresh conversations to get the latest state
+        await sendMessage(messageData);
+        // Refresh conversations to get the latest state, which will also re-fetch messages with real data
         await loadConversations();
         
     } catch (error) {
@@ -157,6 +158,8 @@ function MessagesPageComponent() {
           description: "Votre message n'a pas pu être envoyé.",
           variant: 'destructive',
         });
+        // If sending failed, remove the optimistic message
+        setMessages(prev => prev.filter(m => !m.id.startsWith('temp-')));
     } finally {
         setIsSending(false);
     }

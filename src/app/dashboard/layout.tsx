@@ -108,7 +108,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <SidebarHeader>
             <Link href="/" className="flex items-center gap-2">
                 <Icons.logo className="size-7 text-primary" />
-                <span className="text-lg font-semibold font-headline">Ùnica Cosmétiques</span>
+                <span className="text-lg font-semibold font-headline">Única Stock</span>
             </Link>
             </SidebarHeader>
             <SidebarContent>

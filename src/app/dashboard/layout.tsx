@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
   SidebarSeparator,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -36,41 +37,11 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import Loading from './loading';
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+// We create a sub-component to be able to use the useSidebar hook
+function DashboardNav() {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, isLoading, unreadMessagesCount } = useAuth();
-
-  useEffect(() => {
-    // This effect now correctly handles redirection only after loading is complete
-    if (!isLoading && !user) {
-      router.replace('/login');
-    }
-  }, [isLoading, user, router]);
-
-  useEffect(() => {
-    // Redirect buyer from empty dashboard to orders page for a better UX
-    if (!isLoading && user?.type === 'buyer' && pathname === '/dashboard') {
-      router.replace('/dashboard/orders');
-    }
-    // Redirect seller from empty dashboard to orders page as a default
-    if (!isLoading && user?.type === 'seller' && pathname === '/dashboard') {
-      router.replace('/dashboard/orders');
-    }
-  }, [isLoading, user, pathname, router]);
-
-
-  if (isLoading) {
-    return <Loading />;
-  }
-  
-  // If loading is finished and there's still no user, we render nothing,
-  // letting the useEffect above handle the redirection. This prevents rendering
-  // the layout for a split second before redirecting.
-  if (!user) {
-    return null;
-  }
-
+  const { user, unreadMessagesCount } = useAuth();
+  const { open } = useSidebar();
 
   const isActive = (path: string) => pathname === path || (path === '/dashboard/messages' && pathname.startsWith('/dashboard/messages'));
 
@@ -91,8 +62,98 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/settings', label: 'Paramètres', icon: Settings },
   ];
 
-  const sellerSiteManagementNav = [
-  ]
+  const navItems = user?.type === 'seller' ? sellerNav : buyerNav;
+
+  return (
+    <>
+      {user?.type === 'buyer' && (
+          <SidebarMenu>
+          <SidebarMenuItem>
+              <SidebarMenuButton
+              asChild
+              isActive={isActive('/dashboard')}
+              tooltip={{ children: 'Dashboard' }}
+              >
+              <Link href="/dashboard">
+                  <LayoutDashboard />
+                  {open && <span>Dashboard</span>}
+              </Link>
+              </SidebarMenuButton>
+          </SidebarMenuItem>
+          </SidebarMenu>
+      )}
+      <SidebarMenu>
+          {navItems.map((item) => (
+          <SidebarMenuItem key={item.href}>
+              <SidebarMenuButton
+              asChild
+              isActive={isActive(item.href)}
+              tooltip={{ children: item.label }}
+              >
+              <Link href={item.href} className="relative">
+                  <item.icon />
+                  {open && <span>{item.label}</span>}
+                  {item.notificationCount && item.notificationCount > 0 && (
+                  <Badge className={cn("absolute right-2 top-1/2 -translate-y-1/2 h-5 min-w-[1.25rem] justify-center p-1 text-xs", !open && "scale-0")}>
+                      {item.notificationCount}
+                  </Badge>
+                  )}
+              </Link>
+              </SidebarMenuButton>
+          </SidebarMenuItem>
+          ))}
+      </SidebarMenu>
+      
+      <SidebarSeparator />
+      <SidebarMenu>
+          {commonNav.map((item) => (
+          <SidebarMenuItem key={item.href}>
+              <SidebarMenuButton
+              asChild
+              isActive={isActive(item.href)}
+              tooltip={{ children: item.label }}
+              >
+              <Link href={item.href}>
+                  <item.icon />
+                  {open && <span>{item.label}</span>}
+              </Link>
+              </SidebarMenuButton>
+          </SidebarMenuItem>
+          ))}
+      </SidebarMenu>
+    </>
+  );
+}
+
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace('/login');
+    }
+  }, [isLoading, user, router]);
+
+  useEffect(() => {
+    if (!isLoading && user?.type === 'buyer' && pathname === '/dashboard') {
+      router.replace('/dashboard/orders');
+    }
+    if (!isLoading && user?.type === 'seller' && pathname === '/dashboard') {
+      router.replace('/dashboard/orders');
+    }
+  }, [isLoading, user, pathname, router]);
+
+
+  if (isLoading) {
+    return <Loading />;
+  }
+  
+  if (!user) {
+    return null;
+  }
 
   const siteNav = [
     { href: '/', label: 'Accueil' },
@@ -100,7 +161,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/ingredients', label: 'Nos Ingrédients' },
   ];
 
-  const navItems = user.type === 'seller' ? sellerNav : buyerNav;
 
   return (
     <SidebarProvider defaultOpen>
@@ -112,84 +172,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Link>
             </SidebarHeader>
             <SidebarContent>
-            {user.type === 'buyer' && (
-                <SidebarMenu>
-                <SidebarMenuItem>
-                    <SidebarMenuButton
-                    asChild
-                    isActive={isActive('/dashboard')}
-                    tooltip={{ children: 'Dashboard' }}
-                    >
-                    <Link href="/dashboard">
-                        <LayoutDashboard />
-                        <span>Dashboard</span>
-                    </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-                </SidebarMenu>
-            )}
-            <SidebarMenu>
-                {navItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.href)}
-                    tooltip={{ children: item.label }}
-                    >
-                    <Link href={item.href} className="relative">
-                        <item.icon />
-                        <span>{item.label}</span>
-                        {item.notificationCount && item.notificationCount > 0 && (
-                        <Badge className="absolute right-2 top-1/2 -translate-y-1/2 h-5 min-w-[1.25rem] justify-center p-1 text-xs">
-                            {item.notificationCount}
-                        </Badge>
-                        )}
-                    </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-                ))}
-            </SidebarMenu>
-            
-            {user.type === 'seller' && sellerSiteManagementNav.length > 0 && (
-                <>
-                <SidebarSeparator />
-                <SidebarMenu>
-                    <span className="px-4 text-xs font-semibold uppercase text-muted-foreground/80">Gestion du site</span>
-                    {sellerSiteManagementNav.map((item) => (
-                    <SidebarMenuItem key={item.href}>
-                        <SidebarMenuButton
-                        asChild
-                        isActive={isActive(item.href)}
-                        tooltip={{ children: item.label }}
-                        >
-                        <Link href={item.href}>
-                            <item.icon />
-                            <span>{item.label}</span>
-                        </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    ))}
-                </SidebarMenu>
-                </>
-            )}
-
-            <SidebarSeparator />
-            <SidebarMenu>
-                {commonNav.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.href)}
-                    tooltip={{ children: item.label }}
-                    >
-                    <Link href={item.href}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                    </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-                ))}
-            </SidebarMenu>
+              <DashboardNav />
             </SidebarContent>
         </Sidebar>
       <SidebarInset>

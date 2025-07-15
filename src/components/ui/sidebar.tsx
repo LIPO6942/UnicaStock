@@ -86,7 +86,7 @@ const Sidebar = React.forwardRef<HTMLElement, React.ComponentProps<"aside">>(({ 
             ref={ref}
             className={cn(
                 "hidden md:flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300 ease-in-out flex-shrink-0",
-                open ? "w-64" : "w-16",
+                open ? "w-64" : "w-20",
                 className
             )}
             {...props}

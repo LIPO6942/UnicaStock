@@ -92,11 +92,15 @@ function DashboardNav() {
               >
               <Link href={item.href} className="relative">
                   <item.icon />
-                  {open && <span>{item.label}</span>}
-                  {item.notificationCount && item.notificationCount > 0 && (
-                  <Badge className={cn("absolute right-2 top-1/2 -translate-y-1/2 h-5 min-w-[1.25rem] justify-center p-1 text-xs", !open && "scale-0")}>
-                      {item.notificationCount}
-                  </Badge>
+                  {open && (
+                    <>
+                      <span>{item.label}</span>
+                      {item.notificationCount && item.notificationCount > 0 && (
+                        <Badge className="absolute right-2 top-1/2 -translate-y-1/2 h-5 min-w-[1.25rem] justify-center p-1 text-xs">
+                            {item.notificationCount}
+                        </Badge>
+                      )}
+                    </>
                   )}
               </Link>
               </SidebarMenuButton>

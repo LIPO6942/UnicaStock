@@ -82,7 +82,7 @@ export async function getAllConversationsForUser(user: UserProfile): Promise<Con
     } else {
         // Buyer can ONLY list messages where they are the buyer.
         // We do NOT add orderBy to comply with simple security rules without composite indexes.
-        q = query(messagesCollection_ref, where('buyerId', '==', user.uid));
+        q = query(messagesCollectionRef, where('buyerId', '==', user.uid));
     }
     
     const snapshot = await getDocs(q);

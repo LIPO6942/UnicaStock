@@ -1,3 +1,4 @@
+
 'use client';
 
 import './globals.css';
@@ -27,6 +28,9 @@ export default function RootLayout({
       <head>
         <title>Unica Link</title>
         <meta name="description" content="Matières premières pour produits cosmétiques en Tunisie" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#F4A460" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable, ptSans.variable)}>
         <AuthProvider>

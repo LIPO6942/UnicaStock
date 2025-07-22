@@ -30,7 +30,7 @@ export default function RootLayout({
         <meta name="description" content="Matières premières pour produits cosmétiques en Tunisie" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#F4A460" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <link rel="apple-touch-icon" href="/icon-192x192.png" />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable, ptSans.variable)}>
         <AuthProvider>
